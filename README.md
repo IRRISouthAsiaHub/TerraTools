@@ -118,11 +118,6 @@ TerraTools: A centralized platform for plant breeding and genomics data analysis
 International Rice Research Institute (IRRI)
 
 Email:
-- p.sinha@cgiar.org
-- ashmithamganesan@gmail.com
+- irrisah@gmail.com
+IRRI, South Asia Hub, India
 
----
-
-## License
-
-MIT License

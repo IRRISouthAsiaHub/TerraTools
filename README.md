@@ -85,9 +85,11 @@ Designed primarily for agricultural researchers and breeders, TerraTools enables
 
 ---
 
-## Screenshots
+## Download Github
 
-(Add screenshots here)
+git clone https://github.com/IRRISouthAsiaHub/TerraTools.git
+
+cd TerraTools
 
 ---
 

@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.common.r_locator import find_rscript, get_r_env, rscript_not_found_message
 from tools.common.subprocess_utils import no_window_kwargs
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -17,13 +19,11 @@ from tools.common.subprocess_utils import no_window_kwargs
 # ============================================================
 
 AD_DIR = Path(__file__).resolve().parent
-AD_HTML = AD_DIR / "additive_dominance.html"
 
 BACKEND_DIR = AD_DIR.parent / "backend"
 CLI_FILE = BACKEND_DIR / "additive_dominance_cli.R"
 
-RESULT_DIR = AD_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("additive_dominance", AD_DIR / "results")
 
 
 # ============================================================
@@ -565,13 +565,11 @@ class AdditiveDominanceWindow(QMainWindow):
         self.browser.page().setWebChannel(self.channel)
 
         print(
-            "[ADDITIVE-DOMINANCE WINDOW] loading:", AD_HTML,
+            "[ADDITIVE-DOMINANCE WINDOW] loading React frontend",
             flush=True
         )
 
-        self.browser.load(
-            QUrl.fromLocalFile(str(AD_HTML))
-        )
+        load_frontend(self.browser, "additive_dominance")
 
         self.browser.loadFinished.connect(self._page_loaded)
 

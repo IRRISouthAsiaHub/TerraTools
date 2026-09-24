@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.genomic_prediction.config import GenomicPredictionConfig
 from tools.genomic_prediction.backend.genomic_prediction_runner import GenomicPredictionEngine
+from ui.frontend import load_frontend
 
 
 class _GenomicPredictionWorker(QObject):
@@ -169,5 +170,4 @@ class GenomicPredictionWindow(QMainWindow):
         self.channel.registerObject("genomicPredictionBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "genomic_prediction.html"
-        self.browser.load(QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "genomic_prediction")

@@ -8,15 +8,12 @@ statsmodels
 openpyxl
 plotly
 pycirclize
+# PySide6 already includes Qt WebEngine (via its PySide6-Addons dependency)
 PySide6
-PySide6-WebEngine
 joblib
 requests
-seaborn
-imblearn
-huggingface_hub
-joblib
 imbalanced-learn
-requests
+huggingface_hub
 tensorflow
-sommer
+# R packages (e.g. sommer, rrBLUP) are NOT pip packages — they are listed in
+# environment.yml and shipped in the bundled R runtime.

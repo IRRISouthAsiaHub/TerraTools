@@ -23,6 +23,7 @@ from tools.common.subprocess_utils import no_window_kwargs
 # PATHS
 # ============================================================
 from pathlib import Path
+from ui.frontend import load_frontend
 
 # tools/linkage/ui
 UI_DIR = Path(__file__).resolve().parent
@@ -31,7 +32,6 @@ UI_DIR = Path(__file__).resolve().parent
 LINKAGE_DIR = UI_DIR.parent
 
 # tools/linkage/ui/linkage.html
-LINKAGE_HTML = UI_DIR / "linkage.html"
 
 # tools/linkage/backend
 BACKEND_DIR = LINKAGE_DIR / "backend"
@@ -714,11 +714,7 @@ class LinkageWindow(QMainWindow):
         # Load Linkage HTML
         # ----------------------------------------------------
 
-        self.browser.load(
-            QUrl.fromLocalFile(
-                str(LINKAGE_HTML)
-            )
-        )
+        load_frontend(self.browser, "linkage")
 
 
 # ============================================================

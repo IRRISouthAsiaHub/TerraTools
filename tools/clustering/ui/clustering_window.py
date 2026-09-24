@@ -8,9 +8,9 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
-from ui.frontend import frontend_url
 from tools.clustering.config import ClusteringConfig
 from tools.clustering.backend.clustering_runner import ClusteringEngine
+from ui.frontend import load_frontend
 
 
 class _ClusteringWorker(QObject):
@@ -138,5 +138,4 @@ class ClusteringWindow(QMainWindow):
         self.channel.registerObject("clusteringBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "clustering.html"
-        self.browser.load(frontend_url("clustering") or QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "clustering")

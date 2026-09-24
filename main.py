@@ -55,10 +55,26 @@ from ui.main_window import MainWindow
 
 
 def main():
+    if sys.platform.startswith("win"):
+        # Own taskbar identity, so Windows groups/icons TerraTools as its
+        # own app rather than as "python.exe".
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("IRRI.TerraTools")
+
     app = QApplication(sys.argv)
+    app.setApplicationName("TerraTools")
+    app.setApplicationDisplayName("TerraTools")
+    app.setOrganizationName("IRRI")
 
     window = MainWindow()
-    window.show()
+    window.showMaximized()
+
+    if sys.platform == "darwin" and getattr(sys, "frozen", False):
+        # Packaged Mac app: unpack the bundled R runtime in the background
+        # (first launch only) so it's ready before an R tool is used.
+        import threading
+        from tools.common.r_locator import prepare_macos_r
+        threading.Thread(target=prepare_macos_r, daemon=True).start()
 
     sys.exit(app.exec())
 

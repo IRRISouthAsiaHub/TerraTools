@@ -25,7 +25,6 @@ export function Background({ variant = 'photo', count = 16 }) {
   )
   return (
     <div className={`bg ${variant === 'photo' ? '' : 'bg-mint'}`} aria-hidden>
-      {variant === 'photo' && <><div className="bg bg-photo" /><div className="bg bg-shade" /></>}
       {flies.map((f, i) => (
         <motion.span
           key={i}
@@ -93,10 +92,9 @@ export function TabPane({ id, children }) {
   return (
     <motion.div
       key={id}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -374,21 +372,16 @@ export function TableSlot({ rows, title, maxHeight = 340 }) {
 /** Standard tool window: header + tabs + panes + run bar. */
 export function ToolPage({ icon, title, subtitle, tabs, tab, setTab, id, children, run }) {
   return (
-    <>
-      <Background variant="mint" count={10} />
-      <div className="page">
-        <div className="container narrow">
-          <ToolHeader icon={icon} title={title} subtitle={subtitle} />
-          <div className="panel on-mint">
-            <Tabs tabs={tabs} value={tab} onChange={setTab} idPrefix={id} />
-            <div className="tab-content">
-              <AnimatePresence mode="wait">{children}</AnimatePresence>
-            </div>
-            {run && <RunBar {...run} />}
-          </div>
+    <div className="view-inner">
+      <ToolHeader icon={icon} title={title} subtitle={subtitle} />
+      <div className="panel on-mint">
+        <Tabs tabs={tabs} value={tab} onChange={setTab} idPrefix={id} />
+        <div className="tab-content">
+          {children}
         </div>
+        {run && <RunBar {...run} />}
       </div>
-    </>
+    </div>
   )
 }
 

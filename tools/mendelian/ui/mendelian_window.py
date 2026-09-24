@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.mendelian.config import MendelianConfig
 from tools.mendelian.backend.mendelian_runner import MendelianEngine
+from ui.frontend import load_frontend
 
 
 class _MendelianWorker(QObject):
@@ -141,5 +142,4 @@ class MendelianWindow(QMainWindow):
         self.channel.registerObject("mendelianBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "mendelian.html"
-        self.browser.load(QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "mendelian")

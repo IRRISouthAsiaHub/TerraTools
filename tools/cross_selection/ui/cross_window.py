@@ -11,6 +11,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow
 
 from tools.cross_selection.backend import cross_runner
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -18,10 +20,8 @@ from tools.cross_selection.backend import cross_runner
 # ============================================================
 
 CROSS_DIR = Path(__file__).resolve().parent
-CROSS_HTML = CROSS_DIR / "cross_selection.html"
 
-RESULT_DIR = CROSS_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("cross_selection", CROSS_DIR / "results")
 
 
 # ============================================================
@@ -540,11 +540,7 @@ class CrossWindow(QMainWindow):
         # Load Cross Selection HTML
         # ----------------------------------------------------
 
-        self.browser.load(
-            QUrl.fromLocalFile(
-                str(CROSS_HTML)
-            )
-        )
+        load_frontend(self.browser, "cross_selection")
 
 
 # ============================================================

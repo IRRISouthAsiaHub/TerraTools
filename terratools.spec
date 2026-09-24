@@ -23,13 +23,43 @@ block_cipher = None
 
 PROJECT_ROOT = Path(SPECPATH)  # SPECPATH is injected by PyInstaller
 
-# ── Data files: everything the HTML frontends and tool assets need ────────
+# ── React frontend: rebuild frontend/dist if it's missing or stale ────────
+# The exe only ships the built frontend/dist/index.html (Node is NOT needed
+# on end-user machines), but it must be built on the packaging machine.
+# This rebuilds automatically whenever any file under frontend/src (or the
+# frontend config) is newer than the last build.
+import shutil
+import subprocess
+
+FRONTEND = PROJECT_ROOT / "frontend"
+FRONTEND_INDEX = FRONTEND / "dist" / "index.html"
+_sources = [p for p in (FRONTEND / "src").rglob("*") if p.is_file()]
+_sources += [FRONTEND / n for n in ("index.html", "package.json", "vite.config.js")]
+_stale = not FRONTEND_INDEX.exists() or max(p.stat().st_mtime for p in _sources) > FRONTEND_INDEX.stat().st_mtime
+
+if _stale:
+    npm = shutil.which("npm")
+    if not npm:
+        raise SystemExit(
+            "frontend/dist is missing or out of date and npm was not found.\n"
+            "Install Node.js (https://nodejs.org), then run:\n"
+            "    cd frontend && npm install && npm run build"
+        )
+    print("[terratools.spec] Building React frontend (npm run build)...")
+    if not (FRONTEND / "node_modules").exists():
+        subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
+    subprocess.run([npm, "run", "build"], cwd=FRONTEND, check=True)
+else:
+    print("[terratools.spec] React frontend is up to date.")
+
+# ── Data files: the React frontend and tool assets ────────────────────────
 datas = [
-    (str(PROJECT_ROOT / "dashboard"), "dashboard"),
-    # React frontend (run `npm run build` in frontend/ before packaging).
+    # React frontend — a single self-contained index.html used by every
+    # window. Run `npm run build` in frontend/ before packaging.
     (str(PROJECT_ROOT / "frontend" / "dist"), "frontend/dist"),
-    (str(PROJECT_ROOT / "tools"), "tools"),   # includes every .html, config, and (if you bundled it) OS_model.dat
+    (str(PROJECT_ROOT / "tools"), "tools"),   # backends, configs and (if you bundled it) OS_model.dat
     (str(PROJECT_ROOT / "ui"), "ui"),
+    (str(PROJECT_ROOT / "terratools.ico"), "."),   # main window icon
 ]
 
 # ── Hidden imports PyInstaller's static analysis tends to miss ────────────

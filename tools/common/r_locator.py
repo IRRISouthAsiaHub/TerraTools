@@ -17,7 +17,64 @@ actionable error instead of hanging or crashing.
 import os
 import shutil
 import sys
+import threading
 from pathlib import Path
+
+
+# ── macOS packaged app: bundled R runtime ────────────────────────────────
+# A conda R environment has its install path baked into its files, so it
+# only works at the exact path it was built at. build_macos.sh therefore
+# builds it at this fixed, world-writable location, and the .app ships it
+# as Resources/r_runtime.tar.gz. On first use it is unpacked back to the
+# same path — no files are rewritten, so macOS code signatures stay valid.
+# MUST match R_PREFIX in build_macos/build_macos.sh.
+MACOS_R_PREFIX = Path("/Users/Shared/TerraTools/r_runtime")
+_MACOS_R_LOCK = threading.Lock()
+
+
+def prepare_macos_r() -> Path | None:
+    """Unpack the bundled R runtime if it isn't unpacked (or is from an
+    older app version). Returns the Rscript path, or None when this isn't a
+    packaged macOS build. Safe to call from several threads; the first run
+    takes a minute or so, later calls return immediately."""
+    if sys.platform != "darwin" or not _is_frozen():
+        return None
+    bundle = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    archive = bundle / "r_runtime.tar.gz"
+    stamp_src = bundle / "r_runtime.stamp"
+    rscript = MACOS_R_PREFIX / "bin" / "Rscript"
+    if not archive.is_file():
+        return rscript if rscript.exists() else None
+
+    wanted = stamp_src.read_text().strip() if stamp_src.is_file() else str(archive.stat().st_size)
+    stamp = MACOS_R_PREFIX / ".terratools-stamp"
+
+    with _MACOS_R_LOCK:
+        if rscript.exists() and stamp.is_file() and stamp.read_text().strip() == wanted:
+            return rscript
+
+        import tarfile
+        print(f"[TerraTools] Unpacking bundled R runtime to {MACOS_R_PREFIX} ...", flush=True)
+        staging = MACOS_R_PREFIX.with_name(".r_runtime.unpacking")
+        shutil.rmtree(staging, ignore_errors=True)
+        staging.mkdir(parents=True)
+        with tarfile.open(archive, "r:gz") as tar:
+            if sys.version_info >= (3, 12):
+                tar.extractall(staging, filter="tar")
+            else:
+                tar.extractall(staging)
+        # Contents only reference MACOS_R_PREFIX, so moving the finished
+        # tree into place is safe (and a half-unpacked tree never is used).
+        shutil.rmtree(MACOS_R_PREFIX, ignore_errors=True)
+        staging.rename(MACOS_R_PREFIX)
+        stamp.write_text(wanted)
+        # Let every user account on this Mac use (and update) it.
+        try:
+            os.chmod(MACOS_R_PREFIX.parent, 0o777)
+        except OSError:
+            pass
+        print("[TerraTools] R runtime ready.", flush=True)
+        return rscript
 
 
 def _is_frozen() -> bool:
@@ -48,7 +105,15 @@ def find_rscript() -> str | None:
     is_windows = sys.platform.startswith("win")
 
     candidates = []
-    if _is_frozen():
+    if _is_frozen() and sys.platform == "darwin":
+        try:
+            mac_r = prepare_macos_r()
+        except Exception as e:
+            print(f"[TerraTools] Could not unpack bundled R runtime: {e}", flush=True)
+            mac_r = None
+        if mac_r is not None:
+            candidates.append(mac_r)
+    elif _is_frozen():
         # Bundled runtime shipped by the installer, e.g.:
         #   C:\Program Files\TerraTools\r_runtime\bin\Rscript.exe
         if is_windows:

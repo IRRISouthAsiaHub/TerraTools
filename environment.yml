@@ -12,7 +12,9 @@ name: terratools-r
 channels:
   - conda-forge
 dependencies:
-  - r-base=4.3
+  # Windows ships R 4.6.x; let conda pick the newest R that every package
+  # below supports on the build platform.
+  - r-base>=4.3
   - r-readr
   - r-dplyr
   - r-tidyr
@@ -45,6 +47,9 @@ dependencies:
   - r-lmertest
   - r-viridislite
   - r-sommer
-  - r-rrBLUP
+  - r-rrblup
   - r-ggpubr
   - r-writexl
+  # Used by the R backends but previously missing here:
+  - r-ggrepel
+  - r-caret

@@ -8,6 +8,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.qtl_seq.backend import qtlseq_runner
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -15,10 +17,8 @@ from tools.qtl_seq.backend import qtlseq_runner
 # ============================================================
 
 QTLSEQ_DIR = Path(__file__).resolve().parent
-QTLSEQ_HTML = QTLSEQ_DIR / "qtl_seq.html"
 
-RESULT_DIR = QTLSEQ_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("qtl_seq", QTLSEQ_DIR / "results")
 
 
 # ============================================================
@@ -392,13 +392,9 @@ class QTLSeqWindow(QMainWindow):
         self.channel.registerObject("qtlSeqBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        print(
-            "[QTL-SEQ WINDOW] loading:", QTLSEQ_HTML, flush=True
-        )
+        print("[QTL-SEQ WINDOW] loading React frontend", flush=True)
 
-        self.browser.load(
-            QUrl.fromLocalFile(str(QTLSEQ_HTML))
-        )
+        load_frontend(self.browser, "qtl_seq")
 
         self.browser.loadFinished.connect(self._page_loaded)
 

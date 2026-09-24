@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { RouteContext, setRunState } from './runState.js'
 
 /* ------------------------------------------------------------------ *
  * QWebChannel access.
@@ -71,6 +72,8 @@ export function useBridge(objectName, mockFactory) {
  */
 export function useTool(bridge, runSlot, opts = {}) {
   const [state, setState] = useState('idle')
+  const route = useContext(RouteContext)
+  useEffect(() => { setRunState(route, state) }, [route, state])
   const [status, setStatus] = useState('Ready')
   const [result, setResult] = useState(null)
   const resultCb = useRef(null)

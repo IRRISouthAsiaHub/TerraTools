@@ -11,6 +11,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow
 
 from tools.gene_extractor.backend import gene_extractor_runner
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -18,10 +20,8 @@ from tools.gene_extractor.backend import gene_extractor_runner
 # ============================================================
 
 gene_EXTRACTOR_DIR = Path(__file__).resolve().parent
-gene_EXTRACTOR_HTML = gene_EXTRACTOR_DIR / "gene_extractor.html"
 
-RESULT_DIR = gene_EXTRACTOR_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("gene_extractor", gene_EXTRACTOR_DIR / "results")
 
 
 # ============================================================
@@ -376,11 +376,7 @@ class geneExtractorWindow(QMainWindow):
         # Load HTML
         # ----------------------------------------------------
 
-        self.browser.load(
-            QUrl.fromLocalFile(
-                str(gene_EXTRACTOR_HTML)
-            )
-        )
+        load_frontend(self.browser, "gene_extractor")
 
 
 # ============================================================

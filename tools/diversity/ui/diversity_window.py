@@ -9,7 +9,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.diversity.config import DiversityConfig
-from tools.diversity.backend.diversity_runner import DiversityEngine
+from ui.frontend import load_frontend
 
 
 class _DiversityWorker(QObject):
@@ -25,6 +25,10 @@ class _DiversityWorker(QObject):
 
     @Slot()
     def run(self):
+        # Imported here, not at module level: the engine pulls in heavy
+        # plotting/stats libraries and every tool bridge is created at
+        # app startup.
+        from tools.diversity.backend.diversity_runner import DiversityEngine
         engine = DiversityEngine(self.config)
         result = engine.run()
         self.finished.emit(result)
@@ -141,5 +145,4 @@ class DiversityWindow(QMainWindow):
         self.channel.registerObject("diversityBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "diversity.html"
-        self.browser.load(QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "diversity")

@@ -1,31 +1,33 @@
 name: Build macOS app
 
-# Manual trigger only. Produces installer_output/TerraTools.dmg as a
-# downloadable workflow artifact — useful if you don't have a Mac handy,
-# since PyInstaller/TensorFlow/PySide6 all need to build natively on
-# macOS (this repo cannot be built into a macOS app from Windows).
+# Manual trigger only. Builds TerraTools.app and packages it as
+# installer_output/TerraTools.dmg, uploaded as a downloadable workflow
+# artifact — useful if you don't have a Mac handy, since PyInstaller,
+# TensorFlow and PySide6 all have to be built natively on macOS.
 on:
   workflow_dispatch: {}
 
 jobs:
   build:
-    runs-on: macos-14   # Apple Silicon (arm64) runner
+    runs-on: macos-14   # Apple Silicon (arm64) — the DMG runs on M1/M2/M3/M4 Macs
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
+      # conda provides both the Python build env and the bundled R runtime
       - uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: "22"
 
-      - name: Build
+      - name: Build app and DMG
         shell: bash -l {0}
         run: bash build_macos/build_macos.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: TerraTools-macOS
+          name: TerraTools-macOS-arm64
           path: installer_output/TerraTools.dmg

@@ -19,6 +19,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 # TensorFlow-free preview helper is imported directly.
 from tools.heterosis.backend import heterosis_preview
 from tools.common.subprocess_utils import no_window_kwargs
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -26,7 +28,6 @@ from tools.common.subprocess_utils import no_window_kwargs
 # ============================================================
 
 HETEROSIS_DIR = Path(__file__).resolve().parent
-HETEROSIS_HTML = HETEROSIS_DIR / "heterosis.html"
 
 BACKEND_DIR = HETEROSIS_DIR.parent / "backend"
 PROCESS_SCRIPT = BACKEND_DIR / "heterosis_process.py"
@@ -35,8 +36,7 @@ PROCESS_SCRIPT = BACKEND_DIR / "heterosis_process.py"
 # subprocess can resolve `tools.heterosis.backend.heterosis_runner`.
 PROJECT_ROOT = HETEROSIS_DIR.parents[2]
 
-RESULT_DIR = HETEROSIS_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("heterosis", HETEROSIS_DIR / "results")
 
 
 # ============================================================
@@ -541,11 +541,7 @@ class HeterosisWindow(QMainWindow):
         # Load Heterosis HTML
         # ----------------------------------------------------
 
-        self.browser.load(
-            QUrl.fromLocalFile(
-                str(HETEROSIS_HTML)
-            )
-        )
+        load_frontend(self.browser, "heterosis")
 
 
 # ============================================================

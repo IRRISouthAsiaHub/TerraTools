@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.pybsaseq.config import PyBSASeqConfig
 from tools.pybsaseq.backend.pybsaseq_runner import PyBSASeqEngine
+from ui.frontend import load_frontend
 
 
 class _PyBSASeqWorker(QObject):
@@ -143,5 +144,4 @@ class PyBSASeqWindow(QMainWindow):
         self.channel.registerObject("pybsaseqBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "pybsaseq.html"
-        self.browser.load(QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "pybsaseq")

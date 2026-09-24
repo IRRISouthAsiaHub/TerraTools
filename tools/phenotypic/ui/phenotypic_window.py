@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QFileDialog, QMainWindow
 
 from tools.phenotypic.config import PhenotypicConfig
 from tools.phenotypic.backend.phenotypic_runner import PhenotypicEngine
+from ui.frontend import load_frontend
 
 
 class _PhenotypicWorker(QObject):
@@ -179,5 +180,4 @@ class PhenotypicWindow(QMainWindow):
         self.channel.registerObject("phenotypicBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "phenotypic.html"
-        self.browser.load(QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "phenotypic")

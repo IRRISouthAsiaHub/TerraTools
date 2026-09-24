@@ -8,9 +8,8 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
-from ui.frontend import frontend_url
 from tools.gwas.config import GWASConfig
-from tools.gwas.backend.gwas_engine import GWASEngine
+from ui.frontend import load_frontend
 
 
 class _GWASWorker(QObject):
@@ -25,6 +24,9 @@ class _GWASWorker(QObject):
     @Slot()
     def run(self):
         print("[GWAS WORKER] run() called on worker thread", flush=True)
+        # Imported here, not at module level: the engine is heavy and every
+        # tool bridge is created at app startup.
+        from tools.gwas.backend.gwas_engine import GWASEngine
         engine = GWASEngine(self.config)
         print("[GWAS WORKER] GWASEngine created, calling engine.run()...", flush=True)
         result = engine.run()
@@ -157,5 +159,4 @@ class GWASWindow(QMainWindow):
         self.channel.registerObject("gwasBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
 
-        html_file = Path(__file__).resolve().parent / "gwas.html"
-        self.browser.load(frontend_url("gwas") or QUrl.fromLocalFile(str(html_file)))
+        load_frontend(self.browser, "gwas")

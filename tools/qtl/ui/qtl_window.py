@@ -10,6 +10,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QMainWindow
 
 from tools.qtl.backend import qtl_runner
+from ui.frontend import load_frontend
+from tools.common.paths import results_dir
 
 
 # ============================================================
@@ -17,10 +19,8 @@ from tools.qtl.backend import qtl_runner
 # ============================================================
 
 QTL_DIR = Path(__file__).resolve().parent
-QTL_HTML = QTL_DIR / "qtl.html"
 
-RESULT_DIR = QTL_DIR / "results"
-RESULT_DIR.mkdir(exist_ok=True)
+RESULT_DIR = results_dir("qtl", QTL_DIR / "results")
 
 
 # ============================================================
@@ -648,11 +648,7 @@ class QTLWindow(QMainWindow):
         # Load QTL HTML
         # ----------------------------------------------------
 
-        self.browser.load(
-            QUrl.fromLocalFile(
-                str(QTL_HTML)
-            )
-        )
+        load_frontend(self.browser, "qtl")
 
 
 # ============================================================

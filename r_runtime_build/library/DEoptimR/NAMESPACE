@@ -1,3 +1,0 @@
-importFrom( stats, runif, median )
-importFrom( methods, formalArgs )
-export( JDEoptim, NCDEoptim, SPJDEoptim )

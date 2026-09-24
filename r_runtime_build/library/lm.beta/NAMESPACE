@@ -1,8 +1,0 @@
-exportPattern("^[[:alpha:]]+")
-S3method(print, lm.beta)
-S3method(summary, lm.beta)
-S3method(coef, lm.beta)
-S3method(xtable, lm.beta)
-S3method(xtable, summary.lm.beta)
-importFrom("stats", "coef", "model.frame", "model.matrix", "weighted.mean")
-importFrom("xtable", "xtable", "caption<-", "label<-", "xalign", "xdigits", "xdisplay", "align<-", "digits<-", "display<-")

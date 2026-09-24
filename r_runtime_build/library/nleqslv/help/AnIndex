@@ -1,9 +1,0 @@
-nleqslv-package	nleqslv-package
-Iteration-report	nleqslv-iterationreport
-nleqslv	nleqslv
-nleqslv-iterationreport	nleqslv-iterationreport
-nleqslv.Intro	nleqslv-package
-print	print.test.nleqslv
-print.test.nleqslv	print.test.nleqslv
-searchZeros	searchZeros
-testnslv	testnslv

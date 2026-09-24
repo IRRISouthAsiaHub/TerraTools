@@ -1,2 +1,0 @@
-# gam
-gam repo

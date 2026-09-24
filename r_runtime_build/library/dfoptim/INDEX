@@ -1,7 +1,0 @@
-dfoptim-package         Derivative-Free Optimization
-hjk                     Hooke-Jeeves derivative-free minimization
-                        algorithm
-mads                    Mesh Adaptive Direct Searches (MADS) algorithm
-                        for derivative-free and black-box optimization
-nmk                     Nelder-Mead optimziation algorithm for
-                        derivative-free optimization

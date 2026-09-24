@@ -1,0 +1,31 @@
+as.data.frame.estimate_contrasts
+                        Converting modelbased-objects into raw data
+                        frames
+coffee_data             Sample dataset from a course about analysis of
+                        factorial designs
+collapse_by_group       Collapse raw data by random effect groups
+describe_nonlinear      Describe the smooth term (for GAMs) or
+                        non-linear predictors
+display.estimate_contrasts
+                        Printing modelbased-objects
+efc                     Sample dataset from the EFC Survey
+estimate_contrasts      Estimate Marginal Contrasts
+estimate_expectation    Model-based predictions
+estimate_grouplevel     Group-specific parameters of mixed models
+                        random effects
+estimate_means          Estimate Marginal Means (Model-based average at
+                        each factor level)
+estimate_slopes         Estimate Marginal Effects
+fish                    Sample data set
+get_emcontrasts         Consistent API for 'emmeans' and
+                        'marginaleffects'
+modelbased-options      Global options from the modelbased package
+plot.estimate_predicted
+                        Automated plotting for 'modelbased' objects
+pool_contrasts          Pool contrasts and comparisons from
+                        'estimate_contrasts()'
+pool_predictions        Pool Predictions and Estimated Marginal Means
+puppy_love              More puppy therapy data
+residualize_over_grid   Compute partial residuals from a data grid
+smoothing               Smoothing a vector or a time series
+zero_crossings          Find zero-crossings and inversion points

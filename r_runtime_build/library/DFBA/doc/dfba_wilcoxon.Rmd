@@ -1,0 +1,177 @@
+---
+title: "dfba_wilcoxon"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_wilcoxon}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction and Overview
+
+Given two *paired*, *continuous* variates (denoted as $Y_1$ and $Y_2$), the standard frequentist parametric analysis is the paired $t$-test. This analysis is predicated on the assumption that the scores are independent, identically-distributed data from a normal distribution for each condition. However, the parametric assumptions are not likely to be strictly true. The possibility of mixture processes invalidate the assumption of the scores being independent and identically distributed. Moreover, there are processes where the central limit theorem does not apply because the underlying stochastic process is not based on the mean value of a latent distribution. Processes such as flooding or task completion time have measures that are dependent on the minimum or the maximum of an underlying process rather than a mean value. The parametric assumptions for the paired $t$ -test are not reasonable for this type of research. Consequently, it is prudent to have a powerful alternative method for doing statistical inference that is not based on parametric assumptions. The Wilcoxon signed-rank test is the most powerful frequentist alternative to the paired $t$-test (Siegel and Castellan, 1988).^[The sign test is another nonparametric statistical procedure that can be used for paired-continuous variates. The `DFBA` package has a function for doing a Bayesian sign test (*i.e.*, the `dfba_sign_test()` function). However, the sign test is a less powerful procedure than the Wilcoxon test.] Because the signed-rank procedure uses rank values, it has the additional advantage of not being susceptible to the undue influence of outlier scores. Consequently, the Wilcoxon signed-rank test is a more robust inferential approach than the standard $t$-test.
+
+Chechile (2018) developed a Bayesian version for the Wilcoxon signed-rank statistic. The theory for the Bayesian version of the Wilcoxon signed-rank test is described below in the section [The Bayesian Wilcoxon Signed-Rank Procedure](#wilcoxon-procedure), and examples for using the `dfba_wilcoxon()` function are provided in the section [Using the `dfba_wilcoxon()` Function](#using-the-wilcoxon). Sections 2 and 3 involve issues associated with Monte Carlo sampling, approximating the posterior distribution with a beta distribution, the likelihood principle, and the Bayes factor; please see the vignettes for the `dfba_beta_bayes_factor()`, `dfba_binomial()` and the `dfba_beta_contrast()` functions for more information.
+
+# The Bayesian Wilcoxon Signed-Rank Procedure {#wilcoxon-procedure}
+
+The frequentist Wilcoxon signed-rank procedure is based on the rank of the difference scores $d = Y_1 - Y_2$ (Wilcoxon, 1945). The ranking is initially done on the absolute value of the nonzero $d$ values; any data pair where $d=0$ is discarded. Thus, all the remaining $|d|$ are positive rank values. In a second step, the signs for the $d$ values are assigned to the absolute value $d$ values. The sample $T_{pos}$ statistic is the sum of the ranks that have a positive sign. The sample $T_{neg}$ is the positive sum of the ranks that have a negative value; thus $T_{neg}$ is also a positive value. As an example, consider the data, taken from Chechile (2018), where there are the following eight $d$ values along with their corresponding signed ranks $sr$: 
+
+|$d$ (differences) | $sr$ (signed ranks) |
+|:----------------:|:-------------------:|
+| 1.72             |       4             |
+| 0.69             |       3             | 
+| 0.59             |       2             |
+| 2.53             |       5             |
+| 18.96            |       8             |
+| -2.94            |       -6            |
+| -3.67            |       -7            |
+| 0.56             |       1             |
+
+
+The resulting $T$ statistics for this example are: $T_{pos}=23$ and $T_{neg}=13$. In general, for $n$ nonzero $d$ scores, $T_{pos} + T_{neg} = n(n + 1)/2$. Note for the above example that $T_{pos} + T_{neg}=36$. Because the two statistics sum to a constant, statistical inference may be performed with only one of these two statistics. Let us focus on the $T_{pos}$ statistic.^[Tied ranks are possible, especially when there are $Y_1$ and $Y_2$ values have low precision. In such cases, the Wilcoxon statistics are rounded to the nearest integer.] 
+
+The frequentist Wilcoxon signed-rank procedure assumes the null hypothesis that the rate of positive signs is precisely $.5$, and based on that assumption, it computes the likelihood for the observed $T_{pos}$ plus more extreme (unobserved) $T_{pos}$ values. For the above example, the frequentist approach assumes the null hypothesis of a $.5$ rate for positive signs and computes the likelihood for $T_{pos} \ge 23$ given $n=8$. If the summed likelihood (*i.e.*, the $p$-value) is less than $\alpha$, then the frequentist signed-rank test rejects the assumed null hypothesis. The inclusion of more extreme likelihoods than the observed likelihood violates the *likelihood principle*, (see the vignette about the `dfba_binomial()` function). The likelihood principle (Berger & Wolpert, 1988) is an essential feature of the Bayesian approach. 
+
+> *The likelihood principle* can be described as the rule that, upon completion of an experiment, the only likelihood that should be computed is the likelihood of the observed data. 
+
+Other possible non-observed outcomes are irrelevant because those outcomes are not part of Bayes theorem. Both parametric and nonparametric frequentist statistics *routinely violate the likelihood principle*. When there are violations of the likelihood principle, there can be inferential paradoxes (*e.g*., Lindley & Phillips, 1976; Chechile, 2020). 
+
+Chechile (2018) developed the Bayesian model for analyzing the Wilcoxon signed-rank statistic. Because it is a Bayesian approach, it strictly adheres to the likelihood principle. A second major difference of the Bayesian approach from the frequentist analysis is that the null hypothesis is not assumed. Instead there is a sign-bias parameter $\phi_w$, which has a probability distribution on the $[0,~1]$ interval. For any value for the $\phi_w$ parameter, there is a corresponding likelihood for finding the observed $T_{pos}$ value. The problem is that this likelihood is not known in closed form. However, the likelihood values can be estimated based on Monte Carlo sampling. For example, for any arbitrary $\phi_w$ value and for $n=8$, it is possible to sample a configuration of signs over the integers $1$ to $8$ and compute the resulting $T_{pos}$ value, and then to repeat the procedure a number $N$ times. The default value for the number of Monte Carlo samples in the `dfba_wilcoxon()` function is $N=30000$ *for each candidate* $\phi_w$ *value*. The likelihood is estimated by the proportion of the Monte Carlo samples that result in the observed $T_{pos}$ value. The `dfba_wilcoxon()` function evaluates $200$ candidate values for $\phi_w$: $.025$ to $.9975$ in steps of $.005$. Thus, there is a discrete prior and posterior probability distribution over the values $.0025,~.0075,~ \ldots,~.9975$ for the $\phi_w$ parameter. Unlike the frequentist signed-rank analysis, the Bayesian approach focuses on estimating the sign-bias parameter $\phi_w$ with point and interval estimates. It also provides interval Bayes factor values.
+ 
+
+Chechile (2018) also studied the posterior distribution for $\phi_w$ as a function of sample size. He reported that the posterior $\phi_w$ can be accurately approximated by a beta distribution when the number ($n$) of non-zero $d$ values is greater than $24$. The approximation formula closely matches the mean, variance, and quantiles of the discrete distribution of the Monte Carlo sampling approach. Thus the computationally slow Monte Carlo method can be avoided when $n > 24$. For the beta approximation, the posterior beta shape parameter are $a=n_a+a_0$ and $b=n_b+b_0$ where $a_0$ are $b_0$ are the shape parameters, and where
+ 
+\begin{equation}
+  \begin{aligned}
+    n_a &=\frac{3T_{pos}}{2(n+1)}-\frac{1}{4},\\
+    n_b &=\frac{3n-1}{4} -\frac{3T_{pos}}{2(n+1)}.
+  \end{aligned}
+  (\#eq:wilcoxonbetaapprox)
+ \end{equation}
+ 
+Note that the values for the approximate, large-$n$ posterior beta will generally be non-integer values. 
+   
+  
+# Using the `dfba_wilcoxon()` Function {#using-the-wilcoxon}
+
+The `dfba_wilcoxon()` function has two required arguments, which are the data for the two paired continuous measurements `Y1` and `Y2`. The user should be careful to assure that there is a linkage between the $i$th score for $Y_1$ and the $i$th score for $Y_2$, such as the data being from the same research participant tested in two different experimental conditions. Besides these two required arguments, there are five other optional arguments (listed with their respective default values): `a0 = 1`, `b0 = 1`, `prob_interval = .95`, `samples = 30000`, and `method = NULL`. The `a0` and `b0` arguments are the shape parameters for a prior beta distribution for the $\phi_w$ parameter. The default prior is a uniform distribution, but an informed prior can be employed with the selection of different values for `a0` and `b0` The `prob_interval` argument is the value for the interval estimate of $\phi_w$. The `samples` argument is the number of Monte Carlo samples that are drawn for each candidate value for $\phi_w$. Finally, the `method` argument is either the string `"small"` or `"large"`. The input `method = "small"` specifies to use the small-$n$ Monte Carlo sampling method (described in [The Bayesian Wilcoxon Signed-Rank Procedure](#wilcoxon-procedure)); the argument `method = "large"` specifies to use the large-$n$ approximation for the $\phi_w$ distribution. When `method = NULL`, the software uses the small-$n$ Monte Carlo approach when $n \le 24$ and uses the large-$n$ approach when $n > 24$.
+
+## Example
+
+For an example let us construct a set of measures *via* the following commands
+
+```{r}
+set.seed(77)
+
+w1 <- 10 + rweibull(30, .8) 
+w2 <- 9.1 + rweibull(30, .7)
+```
+
+
+
+The data vectors `w1` and `w2` are generated by random Weibull processes that differ between the two conditions. The Weibull distribution has been useful for modeling processing such as product lifetimes or task completion time. The code `rweibull(n, k)` draws $n$ random values from a Weibull distribution that has a shape parameter of $k$. A Weibull distribution with a shape parameter less than $1$ is decidedly not a normal variate. We can use the `dfba_wilcoxon()` function to do two different analyses of the `w1` and `w2` variates.
+
+The code below creates two objects for the Bayesian Wilcoxon analyses. The `Y1` and `Y2` vectors each have $30$ values, so the `A` object is results from the large-$n$ approximation: whenever $n>24$, the default analysis is the large-$n$ approximation. The `B` object is the result of analyzing the same data with the discrete Monte Carlo sampling approach with $100,000$ samples drawn for each of the $200$ candidate values for $\phi_w$. The output from both approaches are shown below:
+
+```{r}
+A <- dfba_wilcoxon(Y1 = w1,
+                   Y2 = w2)
+
+A
+```
+
+```{r eval = FALSE}
+B <- dfba_wilcoxon(Y1 = w1,
+                   Y2 = w2,
+                   method = "small",
+                   samples = 100000,
+                   hide_progress = TRUE)
+```
+
+```{r echo = FALSE}
+load("wilcoxon_ex")
+B
+```
+
+
+Both analyses are similar in that there is a posterior probability greater than $.95$ that $\phi_w>.5$. The mean of the posterior distribution is approximately $.67$ for both approaches. The interval Bayes factor that $\phi_w>.5$ is about $21$ for both analyses. 
+
+Plots of the prior and posterior distributions for `dfba_wilcoxon()` objects are generated using the `plot()` method. Using the example data, `plot(A)` results in a large-$n$ probability density display and `plot(B)` produces a discrete probability display of the Monte-Carlo based analysis. 
+
+```{r fig.width = 7}
+plot(A)
+```
+
+```{r fig.width = 7}
+plot(B)
+```
+
+It is interesting to compare the conclusions about the `w1` and `w2` variates that were reached *via* the Bayesian Wilcoxon signed-rank analysis with the results from the standard paired $t$-test. The $t$-test -- `t.test(w1, w2, paired = TRUE)` -- results in a non-significant $p$-value of $`r round(t.test(w1, w2, paired = TRUE)$p.value, 2)`$. Thus, the $t$ test fails to detect a significant difference between the two conditions, whereas there is strong evidence from the Bayesian analysis of a condition difference. This example is not unusual when the variates are not normally distributed. This example underscores the utility of the Bayesian Wilcoxon signed-rank analysis for being a powerful and robust statistical procedure.
+
+The final example is based on the following data taken from Chechile (2020) where there are more that two conditions within a block. The data are shown below. The first two conditions -- $C_1$ and $C_2$ -- are *control* conditions and the third condition -- $E$ -- is an *experimental* condition.
+
+|Test Block | $C_1$  | $C_2$ |  $E$ |
+|:----------|:----:|:---:|:--:|
+|$1$  | $113.7$ | $116.8$ | $115.0$|
+|$2$  | $107.6$ | $107.5$ | $103.3$|
+|$3$  | $125.7$ | $126.9$ | $122.8$|
+|$4$  | $92.0$  | $93.1$  | $85.3$ |
+|$5$  | $112.3$ | $113.7$ | $101.6$|
+|$6$  | $105.5$ | $108.8$ | $99.0$ |
+|$7$  | $130.1$ | $129.8$ | $129.9$|
+|$8$  | $114.4$ | $115.5$ | $113.2$|
+|$9$  | $111.0$ | $111.8$ | $109.3$|
+|$10$ | $80.0$  | $83.6$  | $82.7$ |
+|$11$ | $132.1$ | $133.6$ | $131.4$|
+|$12$ | $117.7$ | $119.2$ | $110.5$|
+|$13$ | $103.3$ | $103.0$ | $101.8$|
+|$14$ | $105.0$ | $104.8$ | $97.5$ |
+|$15$ | $100.9$ | $104.0$ | $96.1$ |
+|$16$ | $101.2$ | $99.7$  | $94.9$ |
+|$17$ | $95.2$  | $95.7$  | $90.4$ |
+|$18$ | $130.8$ | $130.3$ | $123.5$|
+|$19$ | $118.9$ | $119.0$ | $108.6$|
+|$20$ | $97.7$  | $98.9$  | $87.1$ | 
+
+
+The key point of this example is that the `dfba_wilcoxon()` function can be useful for studies when there are more that two within-block conditions. Contrasts among the conditions can be defined, and for each contrast there are two within-block or paired variates. The following set of four contrasts were evaluated with both a frequentist parametric $t$-test as well as with the Bayesian distribution-free Wilcoxon signed-rank test. The following summary results are found.
+
+
+| Contrast | $t$ | $p$-value | $T_{pos}$ | $T_{neg}$ | Bayes Factor |
+|:---------|:---:|:---------:|:---------:|:---------:|:------------:|
+|$C_1-C_2$ | $-1.084$ | $p > 0.29$ | $55$ | $155$ | $BF_{01}>28.7$ | 
+|$C_1 - E$ | $4.97$ | $p<8.6\times10^{-5}$ | $199$ | $11$ | $BF_{10}>11,823$ |
+|$C_2 - E$ | $6.62$ | $p < 2.5 \times 10^{-6}$ | $209$ | $1$ | $BF_{10}>400,000$ |
+|$\frac{C_1-C_2}{2}-E$| $5.90$ | $p < 1.2\times 10^{-5}$ | $207$ | $3$ | $BF_{10}>40,000$ |
+
+
+
+The Bayesian distribution-free Wilcoxon signed-rank procedure detects a large Bayes factor for each comparison; the parametric $t$-test fails to detect a significant difference between the two control conditions, but does detect a significant effect for the other contrasts. Note that for the last contrast in the table, there is a comparison between the `Y1 = (C1 + C2)/2` variate and the `Y2 = E` variate. The constructed `Y1` variate for this contrast is the average of the scores in each block for the two control conditions. Thus, the `dfba_wilcoxon()` function is a powerful tool in general for statistical assessments when there a two or more within-block conditions with a continuous univariate measure.
+
+# References
+
+Berger, J. O., and Wolpert, R. L. (1988). *Likelihood Principle (2nd ed.)*.  Hayward, CA: Institute of Mathematical Statistics.
+ 
+Chechile, R. A. (2018) A Bayesian analysis for the Wilcoxon signed-rank statistic. *Communications in Statistics -- Theory and Methods*, <https://doi.org/10.1080/03610926.2017.1388402>
+ 
+Chechile, R. A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge, MIT Press.
+
+Lindley, D. V., and Phillips, L. D. (1976). Inference for a Bernoulli process (a Bayesian view). *The American Statistician*, **30**, 112-119.
+
+Siegel, S., and Castellan, N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw Hill.
+
+Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometric Bulletin*, **1**, 80-83.

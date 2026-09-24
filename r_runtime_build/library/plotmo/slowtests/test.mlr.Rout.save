@@ -1,0 +1,822 @@
+> # test.mlr.R: test the "mlr" package with plotmo and plotres
+> #
+> # TODO mlr is in maintenance mode, add mlr3 support to plotmo?
+> # TODO generally, plotres residuals for WrappedModel prob models aren't right
+> 
+> source("test.prolog.R")
+> library(mlr)
+Loading required package: ParamHelpers
+> library(plotmo)
+Loading required package: Formula
+Loading required package: plotrix
+> library(rpart.plot)
+Loading required package: rpart
+> library(earth)
+> # TODO following function is temporary until mlr package is updated
+> train.with.call <- function(learner, task, subset=NULL, weights=NULL)
++ {
++     retval <- train(learner, task, subset, weights)
++     retval$call <- match.call()
++     retval
++ }
+> 
+> cat("==simple one variable regression model with earth ===============================\n")
+==simple one variable regression model with earth ===============================
+> 
+> data(trees)
+> trees1 <- trees[,c("Volume", "Girth")]
+> 
+> task <- makeRegrTask(data=trees1, target="Volume")
+> lrn <- makeLearner("regr.earth", degree=2)
+> regr.earth.with.call = train.with.call(lrn, task)
+> regr.earth = train(lrn, task)
+> earth <- earth(Volume~., data=trees1, degree=2)
+> 
+> # SHOWCALL is just a testing thing, so we can see who created the plot on the plot itself
+> plotres(regr.earth.with.call, SHOWCALL=TRUE)
+> plotres(regr.earth$learner.model, SHOWCALL=TRUE)
+> plotres(earth, SHOWCALL=TRUE)
+> 
+> plotmo(regr.earth.with.call, trace=1, SHOWCALL=TRUE)
+stats::fitted(object=WrappedModel.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from object$y
+> plotmo(regr.earth$learner.model, trace=1, SHOWCALL=TRUE)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from model.frame(Volume ~ Girth,
+                                    data=call$data, na.action="na.fail")
+> plotmo(earth, trace=1, SHOWCALL=TRUE)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from model.frame(Volume ~ Girth,
+                                    data=call$data, na.action="na.fail")
+> 
+> # compare partial dependence plots from mlr and plotmo packages
+> set.seed(2018)
+> plotmo(earth, pmethod="partdep", SHOWCALL=TRUE, col=2, pt.col="darkgray", grid.col="lightgray")
+calculating partdep for Girth 
+> set.seed(2018)
+> pd <- generatePartialDependenceData(regr.earth, task, "Girth", n=c(50, NA))
+Loading required package: mmpf
+> print(plotPartialDependence(pd, data = getTaskData(task)))
+Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information.
+ℹ The deprecated feature was likely used in the mlr package.
+  Please report the issue at <https://github.com/mlr-org/mlr/issues>.
+Warning in grid.Call.graphics(C_points, x$x, x$y, x$pch, x$size) :
+  semi-transparency is not supported on this device: reported only once per page
+> 
+> cat("==test error handling if original data is messed up===========================\n")
+==test error handling if original data is messed up===========================
+> 
+> par(mfrow=c(4,2), mar=c(1.5,2.5,4,1), oma=c(0,0,0,0))
+> colnames(trees1) <- c("nonesuch", "Volume")
+> plotmo(regr.earth$learner.model, do.par=0, degree1=1, degree2=0, main='colnames(trees1) <- c("nonesuch", "Volume")')
+> plotmo(regr.earth.with.call, do.par=0, degree1=1, degree2=0)
+> par(org.par)
+> expect.err(try(plotmo(earth, degree1=1, degree2=0)), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Girth' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(earth, degree1 = 1, degree2 = 0))
+> 
+> cat("==regression model with randomForest (binary response)============================\n")
+==regression model with randomForest (binary response)============================
+> 
+> library(randomForest)
+randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+> library(earth) # for etitanic data
+> data(etitanic)
+> set.seed(2018)
+> # use a logical subset (since we test for numeric subset elsewhere)
+> # use a small subset so we can see easily if subset is applied or ignored in plots
+> train.subset <- rnorm(nrow(etitanic)) > 1 # 166 cases ((16% of 1046 cases))
+> printf("sum(train.subset) %g (%.0f%% of %g cases)\n", sum(train.subset),
++     100 * sum(train.subset) / nrow(etitanic), nrow(etitanic))
+sum(train.subset) 166 (16% of 1046 cases)
+> task.regr.rf <- makeRegrTask(data=etitanic, target="survived")
+> lrn.regr.rf = makeLearner("regr.randomForest")
+> set.seed(2018)
+> regr.rf.with.call = train.with.call(lrn.regr.rf, task.regr.rf, subset=train.subset)
+Warning in randomForest.default(x = data[["data"]], y = data[["target"]],  :
+  The response has five or fewer unique values.  Are you sure you want to do regression?
+> set.seed(2018)
+> rf <- randomForest(survived~., data=etitanic, subset=train.subset)
+Warning in randomForest.default(m, y, ...) :
+  The response has five or fewer unique values.  Are you sure you want to do regression?
+> # sanity check that the models are identical
+> stopifnot(identical(predict(regr.rf.with.call$learner.model), predict(rf)))
+> 
+> plotres(regr.rf.with.call, info=TRUE, SHOWCALL=TRUE)
+> # plotres(regr.rf$learner.model, info=TRUE, SHOWCALL=TRUE) # Error: no formula in getCall(object)
+> plotres(rf, info=TRUE, SHOWCALL=TRUE)
+> 
+> set.seed(2018) # for repeatable jitter in points (specified with pt.col)
+> plotmo(regr.rf.with.call, pt.col=2, SHOWCALL=TRUE)
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+> # plotmo(regr.rf$learner.model, trace=1, SHOWCALL=TRUE) # Error: no formula in getCall(object)
+> set.seed(2018)
+> plotmo(rf, pt.col=2, SHOWCALL=TRUE)
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+> 
+> # compare partial dependence plots
+> set.seed(2018)
+> plotmo(regr.rf.with.call, degree1="age", degree2=0, pmethod="partdep",
++        grid.col="gray", col=2, pt.col="darkgray", SHOWCALL=TRUE)
+calculating partdep for age 
+> # function from randomForest package
+> set.seed(2018)
+> partialPlot(rf, pred.data=etitanic[train.subset,], x.var="age", n.pt=50, ylim=c(0, 1))
+> grid()
+> # function from mlr package
+> set.seed(2018)
+> pd <- generatePartialDependenceData(regr.rf.with.call, task.regr.rf, "age", n=c(50, NA))
+> print(plotPartialDependence(pd, data = getTaskData(task.regr.rf)))
+Warning in grid.Call.graphics(C_points, x$x, x$y, x$pch, x$size) :
+  semi-transparency is not supported on this device: reported only once per page
+> 
+> plotmo(regr.rf.with.call, degree1="pclass", degree2=0, pmethod="partdep", SHOWCALL=TRUE)
+calculating partdep for pclass 
+> set.seed(2018)
+> # function from randomForest package
+> set.seed(2018)
+> partialPlot(rf, pred.data=etitanic[train.subset,], x.var="pclass", n.pt=50, ylim=c(0, 1))
+> grid()
+> # TODO following fails
+> pd <- generatePartialDependenceData(regr.rf.with.call, task.regr.rf, "pclass", n=c(50, NA))
+> try(print(plotPartialDependence(pd, data = getTaskData(task.regr.rf)))) # Error: Discrete value supplied to continuous scale
+Error in scale_x_continuous() : 
+  Discrete value supplied to a continuous scale.
+ℹ Example values: 1st, 2nd, and 3rd.
+> 
+> cat("==classification model with randomForest (binary response)======================\n")
+==classification model with randomForest (binary response)======================
+> 
+> set.seed(2018)
+> library(earth) # for etitanic data
+> data(etitanic)
+> etit <- etitanic
+> etit$survived <- factor(etit$survived, labels=c("notsurvived", "survived"))
+> 
+> task.classif.rf <- makeClassifTask(data=etit, target="survived")
+> lrn.classif.rf <- makeLearner("classif.randomForest", predict.type="prob")
+> set.seed(2018)
+> classif.rf.with.call <- train.with.call(lrn.classif.rf, task.classif.rf, , subset=train.subset)
+> set.seed(2018)
+> rf <- randomForest(survived~., data=etit, method="class", subset=train.subset)
+> # sanity check that the models are identical
+> stopifnot(identical(predict(classif.rf.with.call$learner.model), predict(rf)))
+> 
+> # TODO following causes Error: classif.earth: Setting parameter glm without available description object
+> # lrn <- makeLearner("classif.earth", degree=2, glm=list(family=binomial))
+> 
+> # TODO residuals on WrappedModel don't match direct call to rf model
+> set.seed(2018) # for repeatable jitter
+> plotres(classif.rf.with.call, nresponse="prob.survived", SHOWCALL=TRUE, jitter=2)
+> set.seed(2018)
+> plotres(classif.rf.with.call$learner.model, type="prob", SHOWCALL=TRUE, jitter=2)
+> set.seed(2018)
+> plotres(rf, type="prob", SHOWCALL=TRUE, jitter=2)
+> 
+> options(warn=2) # treat warnings as errors
+> expect.err(try(plotmo(classif.rf.with.call)), "Defaulting to nresponse=1, see above messages")
+
+predict.WrappedModel[3,3]:
+   prob.notsurvived prob.survived response
+5             0.466         0.534 survived
+7             0.358         0.642 survived
+22            0.028         0.972 survived
+  response is a factor with levels: notsurvived survived
+
+predict.WrappedModel returned multiple columns (see above) but nresponse is not specified
+    Use the nresponse argument to specify a column.
+         Example: nresponse=2
+         Example: nresponse="prob.survived"
+
+Error : (converted from warning) Defaulting to nresponse=1, see above messages
+Got expected error from try(plotmo(classif.rf.with.call))
+> options(warn=1)
+> set.seed(2018) # for repeatable jitter
+> plotmo(classif.rf.with.call,               SHOWCALL=TRUE, nresponse="prob.survived", pt.col=2, trace=2)
+plotmo trace 2: plotmo(object=classif.rf.with.call, nresponse="prob.survived",
+                       pt.col=2, trace=2, SHOWCALL=TRUE)
+--get.model.env for object with class WrappedModel
+object call is train.with.call(learner=lrn.classif.rf, task=task.classif.rf,
+                         subset=train.subset)
+assuming the environment of the WrappedModel model is that of plotmo's caller: R_GlobalEnv
+--plotmo_prolog for WrappedModel object 'classif.rf.with.call'
+task$task.desc$id for 'classif.rf.with.call' is "etit"
+--plotmo_prolog for randomForest.formula object object$learner.model
+Done recursive call in plotmo.prolog for learner.model
+--plotmo_x for WrappedModel object
+
+get.object.x:
+object$x is usable and has column names pclass sex age sibsp parch
+plotmo_x returned[166,5]:
+     pclass    sex age sibsp parch
+5       1st female  25     1     2
+7       1st female  63     1     0
+22      1st female  47     1     1
+...     1st female  29     0     0
+1288    3rd   male  51     0     0
+  factors: pclass sex
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for WrappedModel object
+
+get.object.x:
+object$x is usable and has column names pclass sex age sibsp parch
+plotmo_x returned[166,5]:
+     pclass    sex age sibsp parch
+5       1st female  25     1     2
+7       1st female  63     1     0
+22      1st female  47     1     1
+...     1st female  29     0     0
+1288    3rd   male  51     0     0
+  factors: pclass sex
+will use the above data instead of newdata=NULL for predict.WrappedModel
+predict returned[3,3]:
+   prob.notsurvived prob.survived response
+5             0.466         0.534 survived
+7             0.358         0.642 survived
+22            0.028         0.972 survived
+  response is a factor with levels: notsurvived survived
+predict after processing with nresponse=NULL is [3,3]:
+   prob.notsurvived prob.survived response
+5             0.466         0.534 survived
+7             0.358         0.642 survived
+22            0.028         0.972 survived
+  response is a factor with levels: notsurvived survived
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=WrappedModel.object)
+fitted() was unsuccessful, will use predict() instead
+plotmo_predict with NULL newdata, using plotmo_x to get the data
+--plotmo_x for WrappedModel object
+
+get.object.x:
+object$x is usable and has column names pclass sex age sibsp parch
+plotmo_x returned[166,5]:
+     pclass    sex age sibsp parch
+5       1st female  25     1     2
+7       1st female  63     1     0
+22      1st female  47     1     1
+...     1st female  29     0     0
+1288    3rd   male  51     0     0
+  factors: pclass sex
+will use the above data instead of newdata=NULL for predict.WrappedModel
+predict returned[166,3]:
+     prob.notsurvived prob.survived    response
+5               0.466         0.534    survived
+7               0.358         0.642    survived
+22              0.028         0.972    survived
+...             0.032         0.968    survived
+1288            0.906         0.094 notsurvived
+  response is a factor with levels: notsurvived survived
+predict after processing with nresponse=NULL is [166,3]:
+     prob.notsurvived prob.survived    response
+5               0.466         0.534    survived
+7               0.358         0.642    survived
+22              0.028         0.972    survived
+...             0.032         0.968    survived
+1288            0.906         0.094 notsurvived
+  response is a factor with levels: notsurvived survived
+got fitted values by calling predict (see above)
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for WrappedModel object
+
+get.object.y:
+object$y is usable and has column name survived
+plotmo_y returned[166,1]:
+        survived
+5    notsurvived
+7       survived
+22      survived
+...     survived
+1288 notsurvived
+  survived is a factor with levels: notsurvived survived
+plotmo_y after processing with nresponse=NULL is [166,1]:
+        survived
+5    notsurvived
+7       survived
+22      survived
+...     survived
+1288 notsurvived
+  survived is a factor with levels: notsurvived survived
+converted nresponse="prob.survived" to nresponse=2
+nresponse=2 (was "prob.survived") ncol(fitted) 3 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=2
+nresponse=2 but for plotmo_y using nresponse=1 because ncol(y) == 1
+--plotmo_y with nresponse=1 for WrappedModel object
+
+get.object.y:
+object$y is usable and has column name survived
+got model response from object$y
+the response is a factor but could not get the family of the WrappedModel model
+plotmo_y returned[166,1]:
+        survived
+5    notsurvived
+7       survived
+22      survived
+...     survived
+1288 notsurvived
+  survived is a factor with levels: notsurvived survived
+converted to numeric from factor with levels "notsurvived" "survived"
+plotmo_y after processing with nresponse=1 is [166,1]:
+    survived
+1          1
+2          2
+3          2
+...        2
+166        1
+got response name "prob.survived" from yhat
+got resp.levs from yfull
+response levels: notsurvived survived
+
+----Metadata: done
+
+number of x values: pclass 3 sex 2 age 60 sibsp 5 parch 5
+
+----plotmo_singles for WrappedModel object
+randomForest built with importance=FALSE, ranking variables on MeanDecreaseGini
+plotmo.singles(object$learner.model) succeeded
+singles: 1 pclass, 2 sex, 3 age, 4 sibsp, 5 parch 
+
+----plotmo_pairs for WrappedModel object
+plotmo.pairs(object$learner.model) succeeded
+pairs:
+      [,1]       [,2]     
+ [1,] "1 pclass" "2 sex"  
+ [2,] "1 pclass" "3 age"  
+ [3,] "1 pclass" "4 sibsp"
+ [4,] "1 pclass" "5 parch"
+ [5,] "2 sex"    "3 age"  
+ [6,] "2 sex"    "4 sibsp"
+ [7,] "2 sex"    "5 parch"
+ [8,] "3 age"    "4 sibsp"
+ [9,] "3 age"    "5 parch"
+[10,] "4 sibsp"  "5 parch"
+
+graphics::par(mfrow=c(4,4), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=2,
+              mar=c(3,2,1.2,0.8), oma=c(0,0,4,0), cex.main=1.1, cex.lab=1,
+              cex.axis=1, cex=0.66)
+
+----Figuring out ylim
+ylim c(-0.1, 1.1)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+
+degree1 plot1 (pmethod "plotmo") variable pclass
+newdata[3,5]:
+  pclass  sex age sibsp parch
+1    1st male  29     0     0
+2    2nd male  29     0     0
+3    3rd male  29     0     0
+  factors: pclass sex
+predict returned[3,3]:
+  prob.notsurvived prob.survived    response
+1            0.872         0.128 notsurvived
+2            0.904         0.096 notsurvived
+3            0.928         0.072 notsurvived
+  response is a factor with levels: notsurvived survived
+predict returned[3,1] after selecting nresponse=2:
+  prob.survived
+1         0.128
+2         0.096
+3         0.072
+predict after processing with nresponse=2 is [3,1]:
+  prob.survived
+1         0.128
+2         0.096
+3         0.072
+graphics::plot.default(x=factor.object, y=c(0.128,0.096,0...), type="n",
+                       main="1 pclass", xlab="", ylab="", xaxt="n", yaxt="s",
+                       xlim=c(0.6,3.4), ylim=c(-0.1,1.1))
+Will shift and scale displayed points specified by pt.col: yshift -1 yscale 1
+graphics::plot(x=factor.object, y=c(0.128,0.096,0...), xaxt="n", yaxt="s",
+               add=TRUE, lty=1, lwd=1)
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable sex
+Will shift and scale displayed points specified by pt.col: yshift -1 yscale 1
+degree1 plot3 (pmethod "plotmo") variable age
+Will shift and scale displayed points specified by pt.col: yshift -1 yscale 1
+degree1 plot4 (pmethod "plotmo") variable sibsp
+Will shift and scale displayed points specified by pt.col: yshift -1 yscale 1
+degree1 plot5 (pmethod "plotmo") variable parch
+Will shift and scale displayed points specified by pt.col: yshift -1 yscale 1
+--plot.degree2(draw.plot=TRUE)
+degree2 plot1 (pmethod "plotmo") variables pclass:sex
+newdata[6,5]:
+    pclass    sex age sibsp parch
+1      1st female  29     0     0
+2      2nd female  29     0     0
+3      3rd female  29     0     0
+...    1st   male  29     0     0
+6      3rd   male  29     0     0
+  factors: pclass sex
+predict returned[6,3]:
+    prob.notsurvived prob.survived    response
+1              0.032         0.968    survived
+2              0.098         0.902    survived
+3              0.890         0.110 notsurvived
+...            0.872         0.128 notsurvived
+6              0.928         0.072 notsurvived
+  response is a factor with levels: notsurvived survived
+predict returned[6,1] after selecting nresponse=2:
+    prob.survived
+1           0.968
+2           0.902
+3           0.110
+...         0.128
+6           0.072
+predict after processing with nresponse=2 is [6,1]:
+    prob.survived
+1           0.968
+2           0.902
+3           0.110
+...         0.128
+6           0.072
+persp(pclass:sex) theta 145
+Reducing trace level for subsequent degree2 plots
+degree2 plot2 (pmethod "plotmo") variables pclass:age
+persp(pclass:age) theta 235
+degree2 plot3 (pmethod "plotmo") variables pclass:sibsp
+persp(pclass:sibsp) theta 55
+degree2 plot4 (pmethod "plotmo") variables pclass:parch
+persp(pclass:parch) theta 55
+degree2 plot5 (pmethod "plotmo") variables sex:age
+persp(sex:age) theta 145
+degree2 plot6 (pmethod "plotmo") variables sex:sibsp
+persp(sex:sibsp) theta 55
+degree2 plot7 (pmethod "plotmo") variables sex:parch
+persp(sex:parch) theta 55
+degree2 plot8 (pmethod "plotmo") variables age:sibsp
+persp(age:sibsp) theta 145
+degree2 plot9 (pmethod "plotmo") variables age:parch
+persp(age:parch) theta 145
+degree2 plot10 (pmethod "plotmo") variables sibsp:parch
+persp(sibsp:parch) theta 55
+> set.seed(2018)
+> plotmo(classif.rf.with.call$learner.model, SHOWCALL=TRUE, type="prob", pt.col=2)
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+> set.seed(2018)
+> # note that in the following, get.y.shift.scale (in plotmo code) rescales the plotted y to 0..1
+> plotmo(rf,                                 SHOWCALL=TRUE, type="prob", pt.col="gray")
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+> set.seed(2018)
+> # in following graph, note that get.y.shift.scale doesn't rescale the plotted y because ylim=c(0,2)
+> plotmo(rf,                                 SHOWCALL=TRUE, type="prob", ylim=c(0,2), pt.col="gray")
+ plotmo grid:    pclass  sex age sibsp parch
+                    3rd male  29     0     0
+> 
+> # compare partial dependence plots
+> set.seed(2018)
+> plotmo(rf, type="prob", degree1="pclass", degree2=0, pmethod="partdep", pt.col=2, SHOWCALL=TRUE)
+calculating partdep for pclass 
+> set.seed(2018)
+> plotmo(rf,              degree1="pclass", degree2=0, pmethod="partdep", pt.col=2, SHOWCALL=TRUE)
+calculating partdep for pclass 
+> set.seed(2018)
+> # TODO following fails
+> pd <- generatePartialDependenceData(classif.rf.with.call, task.classif.rf, "pclass", n=c(50, NA))
+> try(print(plotPartialDependence(pd, data = getTaskData(task.classif.rf)))) # Error: Discrete value supplied to continuous scale
+Error in scale_x_continuous() : 
+  Discrete value supplied to a continuous scale.
+ℹ Example values: 1st, 2nd, and 3rd.
+> 
+> plotmo(rf, type="prob", nresponse="notsurvived", degree1="age", degree2=0,
++        pmethod="partdep", ylim=c(.3,.75), nrug=TRUE, grid.col="gray") # looks plausible
+calculating partdep for age 
+> set.seed(2018)
+> pd <- generatePartialDependenceData(classif.rf.with.call, task.classif.rf, "age", n=c(50, NA))
+> print(plotPartialDependence(pd, data = getTaskData(task.classif.rf)))
+Warning in grid.Call.graphics(C_segments, x$x0, x$y0, x$x1, x$y1, x$arrow) :
+  semi-transparency is not supported on this device: reported only once per page
+> 
+> cat("==examples from plotmo-notes.pdf ===============================================\n")
+==examples from plotmo-notes.pdf ===============================================
+> 
+> #-- Regression model with mlr -------------------------------------------
+> 
+> library(mlr)
+> library(plotmo)
+> lrn <- makeLearner("regr.svm")
+> fit1.with.call <- train.with.call(lrn, bh.task)
+> fit1 <- train(lrn, bh.task)
+> 
+> # generate partial dependence plots for all variables
+> # we use "apartdep" and not "partdep" to save testing time
+> plotmo(fit1.with.call, pmethod="apartdep")
+calculating apartdep for crim 
+calculating apartdep for zn 
+calculating apartdep for indus 
+calculating apartdep for chas 
+calculating apartdep for nox 
+calculating apartdep for rm 
+calculating apartdep for age 
+calculating apartdep for dis 
+calculating apartdep for rad 
+calculating apartdep for tax 
+calculating apartdep for ptratio 
+calculating apartdep for b 
+calculating apartdep for lstat 
+> plotmo(fit1$learner.model, pmethod="apartdep")
+calculating apartdep for crim 
+calculating apartdep for zn 
+calculating apartdep for indus 
+calculating apartdep for chas 
+calculating apartdep for nox 
+calculating apartdep for rm 
+calculating apartdep for age 
+calculating apartdep for dis 
+calculating apartdep for rad 
+calculating apartdep for tax 
+calculating apartdep for ptratio 
+calculating apartdep for b 
+calculating apartdep for lstat 
+> 
+> # generate partial dependence plot for just "lstat"
+> set.seed(2018) # so slight jitter on pt.col points in plotmo doesn't change across test runs
+> plotmo(fit1.with.call,
++        degree1="lstat",           # what predictor to plot
++        degree2=0,                 # no interaction plots
++        pmethod="partdep",         # generate partial dependence plot
++        pt.col=2, grid.col="gray", # optional bells and whistles
++        nrug=TRUE)                 # rug ticks along the bottom
+calculating partdep for lstat 
+> set.seed(2018) # so slight jitter on pt.col points in plotmo doesn't change across test runs
+> plotmo(fit1$learner.model,
++        degree1="lstat",           # what predictor to plot
++        degree2=0,                 # no interaction plots
++        pmethod="partdep",         # generate partial dependence plot
++        pt.col=2, grid.col="gray", # optional bells and whistles
++        nrug=TRUE)                 # rug ticks along the bottom
+calculating partdep for lstat 
+> 
+> # compare to the function provided by the mlr package
+> set.seed(2018)
+> pd <- generatePartialDependenceData(fit1, bh.task, "lstat", n=c(50, NA))
+> print(plotPartialDependence(pd, data = getTaskData(bh.task)))
+Warning in grid.Call.graphics(C_points, x$x, x$y, x$pch, x$size) :
+  semi-transparency is not supported on this device: reported only once per page
+> # # TODO following fails: Error: Discrete value supplied to continuous scale
+> # pd <- generatePartialDependenceData(fit1, bh.task, "chas", n=c(50, NA))
+> # plotPartialDependence(pd, data = getTaskData(bh.task))
+> 
+> #-- Classification model with mlr ---------------------------------------
+> 
+> lrn.classif.rpart <- makeLearner("classif.rpart", predict.type = "prob", minsplit = 10)
+> fit2.with.call <- train.with.call(lrn.classif.rpart, iris.task)
+> fit2 <- train(lrn.classif.rpart, iris.task)
+> 
+> # generate partial dependence plots for all variables
+> # TODO plotmo can plot the response for only one class at a time
+> plotmo(fit2.with.call,
++        nresponse="prob.virginica", # what response to plot
++        # type="prob",              # type gets passed to predict.rpart
++        pmethod="apartdep")         # generate partial dependence plot
+calculating apartdep for Petal.Length 
+calculating apartdep for Petal.Width 
+calculating apartdep for Petal.Length:Petal.Width 01234567890
+> 
+> plotmo(fit2$learner.model,
++        nresponse="virginica",     # what response to plot
++        type="prob",               # type gets passed to predict.rpart
++        pmethod="apartdep")        # generate partial dependence plot
+calculating apartdep for Petal.Length 
+calculating apartdep for Petal.Width 
+calculating apartdep for Petal.Length:Petal.Width 01234567890
+> 
+> # generate partial dependence plot for just "Petal.Length"
+> plotmo(fit2.with.call,
++        degree1="Petal.Length",    # what predictor to plot
++        degree2=0,                 # no interaction plots
++        nresponse="prob.virginica",     # what response to plot
++        # type="prob",               # type gets passed to predict.rpart
++        pmethod="apartdep")        # generate partial dependence plot
+calculating apartdep for Petal.Length 
+> 
+> plotmo(fit2$learner.model,
++        degree1="Petal.Length",    # what predictor to plot
++        degree2=0,                 # no interaction plots
++        nresponse="virginica",     # what response to plot
++        type="prob",               # type gets passed to predict.rpart
++        pmethod="apartdep")        # generate partial dependence plot
+calculating apartdep for Petal.Length 
+> 
+> # compare to the function provided by the mlr package
+> set.seed(2018)
+> pd <- generatePartialDependenceData(fit2, iris.task, "Petal.Length", n=c(50, NA))
+> print(plotPartialDependence(pd, data = getTaskData(iris.task)))
+Warning in grid.Call.graphics(C_segments, x$x0, x$y0, x$x1, x$y1, x$arrow) :
+  semi-transparency is not supported on this device: reported only once per page
+> 
+> cat("==lda example from mlr documentation, and plotmo error handling =================\n")
+==lda example from mlr documentation, and plotmo error handling =================
+> 
+> set.seed(2018)
+> data(iris)
+> task.lda <- makeClassifTask(data=iris, target="Species")
+> lrn.lda <- makeLearner("classif.lda")
+> n <- nrow(iris)
+> train.set <- sample(n, size=2/3*n)
+> test.set <- setdiff(1:n, train.set)
+> classif.lda.with.call <- train.with.call(lrn.lda, task.lda, subset=train.set)
+> classif.lda <- train(lrn.lda, task.lda, subset=train.set)
+> iris1 <- iris[train.set, ]
+> library(MASS)
+> lda <- lda(Species~., data=iris1)
+> 
+> # expect.err(try(plotres(classif.lda.with.call)), "plotres does not (yet) support type=\"class\" for \"lda\" objects")
+> expect.err(try(plotres(classif.lda$learner.model)), "plotres does not (yet) support type=\"class\" for \"lda\" objects")
+Error : plotres does not (yet) support type="class" for "lda" objects
+       Try type="response" ?
+Got expected error from try(plotres(classif.lda$learner.model))
+> 
+> options(warn=2) # treat warnings as errors
+> # expect.err(try(plotres(classif.lda.with.call, type="response")), "predict.lda returned multiple columns (see above) but nresponse is not specified")
+> expect.err(try(plotres(classif.lda$learner.model, type="response")), "Defaulting to nresponse=1, see above messages")
+
+predict.lda[3,2]:
+          LD1        LD2
+15  10.723308 -1.2184763
+131 -6.507414  0.9729798
+140 -5.339014 -0.8727408
+
+predict.lda returned multiple columns (see above) but nresponse is not specified
+    Use the nresponse argument to specify a column.
+         Example: nresponse=2
+         Example: nresponse="LD2"
+
+Error : (converted from warning) Defaulting to nresponse=1, see above messages
+Got expected error from try(plotres(classif.lda$learner.model, type = "response"))
+> options(warn=1)
+> 
+> expect.err(try(plotres(classif.lda.with.call, type="response", nresponse="nonesuch")), "nresponse=\"nonesuch\" is not allowed")
+Error : nresponse="nonesuch" is not allowed
+       Only an integer index or "response" is allowed
+Got expected error from try(plotres(classif.lda.with.call, type = "response", nresponse = "nonesuch"))
+> expect.err(try(plotres(classif.lda$learner.model, type="response", nresponse="nonesuch")), "nresponse=\"nonesuch\" is not allowed")
+Error : nresponse="nonesuch" is not allowed
+Choose an integer index or one of: "LD1" "LD2"
+Got expected error from try(plotres(classif.lda$learner.model, type = "response", nresponse = "nonesuch"))
+> 
+> expect.err(try(plotres(classif.lda.with.call, type="response", nresponse=0)), "nresponse=0 but it should be at least 1")
+Error : nresponse=0 but it should be at least 1
+Got expected error from try(plotres(classif.lda.with.call, type = "response", nresponse = 0))
+> expect.err(try(plotres(classif.lda$learner.model, type="response", nresponse=0)), "nresponse=0 but it should be at least 1")
+Error : nresponse=0 but it should be at least 1
+Got expected error from try(plotres(classif.lda$learner.model, type = "response", nresponse = 0))
+> 
+> expect.err(try(plotres(classif.lda.with.call, type="response", nresponse=99)), "nresponse is 99 but the number of columns is only 1")
+Error : nresponse is 99 but the number of columns is only 1
+Got expected error from try(plotres(classif.lda.with.call, type = "response", nresponse = 99))
+> expect.err(try(plotres(classif.lda$learner.model, type="response", nresponse=99)), "nresponse is 99 but the number of columns is only 2")
+Error : nresponse is 99 but the number of columns is only 2
+Got expected error from try(plotres(classif.lda$learner.model, type = "response", nresponse = 99))
+> 
+> expect.err(try(plotmo(classif.lda)), "getCall(classif.lda) failed")
+Error : getCall(classif.lda) failed.
+       Possible  workaround: call plotmo like this: plotmo(classif.lda$learner.model, ...)
+Got expected error from try(plotmo(classif.lda))
+> 
+> expect.err(try(plotres(classif.lda)), "getCall(classif.lda) failed")
+Error : getCall(classif.lda) failed.
+       Possible  workaround: call plotres like this: plotres(classif.lda$learner.model, ...)
+Got expected error from try(plotres(classif.lda))
+> 
+> # TODO residuals don't match
+> plotres(classif.lda.with.call,     SHOWCALL=TRUE, type="response")
+> plotres(classif.lda$learner.model, SHOWCALL=TRUE, type="response", nresponse="LD2")
+> plotres(lda,                       SHOWCALL=TRUE, type="response", nresponse="LD2")
+> 
+> plotmo(classif.lda.with.call,     SHOWCALL=TRUE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> plotmo(classif.lda$learner.model, SHOWCALL=TRUE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> plotmo(lda,                       SHOWCALL=TRUE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> 
+> # # TODO plotPartialDependence and plotmo graphs below don't match
+> # pd <- generatePartialDependenceData(classif.lda, task.lda, "Petal.Width", n=c(50, NA)) # TODO generates warnings
+> # print(plotPartialDependence(pd, data = getTaskData(task.lda)))
+> plotmo(classif.lda.with.call, degree1="Petal.Width", degree2=0, pmethod="partdep", do.par=FALSE)
+calculating partdep for Petal.Width 
+> 
+> plotmo(classif.lda.with.call,     SHOWCALL=TRUE, all2=TRUE, type="response")
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> plotmo(classif.lda$learner.model, SHOWCALL=TRUE, all2=TRUE, type="class")
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> plotmo(lda,                       SHOWCALL=TRUE, all2=TRUE, type="class")
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> 
+> plotmo(classif.lda$learner.model, SHOWCALL=TRUE, all2=TRUE, type="response", nresponse="LD1")
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> plotmo(lda,                       SHOWCALL=TRUE, all2=TRUE, type="response", nresponse="LD1")
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                            6           3         4.45         1.4
+> 
+> cat("==test recursive call to plotmo_prolog for learner.model===============\n")
+==test recursive call to plotmo_prolog for learner.model===============
+> 
+> set.seed(2018)
+> n <- 100
+> data <- data.frame(
++     x1 = rnorm(n),
++     x2 = rnorm(n),
++     x3 = rnorm(n),
++     x4 = rnorm(n),
++     x5 = rnorm(n),
++     x6 = rnorm(n),
++     x7 = rnorm(n),
++     x8 = rnorm(n),
++     x9 = rnorm(n))
+> 
+> data$y <- sin(data$x3) + sin(data$x4) + 2 * cos(data$x5)
+> 
+> set.seed(2018)
+> library(gbm)
+Loaded gbm 2.2.2
+This version of gbm is no longer under development. Consider transitioning to gbm3, https://github.com/gbm-developers/gbm3
+> # reference model
+> gbm = gbm(y~., data=data, n.trees=300)
+Distribution not specified, assuming gaussian ...
+> plotmo(gbm, trace=-1, SHOWCALL=TRUE)
+> 
+> set.seed(2018)
+> task <- makeRegrTask(data=data, target="y")
+> lrn <- makeLearner("regr.gbm", n.trees=300, keep.data=TRUE)
+> regr.gbm = train.with.call(lrn, task)
+> plotmo(regr.gbm, trace=-1, SHOWCALL=TRUE)
+> 
+> set.seed(2018)
+> lrn <- makeLearner("regr.gbm", n.trees=300)
+> regr.gbm.nokeepdata = train.with.call(lrn, task)
+> # expect message: use keep.data=TRUE in the call to gbm (cannot determine the variable importances)
+> plotmo(regr.gbm.nokeepdata, trace=1, SHOWCALL=TRUE)
+Error : use keep.data=TRUE in the call to gbm (cannot determine the variable importances)
+plotmo.prolog(object$learner.model) failed, continuing anyway
+stats::fitted(object=WrappedModel.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from object$y
+
+ plotmo grid:    x1        x2        x3          x4         x5          x6
+        -0.07231869 0.1672582 0.1278179 -0.03757131 -0.2269232 -0.08124337
+         x7         x8         x9
+ 0.06208072 0.04337176 0.02863955
+
+> 
+> plotres(regr.gbm, SHOWCALL=TRUE)
+> 
+> cat("==example from makeClassificationViaRegressionWrapper help page ===============\n")
+==example from makeClassificationViaRegressionWrapper help page ===============
+> # this tests that plotmo.prolog can access the learner.model at object$learner.model$next.model$learner.model
+> 
+> set.seed(2018)
+> lrn = makeLearner("regr.rpart")
+> lrn = makeClassificationViaRegressionWrapper(lrn)
+> ClassificationViaRegression = train.with.call(lrn, sonar.task, subset = 1:140)
+> plotmo(ClassificationViaRegression, SHOWCALL=TRUE)
+ plotmo grid:    V1     V2      V3     V4      V5     V6      V7     V8      V9
+             0.0228 0.0309 0.03415 0.0436 0.06185 0.0898 0.10905 0.1079 0.12425
+     V10     V11     V12     V13   V14     V15    V16     V17    V18    V19
+ 0.14675 0.17765 0.20415 0.23515 0.284 0.34475 0.4347 0.42945 0.4559 0.4763
+     V20     V21    V22    V23    V24     V25     V26     V27     V28     V29
+ 0.55465 0.60735 0.6532 0.6704 0.7206 0.70165 0.68745 0.65975 0.63945 0.56105
+     V30   V31    V32    V33     V34    V35     V36    V37    V38    V39
+ 0.52325 0.468 0.3803 0.3608 0.37695 0.3663 0.41885 0.3821 0.3153 0.2847
+     V40    V41     V42    V43    V44     V45     V46     V47    V48    V49
+ 0.28085 0.2602 0.23295 0.2066 0.1694 0.13395 0.09905 0.08755 0.0645 0.0362
+    V50     V51     V52     V53     V54     V55    V56    V57    V58     V59
+ 0.0173 0.01325 0.01005 0.01105 0.01035 0.00835 0.0074 0.0072 0.0063 0.00705
+    V60
+ 0.0059
+> 
+> source("test.epilog.R")

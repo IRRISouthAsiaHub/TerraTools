@@ -1,0 +1,139 @@
+---
+title: "Introduction"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{intro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Overview
+
+This vignette is a general introduction to the package `DFBA`, along with a brief discussion of what the scope and domain of applications are for the functions in the package. First, it is important to state what *distribution-free* Bayesian statistics are and what they are not, and to explain the practical and theoretical importance for doing distribution-free analyses. It is also important to briefly distinguish Bayesian *versus* frequentist methods for statistical inference.
+
+## Frequentist and Bayesian Approaches to Nonparametric Methods
+
+Frequentist and Bayesian approaches fundamentally differ on the basic idea of what can be represented with a probability distribution. To frequentists, population parameters are fixed constants and therefore cannot be represented with probability distributions. The frequentist approach to statistics is based on the relative frequency method of assigning probability values (Ellis, 1842). From this framework, there are no probabilities for anything that does not have a relative frequency (von Mises, 1957). As a consequence of this philosophical decision about the population parameters, frequentist theorists had to invent procedures to obtain point and interval estimates of the population parameters and to invent methods for making decisions about condition differences. These procedures are *ad hoc* and are not direct results from probability theory. Since probability in the frequentist approach is derived from the relative frequency of data outcomes, frequentist methods involve computing the likelihood of the observe data *plus non-observed data that are more extreme*. In contradistinction to the frequentist approach, in the Bayesian framework, probability can be anything that satisfies the Kolmogorov (1933) axioms, so probabilities need not be limited to processes that have a relative frequency. Importantly, probability can be a measure of information or knowledge provided that the probability representation meets the Kolmogorov axioms (de Finetti, 1974). The advantage of this approach is the Bayesian methods for point and interval estimation and the methods for making decisions are obtain directly from probability theory. No *ad hoc* rules are needed because Bayes's Theorem provides the basis for rigorously converting the prior distribution for the population parameters to a posterior distribution. Moreover, from Bayes's Theorem the only data that are used are the observed data. Thus, frequentists and Bayesians have diametrically opposed views about population parameters and the relevant likelihood function. To frequentists, the parameters are fix constants and the data outcomes are a random variable, whereas to Bayesians the parameters have a probability distribution, but the only likelihood computed after an experiment is the likelihood for the observed data.
+
+The package `DFBA` provides a set of functions for performing Bayesian analyses in a fashion that does not depend on making parametric assumptions about the measurement error. Both frequentist and Bayesian statistics typically make parametric assumptions about the distribution of measurement errors. The term *parametric statistics* usually refers to any procedure where a normal distribution is assumed for each condition and where the standard deviation of the errors is equal in each condition. Such assumptions may be unrealistic in practice: it is unlikely that these parametric assumptions are precisely true; there may be extreme outlier scores within groups of observations which can have an undue influence on the error model; mixture processes often occur, so the assumption of a homogeneous process might be unreasonable; data -- including categorical and rank-based measurements -- may not be continuous, *etc.* Frequentist statistics first developed nonparametric methods for such applications where the parametric model was not assumed. The beauty of those methods is that they often provide investigators with the means to arrive at robust conclusions without the worry that their results were due in part to an invalid error model. Even when parametric models seem to be reasonable, frequentist nonparametric statistics are a valuable alternative to see if the conclusions from parametric analyses hold. 
+
+Frequentist distribution-free statistics were developed long before their Bayesian counterparts. In the mid-twentieth century, Wilcoxon and later Mann and Whitney developed frequentist tests for continuous data that only used rank-order information. Importantly this work bypassed the need for making the usual parametric assumptions for $t$-tests (Wilcoxon, 1945; Mann & Whitney, 1947). Textbooks by Siegel provided a comprehensive framework for doing frequentist nonparametric statistics (Siegel, 1956; Siegel & Castellan, 1988). With these developments, frequentist distribution-free procedures became an important set of tools for data analysts. 
+
+The field of Bayesian statistics, by contrast, was slow to develop distribution-free statistical tests. Lindley, a noted Bayesian statistician, observed that distribution-free statistics was a topic on which Bayesian statistics was embarrassingly silent (Lindley, 1972). The topic that has come to be called *Bayesian nonparametric models* (*e.g.*, Ferguson, 1973; M&uuml;ller *et al.*, 2015) includes procedures that were not distribution-free. Instead, these models are complex explorations of parameter spaces with infinite dimensionality. Eventually, fully-Bayesian counterparts to the Wilcoxon and to the Mann-Whitney tests were developed (Chechile, 2018; 2020b). Chechile (2020a) further expanded those results along with other Bayesian procedures that parallel the tests discussed in frequentist textbooks on nonparametric statistics. Chechile deliberately used the term *distribution-free Bayesian statistics* (Chechile, personal communication) so as to distinguish the simple Bayesian counterparts to the frequentist distribution-free procedures from the more complex aforementioned *Bayesian nonparametric models*. 
+ 
+## The `DFBA` Package
+ 
+The `DFBA` package implements the methods for distribution-free Bayesian analyses across a range of applied contexts. The functions were designed and documented in a fashion to be readily accessible to research scientists who might widely vary in their background on statistical theory. All the functions in the package have the prefix of `dfba_`, which is followed by a function name. While specific vignettes are available for each of the functions, the functions are nonetheless briefly described below.
+
+## DFBA Functions
+
+### `dfba_beta_descriptive()`: Supplementary descriptive statistics for the beta distribution
+
+`dfba_beta_descriptive()`: The `stats()` package has a number of functions to obtain the probability density, cumulative probability, quantiles, and random scores for a set of probability distributions. For example, for the beta distribution, the functions `dbeta()`, `pbeta()`, `qbeta()`, and `rbeta()` return the probability density, cumulative probability, quantiles, and random values, respectively. The `dfba_beta_descriptive()` function supplements the functions in the `stats()` package. `dfba_beta_descriptive()` provides the mean, median, and mode for a beta variate in terms of the two shape parameters for the beta distribution; and provides two interval estimates for the beta variate. Each of the interval estimates captures a set proportion of the distribution where the user can stipulate the probability within the limits. The *equal-tail interval* estimate has equal-tail probabilities, *i.e.*, the probability below the lower limit is equal to the probability above the upper limit. The *highest density interval* estimate is the most compact interval that contains the stipulated probability. `dfba_beta_descriptive()` is called by several of the other functions in the `DFBA` package. See the vignette about this function for more information about the beta distribution along with examples.
+
+
+### `dfba_binomial()`: Distribution-free Bayesian Binomial Tests
+
+For the binomial research design there are two categorical outcomes per test. The binomial model is a Bernoulli process where it is assumed that the trials are independent with the same population probability (say $\phi$) for one of the two outcomes. For the Bayesian analysis the prior distribution for the $\phi$ parameter is expressed in terms of a beta distribution. Such a prior results in a posterior distribution that is another member of the beta family of distributions. There are two shape parameters for any beta distribution that must be finite, positive real values. In the `DFBA` package, the two shape parameters for a prior beta distribution are denoted as $a_0$ and $b_0$. The case where $a_0=b_0=1$ is the special case that corresponds to a uniform prior distribution for $\phi$ on the $[0,\,1]$ interval. The posterior beta distribution has shape parameters of $a=a_0+n_1$ and $b=b_0+n_2$ where $n_1$ and $n_2$ are the frequency of observations in the two binomial categories. The `dfba_binomial()` function computes the posterior point and interval estimates for the population $\phi$ parameter. More details and examples about the `dfba_binomial()` function are provided in the separate vignette about that program.
+
+### `dfba_beta_bayes_factor()`: Bayes Factor for Posterior Beta Distribution
+
+In Bayesian statistics, scientific hypotheses are evaluated with probability statements about the population parameter. For example, an investigator might want to assess a null hypothesis about the binomial parameter $\phi$. For any posterior beta distribution, the function `dfba_beta_bayes_factor()` provides the user with valuable information for making decisions about the binomial $\phi$ parameter. The function computes the prior and posterior probabilities for a user-stipulated null hypothesis about the binomial $\phi$ parameter as well as the Bayes factor associated with the null hypothesis. The null hypothesis either can be an interval of values for $\phi$ or it can be a single point. The vignette dedicated to this function provides more information about what the Bayes factor is and how it can be used to make decisions. 
+
+
+### `dfba_mcnemar()`: Bayesian Repeated-Measures McNemar Test for Change
+
+The frequentist McNemar test is a nonparametric *change detection procedure* for a within-block or within-subject study where the variate is categorical. An example of a study where this procedure would be appropriate is a political focus group measuring the preference for Candidate *A* *vs.* Candidate *B* among a group of potential voters *before* and *after* a debate. The test is designed to see if there are more participants changing their opinion from Candidate *A* to Candidate *B* or more changing from *B* to *A*. The `dfba_mcnemar()` function provides the user with a Bayesian alternative analysis for this specialized research design. The function computes point and intervals estimates for the population change rate in a particular direction as well as Bayes factor values. See the vignette for the `dfba_mcnemar()` function for more details and examples.  
+
+
+### `dfba_beta_contrast()`: Bayesian Contrasts
+
+This function is a Bayesian alternative to the frequentist nonparametric $\chi^2$ test of statistical independence when there are $K\ge 2$ independent groups and the variate is a binomial in each condition. The frequentist procedure is limited because it only assess the hypothesis that all groups are equivalent, which is unlikely to be true in the limit of the population. Instead, the `dfba_beta_contrast()` function implements a Bayesian analysis of a linear contrast of conditions when there are two or more independent conditions or groups and where the variate for each condition is a binomial. The user can stipulate the linear contrast by inputting contrast weights such that the sum of the contrast coefficients is zero. For any stipulated contrast, the function provides point and interval estimates as well as Bayes factor values. Examples and more information about this function are discussed in the separate vignette for this function.
+ 
+
+### `dfba_sign_test()`:Bayesian Sign Test
+
+The sign test is a classic frequentist nonparametric procedure. The context for this test is when there are two paired continuous variates $Y_1$ and $Y_2$. The frequentist procedure involves computing the difference $d=Y_1-Y_2$. For all the *nonzero* differences $d$, the sign test is based on the frequentist test about the population rate for a positive difference. The function `dfba_sign_test()` is the Bayesian counterpart to the frequentist sign test. The function allows the user to enter their continuous values for $Y_1$ and $Y_2$, and it computes the prior and posterior probability that the population rate parameter is greater than $.5$. Point and interval estimates are computed for the population of positive signs, and the Bayes factor is also found. Examples and more details about the `dfba_sign_test()` function can be found in the separate vignette about the sign test.
+ 
+
+### `dfba_median_test()`: Bayesian Median Test
+
+Given two independent groups (*e.g.*, group $E$ for *experimental* and $C$ for *control*) where the variate for each group is continuous, the median test is a simple (but low-power) frequentist nonparametric analysis to test for condition differences. The frequentist procedure forms a $2 \times 2$ array of frequencies for the observations. One dimension is the group category and the other dimension is scores above the combined median versus scores at or below the combined median. The `dfba_median_test()` function implements a Bayesian analysis for this procedure. For continuous measurements of the two groups, it finds the combined median and computes the $2 \times 2$ array of frequencies. The `dfba_median_test()` function performs a Bayesian analysis to see if it is more likely than would be expected for an above-median value to be from one of the two groups. See the vignette about this function for more information.
+ 
+
+### `dfba_wilcoxon()`: Bayesian Distribution-free Repeated-Measures Test (Wilcoxon Signed-Ranks Test)
+
+The Wilcoxon signed-rank test is the frequentist nonparametric counterpart to the parametric paired $t$-test. The procedure is based on the rank of the difference scores $d = Y_1 - Y_2$. The ranking is initially performed on the absolute value of the nonzero $d$ values, and each rank is then multiplied by the sign of the difference. Since the procedure is based on only ranks of the differences, it is robust with respect to outliers in either the $Y_1$ or $Y_2$ measures. The procedure does not depend on the assumption of a normal distribution for the two continuous variates. The sample $T_{pos}$ statistic is the sum of the ranks that have a positive sign, whereas $T_{neg}$ is the positive sum of the ranks that have a negative value. The `dfba_wilcoxon()` function does a Bayesian analysis of the signed-rank statistics. Given vectors of $Y_1$ and $Y_2$ values, the function computes the signed-rank statistics as well as a Bayesian analysis of the sign-bias parameter $\phi_w$, which is the population proportion for positive differences. See the separate vignette about this function for further details and for examples.
+ 
+### `dfba_mann_whitney()`: Bayesian Distribution-free Independent Samples Test (Mann Whitney U)
+
+The Mann-Whitney $U$ test is the frequentist nonparametric counterpart to the independent-groups $t$-test. The sample $U_E$ statistic is the number of times that the $E$ variate is larger than the $C$ variate, whereas $U_C$ is the converse number. This test uses only rank information, so it is robust with respect to outliers, and it does not depend on the assumption of a normal model for the variates. The `dfba_mann_whitney()` function computes the $U$ statistics from the two independent-groups data vectors and performs a Bayesian analysis that is focused on the population parameter $\Omega_E$, which is the population limit for the ratio $\frac{U_E}{U_E+U_C}$. Additional details and examples can be found in the separate vignette about this function.
+
+
+### `dfba_sim_data()`: Simulated Data Generator and Inferential Comparison
+
+This function is designed to be called by other `DFBA` programs that compare frequentist and Bayesian power. The function generates simulated data for two conditions that can be from nine different probability models. The nine probability models are: normal, Weibull, Cauchy, lognormal, $\chi^2$, logistic, exponential, Gumbel, and Pareto. The user can also stipulate the sample size, research design (either *independent* or *paired*), the offset between the two samples, a blocking factor, and the probability model. The program computes the frequentist $p$-value from a $t$-test on the generated data, and it computes the Bayesian posterior probability from a distribution-free analysis of the difference between the two conditions. The Bayesian analysis is obtained either from the `dfba_wilcoxon()` function if the design is *paired* or from the `dfba_mann_whitney()` function if the design is *independent.* Examples and additional information about the `dfba_sim_data()` function are available in a separate vignette.
+
+
+### `dfba_bayes_vs_t_power()`: Simulated Distribution-Free Bayesian Power and $t$ Power
+
+Researchers need to make experimental-design decisions such as the choice about the sample size per condition and the decision of whether to use a within-block design or an independent-groups design. These planning issues arise regardless if one uses either a frequentist or a Bayesian approach to statistical inference. In the `DFBA` package, there are two functions to help users with these decisions. The `dfba_bayes_vs_t_power()` function produces for a set of 11 sample sizes (a) the Bayesian power estimate from a distribution-free analysis and (b) the corresponding frequentist power from a parametric $t$-test. The sample size varies across the 11 cases from a user-specified minimum and increases in steps of 5. These estimates are based on a number of different Monte Carlo sampled data sets generated by the `dfba_sim_data()` function. The user can stipulate the research design (either independent or paired), the offset between the two samples, a blocking factor, and the probability model. Further details about this function are provided in a separate vignette.
+
+
+### `dfba_power_curve()`: Power Curves
+
+While the `dfba_bayes_vs_t_power()` function provides frequentist and Bayesian power estimates for 11 cases for different sample sizes, which have the same offset between the variates, the `dfba_power_curve()` function produces frequentist and Bayesian power estimates for 21 offset values for the *same sample size* $n$. The power estimates are based on a number of Monte Carlo sampled data sets generated by the `dfba_sim_data()` function. Additional information about the `dfba_power_curve()` can be found in a separate vignette.
+
+### `dfba_bivariate_concordance()`: Bayesian Distribution-Free Correlation and Concordance
+
+The product-moment correlation depends on Gaussian assumptions about the residuals in a regression analysis. Thus the parametric correlation metric is not robust because it is strongly influenced by any extreme outlier scores for either of the two variates. A Bayesian rank-based concordance analysis avoids these limitations. The function `dfba_bivariate_concordance()` is focused on a nonparametric concordance metric for characterizing the association between the two bivariate measures. Given two vectors of continuous bivariate data, the `dfba_bivariate_concordance()` function computes the sample number of concordant changes $n_c$ between the two variates and the number of discordant changes $n_d$. The function also computes the frequentist Kendall $\tau_A$ correlation coefficient $\frac{n_c-n_d}{n_c+n_d}$, and provides a Bayesian analysis of the population concordance parameter $\phi_c$, which is the population limit of the proportion of concordance changes between the variates (*i.e.*, the population value for $\frac{n_c}{n_c+n_d}$). For goodness-of-fit applications, where one variate is a measured quantity and the other variate is the paired theoretical predicted score based on a scientific theory, the `dfba_bivariate_concordance()` function provides a correction to the number of concordant changes based on the number of fitting parameters in the scientific model. More information about this function is available in the separate vignette dedicated to this function.
+
+### `dfba_gamma()`: Bayesian Goodman-Kruskal Gamma
+
+While the `dfba_bivariate_concordance()` function examines bivariate concordance for two paired continuous random variables, the `dfba_gamma()` function provides a concordance analysis when the data are in the form of a rank-based array of frequencies. For an ordered matrix, the frequency value in the $I$th -- $J$th cell is the number of observations where the $X$ variate has a rank of $I$ and corresponding $Y$ variate has a rank of $J$. Given a rank-ordered table or matrix, the `dfba_gamma()` function computes the Goodman-Kruskal gamma statistic as well as a Bayesian analysis of the population concordance proportion parameter $\phi_c$. Additional information about this function is found in a separate vignette.
+
+ 
+
+### References 
+
+Chechile, R. A. (2018) A Bayesian analysis for the Wilcoxon signed-rank statistic. *Communications in Statistics - Theory and Methods*, <https://doi.org/10.1080/03610926.2017.1388402>
+
+
+Chechile, R.A. (2020a). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+ 
+
+Chechile, R.A. (2020b). A Bayesian analysis for the Mann-Whitney statistic. *Communications in Statistics: Theory and Methods* *49*(3): 670-696. <https://doi.org/10.1080/03610926.2018.1549247>.
+
+
+de Finetti, B. (1974). Bayesianism: Its unifying role for both foundations and applications of statistics. *International Statistical Review*, *42*, 117-139.
+
+Ferguson, T. S. (1973). A Bayesian analysis of some nonparametric problems. *Annals of Statistics*, *1*, 209-230.
+
+Kolmogorov, A. N. (1933). \textit{Grundbegriffe der Wahrscheinlichkeitsrechnung}. Berlin: Springer.
+
+
+Lindley, D. V. (1972). \textit{Bayesian Statistics, a Review}. Philadelphia: SIAM.
+
+M&uuml;ller, P., Quintana, F. A., Jara, A., and Hanson, T. (2015). *Bayesian Nonparametric Data Analysis*. Cham, Switzerland: Springer International.
+
+Siegel, S. (1956). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+
+
+Siegel, S., and Castellan, N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+
+
+von Mises, R. (1957). *Probability, Statistics, and Truth*. New York: Dover.
+

@@ -1,0 +1,1305 @@
+> # test.glmnet.R: glmnet tests for plotmo and plotres
+> 
+> source("test.prolog.R")
+> library(earth)
+Loading required package: Formula
+Loading required package: plotmo
+Loading required package: plotrix
+> library(glmnet)
+Loading required package: Matrix
+Loaded glmnet 4.1-10
+> data(ozone1)
+> data(etitanic)
+> get.tit <- function() # abbreviated titanic data
++ {
++     tit <- etitanic
++     pclass <- as.character(tit$pclass)
++     # change the order of the factors so not alphabetical
++     pclass[pclass == "1st"] <- "first"
++     pclass[pclass == "2nd"] <- "class2"
++     pclass[pclass == "3rd"] <- "classthird"
++     tit$pclass <- factor(pclass, levels=c("class2", "classthird", "first"))
++     # log age is so we have a continuous predictor even when model is age~.
++     set.seed(2015)
++     tit$logage <- log(tit$age) + rnorm(nrow(tit))
++     tit$parch <- NULL
++     # by=12 gives us a small fast model with an additive and a interaction term
++     tit <- tit[seq(1, nrow(etitanic), by=12), ]
++ }
+> plotmo1 <- function(object, ..., trace=0, SHOWCALL=TRUE, caption=NULL) {
++     if(is.null(caption))
++         caption <- paste(deparse(substitute(object)), collapse=" ")
++     call <- match.call(expand.dots=TRUE)
++     call <- strip.space(paste(deparse(substitute(call)), collapse=" "))
++     printf("%s\n", call)
++     plotmo(object, trace=trace, SHOWCALL=SHOWCALL, caption=caption, ...)
++ }
+> plotres1 <- function(object, ..., trace=0, SHOWCALL=TRUE, caption=NULL) {
++     if(is.null(caption))
++         caption <- paste(deparse(substitute(object)), collapse=" ")
++     call <- match.call(expand.dots=TRUE)
++     call <- strip.space(paste(deparse(substitute(call)), collapse=" "))
++     printf("%s\n", call)
++     plotres(object, trace=trace, SHOWCALL=SHOWCALL, caption=caption, ...)
++ }
+> tit <- get.tit()
+> set.seed(2015)
+> xmat <- as.matrix(tit[,c(2,5,6)])
+> set.seed(2015)
+> mod.glmnet.xmat <- glmnet(xmat, tit[,4])
+> # plotmo on glmnet mods is boring but we test it anyway
+> plotmo1(mod.glmnet.xmat)
+plotmo1(object=mod.glmnet.xmat)
+ plotmo grid:    survived sibsp  logage
+                        0     0 3.06991
+> plotres1(mod.glmnet.xmat)
+plotres1(object=mod.glmnet.xmat)
+> 
+> # compare to plot.glmnet
+> par(mfrow=c(4,2), mar=c(3,6,3.5,6)) # extra side margins for more square plots
+> plot_glmnet(mod.glmnet.xmat, main="mod.glmnet.xmat\ncompare to plot.glmnet")
+> plot(0,0)
+> plot_glmnet(mod.glmnet.xmat, xvar="norm", col=c(3,2,1))
+> plot(mod.glmnet.xmat, xvar="norm")
+> plot_glmnet(mod.glmnet.xmat, xvar="lambda")
+> plot(mod.glmnet.xmat, xvar="lambda")
+> plot_glmnet(mod.glmnet.xmat, xvar="dev")
+> plot(mod.glmnet.xmat, xvar="dev")
+> par(org.par)
+> 
+> set.seed(2015)
+> mod.cv.glmnet.xmat <- cv.glmnet(xmat, tit[,4], nfolds=3)
+> 
+> # following was needed before plotmo 3.1.3 (before adding plotmo.prolog.cv.glmnet)
+> # mod.cv.glmnet.xmat$x <- as.data.frame(xmat)
+> # mod.cv.glmnet.xmat$y <- tit[,4]
+> 
+> cat("==Test plotmo trace=1 and lambda.min\n")
+==Test plotmo trace=1 and lambda.min
+> plotmo1(mod.cv.glmnet.xmat, predict.s="lambda.min", trace=1)
+plotmo1(object=mod.cv.glmnet.xmat,predict.s="lambda.min",trace=1)
+stats::predict(cv.glmnet.object, matrix[3,3], type="response", s="lambda.min")
+stats::fitted(object=cv.glmnet.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from getCall(object)$y
+
+ plotmo grid:    survived sibsp  logage
+                        0     0 3.06991
+
+> cat("==Test plotmo trace=2 and lambda.min\n")
+==Test plotmo trace=2 and lambda.min
+> plotmo1(mod.cv.glmnet.xmat, predict.s="lambda.min", trace=2)
+plotmo1(object=mod.cv.glmnet.xmat,predict.s="lambda.min",trace=2)
+plotmo trace 2: plotmo(object, trace=trace, SHOWCALL=SHOWCALL, caption=caption,
+                       ...)
+--get.model.env for object with class cv.glmnet
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+assuming the environment of the cv.glmnet model is that of plotmo's caller: env(..., call, caption, object, SHOWCALL, trace)
+--plotmo_prolog for cv.glmnet object 'object'
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[3,3], type="response", s="lambda.min")
+predict returned[3,1]:
+   s="lambda.min"
+1        25.64083
+13       34.58457
+26       31.45755
+predict after processing with nresponse=NULL is [3,1]:
+   s="lambda.min"
+1        25.64083
+13       34.58457
+26       31.45755
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=cv.glmnet.object)
+fitted() was unsuccessful, will use predict() instead
+plotmo_predict with NULL newdata, using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[88,3], type="response", s="lambda.min")
+predict returned[88,1]:
+     s="lambda.min"
+1          25.64083
+13         34.58457
+26         31.45755
+...        44.27544
+1308       40.53237
+predict after processing with nresponse=NULL is [88,1]:
+     s="lambda.min"
+1          25.64083
+13         34.58457
+26         31.45755
+...        44.27544
+1308       40.53237
+got fitted values by calling predict (see above)
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=NULL is [88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+got model response from getCall(object)$y
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=1 is [88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+got response name "s="lambda.min"" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: survived 2 sibsp 5 logage 88
+
+----plotmo_singles for cv.glmnet object
+singles: 1 survived, 2 sibsp, 3 logage 
+
+----plotmo_pairs for cv.glmnet object
+Error in attr(x, "formula") %||% { : invalid formula
+formula(object) failed for cv.glmnet object in plotmo.pairs.default
+Error in x$terms %||% attr(x, "terms") %||% stop("no terms component nor attribute") : 
+  no terms component nor attribute
+terms(object) failed for cv.glmnet object in plotmo.pairs.default
+no pairs
+
+graphics::par(mfrow=c(2,2), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=2,
+              mar=c(3,2,1.2,0.8), oma=c(0,0,4,0), cex.main=1.2, cex.lab=1,
+              cex.axis=1, cex=0.83)
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable survived
+newdata[2,3]:
+  survived sibsp  logage
+1        0     0 3.06991
+2        1     0 3.06991
+stats::predict(cv.glmnet.object, matrix[2,3], type="response", s="lambda.min")
+predict returned[2,1]:
+  s="lambda.min"
+1       31.34766
+2       31.24259
+predict after processing with nresponse=1 is [2,1]:
+  s="lambda.min"
+1       31.34766
+2       31.24259
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable sibsp
+degree1 plot3 (pmethod "plotmo") variable logage
+--done get.ylim.by.dummy.plots
+
+ylim c(4.856, 44.28)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    survived sibsp  logage
+                        0     0 3.06991
+
+graphics::plot.default(x=c(0,0.5,0.5,1), y=c(31.35,31.35,3...), type="n",
+                       main="1 survived", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(-0.1,1.1), ylim=c(4.86,44.28))
+> cat("==Test plotres trace=1 and lambda.1se\n")
+==Test plotres trace=1 and lambda.1se
+> plotres1(mod.cv.glmnet.xmat, predict.s="lambda.1se", trace=1)
+plotres1(object=mod.cv.glmnet.xmat,predict.s="lambda.1se",trace=1)
+stats::residuals(object=cv.glmnet.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+stats::predict(cv.glmnet.object, matrix[3,3], type="response", s="lambda.1se")
+stats::fitted(object=cv.glmnet.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from getCall(object)$y
+graphics::plot(cv.glmnet.object)
+
+training rsq 0.24
+> cat("==Test plotres trace=2 and lambda.1se\n")
+==Test plotres trace=2 and lambda.1se
+> plotres1(mod.cv.glmnet.xmat, predict.s="lambda.1se", trace=2)
+plotres1(object=mod.cv.glmnet.xmat,predict.s="lambda.1se",trace=2)
+plotres trace 2: plotres(object, trace=trace, SHOWCALL=SHOWCALL,
+                         caption=caption, ...)
+--get.model.env for object with class cv.glmnet
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+assuming the environment of the cv.glmnet model is that of plotres's caller: env(..., call, caption, object, SHOWCALL, trace)
+--plotmo_prolog for cv.glmnet object 'object'
+
+----Metadata: plotmo_resids(object, type="response", nresponse=NULL)
+doTryCatch invoked call.dots
+TRACE plotmo_resids via try called call.dots(residuals, DROP="*",
+                         KEEP="PREFIX", TRACE=if(trace==0)-1elsetr...),
+                         force.object=object, force.type=residtype,
+                         SHOWCALL=TRUE, predict.s="lambda.1se")
+PREFIX residuals.
+DROP .*
+KEEP >STANDARDPREFIXES|^force\.|^def\.|^drop\.
+     >PREFIX|^residuals\.
+     >CALLARGS|^force\.object$|^force\.type$
+     >EXPLICIT
+input dotnames       force.object force.type SHOWCALL predict.s
+after DROP and KEEP  force.object force.type
+return dotnames      object type
+
+stats::residuals(object=cv.glmnet.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[3,3], type="response", s="lambda.1se")
+predict returned[3,1]:
+   s="lambda.1se"
+1        26.57900
+13       33.26779
+26       30.85060
+predict after processing with nresponse=NULL is [3,1]:
+   s="lambda.1se"
+1        26.57900
+13       33.26779
+26       30.85060
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=cv.glmnet.object)
+fitted() was unsuccessful, will use predict() instead
+plotmo_predict with NULL newdata, using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[88,3], type="response", s="lambda.1se")
+predict returned[88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+predict after processing with nresponse=NULL is [88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+got fitted values by calling predict (see above)
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=NULL is [88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+got model response from getCall(object)$y
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=1 is [88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+got response name "s="lambda.1se"" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+--plotmo_response for plotmo_rsq1
+--plotmo_response for newdata: NULL
+plotmo_response trace 2: plotmo_response(object=object, newdata=newdata,
+                         trace=max(0,trace), nresponse=meta$nresponse,
+                         type=meta$type, meta=meta, ...)
+--get.model.env for object with class cv.glmnet
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+using attr(obj,".Environment") saved with cv.glmnet model: env(..., call, caption, object, SHOWCALL, trace)
+--plotmo_y with nresponse=1 for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=1 is [88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+response is usable and has column name plotmo_y
+plotmo_response returned[88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+plotmo_response after processing with nresponse=1 is [88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+--plotmo_predict for plotmo_rsq1
+plotmo_predict with NULL newdata, using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[88,3], type="response", s="lambda.1se")
+predict returned[88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+predict after processing with nresponse=1 is [88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+----plotmo_rinfo: plotmo_resids(object, type="response", nresponse=1)
+doTryCatch invoked call.dots
+TRACE plotmo_resids via try called call.dots(residuals, DROP="*",
+                         KEEP="PREFIX", TRACE=if(trace==0)-1elsetr...),
+                         force.object=object, force.type=residtype,
+                         SHOWCALL=TRUE, predict.s="lambda.1se")
+PREFIX residuals.
+DROP .*
+KEEP >STANDARDPREFIXES|^force\.|^def\.|^drop\.
+     >PREFIX|^residuals\.
+     >CALLARGS|^force\.object$|^force\.type$
+     >EXPLICIT
+input dotnames       force.object force.type SHOWCALL predict.s
+after DROP and KEEP  force.object force.type
+return dotnames      object type
+
+stats::residuals(object=cv.glmnet.object, type="response")
+calling predict() because residuals() was unsuccessful
+plotmo_predict with NULL newdata, using plotmo_x to get the data
+--plotmo_x for cv.glmnet object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$x is usable and has column names survived sibsp logage
+plotmo_x returned[88,3]:
+     survived sibsp   logage
+1           1     0 1.821847
+13          1     0 3.814495
+26          0     0 3.094392
+...         0     0 5.950193
+1308        0     0 5.116245
+will use the above data instead of newdata=NULL for predict.cv.glmnet
+stats::predict(cv.glmnet.object, matrix[88,3], type="response", s="lambda.1se")
+predict returned[88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+predict after processing with nresponse=1 is [88,1]:
+     s="lambda.1se"
+1          26.57900
+13         33.26779
+26         30.85060
+...        40.43678
+1308       37.63743
+--plotmo_y with nresponse=1 for cv.glmnet object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is cv.glmnet(x=xmat, y=tit[, 4], nfolds=3)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(..., call, caption, object, SHOWCALL, trace))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "nfolds"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+plotmo_y returned[88,1] with no column names:
+      
+1   29
+2   24
+3   25
+... 41
+88  27
+plotmo_y after processing with nresponse=1 is [88,1]:
+    plotmo_y
+1         29
+2         24
+3         25
+...       41
+88        27
+residuals returned[88,1]:
+         resids
+1     2.4210049
+2    -9.2677944
+3    -5.8505971
+...   0.5632234
+88  -10.6374291
+residuals after processing with nresponse=1 is [88,1]:
+         resids
+1     2.4210049
+2    -9.2677944
+3    -5.8505971
+...   0.5632234
+88  -10.6374291
+generated the residuals using plotmo_predict() and plotmo_y()
+----plotmo_rinfo: done
+
+graphics::par(mfrow=c(2,2), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=1,
+              mar=c(4,3,1.2,0.8), oma=c(0,0,4,0), cex.main=1, cex.lab=1,
+              cex.axis=1, cex=0.83)
+graphics::plot(cv.glmnet.object)
+
+training rsq 0.24
+> 
+> set.seed(2015)
+> x <- matrix(rnorm(100*20),100,20) # 20 variables
+> y <- rnorm(100)
+> mod <- glmnet(x,y)
+> plotmo1(mod)
+plotmo1(object=mod)
+ plotmo grid:    x1          x2         x3         x4        x5         x6
+        -0.02229245 -0.03060877 0.02595536 -0.2306748 0.2048663 -0.2711153
+         x7         x8         x9        x10         x11        x12         x13
+ 0.04214883 -0.1573321 0.05656354 -0.2789684 -0.01729983 0.05494411 -0.04358897
+       x14         x15         x16        x17       x18       x19       x20
+ -0.184689 -0.01875314 -0.08998893 0.05206396 0.1317551 -0.033794 0.1125339
+> 
+> # test w1.label
+> par(mfrow=c(2,3))
+> par(cex=1)
+> par(mar=c(3,3,3,1))
+> plotres(mod, which=1,                w1.main="default w1.label")
+> plotres(mod, which=1, w1.label=5,    w1.main="w1.label=5")
+> plotres(mod, which=1, w1.label=0,    w1.main="w1.label=0")
+> plotres(mod, which=1, w1.label=TRUE, w1.main="w1.label=TRUE")
+> plotres(mod, which=1, w1.label=100,  w1.main="w1.label=100")
+> par(org.par)
+> 
+> # test w1 and non w1 args passed
+> par(mfrow=c(2,2), mar=c(4,4,4,4), cex=1)
+> 
+> plot_glmnet(mod, w1.col=3:4, w1.xvar="norm",
++             main="plot_glmnet\nw1.col=3:4 w1.xvar=\"norm\"")
+> 
+> plot_glmnet(mod, col=3:4, xvar="norm",
++             main="plot_glmnet\ncol=3:4 xvar=\"norm\"")
+> 
+> plot_glmnet(mod, col=3:4, w1.col=1:2,
++             w1.xvar="norm", xvar="lambda",
++             main="plot_glmnet\ncol=3:4 w1.col=1:2\nw1.xvar=\"norm\", xvar=\"lambda\"")
+> 
+> par(org.par)
+> par(mfrow=c(3,2), mar=c(3,4,4,4), cex=1)
+> 
+> plotres(mod, which=c(1,3), do.par=FALSE, w1.col=3:4, w1.xvar="norm",
++         w1.main="plotres\nw1.col=3:4 w1.xvar=\"norm\"")
+> 
+> plotres(mod, which=c(1,3), do.par=FALSE, col=3:4, xvar="norm",
++         w1.main="plotres\nplotres\ncol=3:4 xvar=\"norm\"")
+> 
+> plotres(mod, which=c(1,3), do.par=FALSE, col=3:4, w1.col=1:2,
++         w1.main="plotres\ncol=3:4 w1.col=1:2")
+> 
+> par(org.par)
+> 
+> # glmnet with sparse matrices
+> set.seed(2015)
+> n <- 100
+> p <- 20
+> nzc <- trunc(p/10)
+> x <- matrix(rnorm(n*p),n,p)
+> iz <- sample(1:(n*p),size=n*p*.85,replace=FALSE)
+> x[iz] <- 0
+> sx <- Matrix(x,sparse=TRUE)
+> # colnames(sx) <- paste("x", 1:ncol(sx), sep="") # need column names for plotmo
+> inherits(sx,"sparseMatrix") # confirm that it is sparse
+[1] TRUE
+> beta <- rnorm(nzc)
+> fx <- x[,seq(nzc)]%*%beta
+> eps <- rnorm(n)
+> y <- fx+eps
+> px <- exp(fx)
+> px <- px/(1+px)
+> ly <- rbinom(n=length(px),prob=px,size=1)
+> mod.glmnet.sx <- glmnet(sx,y)
+> plotmo1(mod.glmnet.sx, all2=TRUE) # will give warning: too many predictors to plot all pairs
+plotmo1(object=mod.glmnet.sx,all2=TRUE)
+Warning: too many predictors to plot all pairs,
+         so plotting degree2 plots for just the first 7 predictors.
+         Call plotmo with all2=2 to plot degree2 plots for up to 20 predictors.
+ plotmo grid:    x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18
+                  0  0  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0   0
+ x19 x20
+   0   0
+> plotmo1(mod.glmnet.sx, all2=2, caption="all2=2") # test all2=2
+plotmo1(object=mod.glmnet.sx,all2=2,caption="all2=2")
+More than 64 degree2 plots.
+Consider using plotmo's degree2 argument to limit the number of plots.
+For example,  degree2=1:10  or  degree2="x1"
+Call plotmo with trace=-1 to make this message go away.
+
+ plotmo grid:    x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18
+                  0  0  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0   0
+ x19 x20
+   0   0
+> plotmo1(mod.glmnet.sx, all2=2, degree2=1:3, caption="all2=2 degree2=1:3")
+plotmo1(object=mod.glmnet.sx,all2=2,degree2=1:3,caption="all2=2degree2=1:3")
+ plotmo grid:    x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18
+                  0  0  0  0  0  0  0  0  0   0   0   0   0   0   0   0   0   0
+ x19 x20
+   0   0
+> plotres(mod.glmnet.sx)
+> par(org.par)
+> 
+> par(mfrow=c(2,4), mar=c(3,3,3,1), mgp=c(1.5,0.5,0), oma=c(0,0,2.5,0))
+> y <- trees$Volume
+> x <- as.matrix(data.frame(Girth=trees$Girth, Height=trees$Height))
+> glmnet <- glmnet(x, y)
+> plotres(glmnet, do.par=FALSE, caption="glmnet and lm: top and bottom should be the same")
+> lm <- lm(Volume~., data=trees)
+> plotres(lm, do.par=FALSE, SHOWCALL=TRUE)
+> 
+> par(mfrow=c(3,2), mar=c(3,3,3,1), mgp=c(1.5,0.5,0), oma=c(0,0,2.5,0))
+> plotres(glmnet, do.par=FALSE, which=c(1,3), w1.xvar="norm",
++         caption="glmnet with various options", SHOWCALL=TRUE)
+> plotres(glmnet, trace=1, do.par=FALSE, which=c(1,3), SHOWCALL=TRUE)
+stats::residuals(object=elnet.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+stats::predict(elnet.object, matrix[3,2], type="response", s=0)
+stats::fitted(object=elnet.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from getCall(object)$y
+plot_glmnet(elnet.object, xvar="rlambda", grid.col=0, s=0, nresponse=1)
+
+training rsq 0.95
+> plotres(glmnet, trace=1, do.par=FALSE, which=c(1,3), predict.s=5, SHOWCALL=TRUE)
+stats::residuals(object=elnet.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+stats::predict(elnet.object, matrix[3,2], type="response", s=5)
+stats::fitted(object=elnet.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from getCall(object)$y
+plot_glmnet(elnet.object, xvar="rlambda", grid.col=0, s=5, nresponse=1)
+
+training rsq 0.84
+> par(org.par)
+> 
+> printf("======== glmnet additional tests\n")
+======== glmnet additional tests
+> set.seed(2015)
+> p <- 10
+> n <- 30
+> x <- cbind(matrix(rnorm(n*p),n,p))
+> y <- rowSums(x[,1:3]^3)
+> glmnet <- glmnet(x,y)
+> plotres(glmnet, SHOWCALL=TRUE, caption="glmnet: y <- rowSums(x[,1:3]^3)")
+> plotres(glmnet, SHOWCALL=TRUE, w1.xvar="norm")
+> par(mfrow=c(1,1))
+> omar <- par("mar")
+> ocex.axis <- par("cex.axis")
+> ocex.lab <- par("cex.lab")
+> plotres(glmnet, SHOWCALL=TRUE, which=1)
+> stopifnot(par("mar") == omar)
+> stopifnot(par("cex.axis") == ocex.axis)
+> stopifnot(par("cex.lab") == ocex.lab)
+> par(org.par)
+> 
+> # test some args for plot_glmnet
+> plotres(glmnet, predict.s=.05, SHOWCALL=TRUE, trace=0, col.main=2,
++         w1.xlab="my xlab", w1.ylab="my ylab",
++         w1.main="test some args for plot_glmnet1",
++         w1.col=4:1)
+> 
+> plot_glmnet(glmnet, trace=0, col.main=2, main="test some args for plot_glmnet2",
++         xlab="my xlab", ylab="my ylab",
++         col=4:1, ylim=c(-2,4)) # TODO xlim=c(-5,3))
+> 
+> plotres(glmnet, predict.s=.05, SHOWCALL=TRUE, which=c(1,3), grid.col="gray", do.par=2)
+> plotres(glmnet, predict.s=.05, SHOWCALL=TRUE, which=c(1,3), w1.s.col=0, do.par=0)
+> par(org.par)
+> 
+> # TODO the following issues a stream of warnings: restarting interrupted promise evaluation
+> expect.err(try(plotres(glmnet, w1.col=nonesuch)), "cannot evaluate 'col'")
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]]) : restarting interrupted promise evaluation
+Warning in eval(dots[[i]], envir = env, enclos = env) :
+  restarting interrupted promise evaluation
+Warning in eval(dots[[i]], envir = env, enclos = env) :
+  restarting interrupted promise evaluation
+Warning in eval(dots[[i]], envir = env, enclos = env) :
+  restarting interrupted promise evaluation
+Warning in eval(dots[[i]], envir = env, enclos = env) :
+  restarting interrupted promise evaluation
+Warning in eval(dots[[i]], envir = env, enclos = env) :
+  restarting interrupted promise evaluation
+Error in eval(dots[[idot]], parent.frame(1)) : 
+  ..6 used in an incorrect context, no ... to look in
+
+plot_glmnet(elnet.object, xvar="rlambda", grid.col=0, col=..6, s=0,
+    nresponse=1)
+
+Error in eval(dots[[idot]], parent.frame(1)) : 
+  ..6 used in an incorrect context, no ... to look in
+Error : cannot evaluate 'col'
+Got expected error from try(plotres(glmnet, w1.col = nonesuch))
+> 
+> printf("======== glmnet multinomial (multnet)\n")
+======== glmnet multinomial (multnet)
+> par(mfrow=c(4,4), mar=c(3,3,3,1))
+> set.seed(2016)
+> n <- 200
+> p <- 4
+> x <- matrix(rnorm(n*p), n, p)
+> colnames(x) <- paste("x", 1:ncol(x), sep="")
+> 
+> # "1" is correlated with x[,1], "4" is correlated with x[,2], "2" and "3" not correlated
+> y <- ifelse(x[,1] > 0.5, 1,
++      ifelse(x[,2] > 0.0, 4,
++      sample(c(2,3), size=nrow(x), replace=TRUE)))
+> print(cov(x, y))
+          [,1]
+x1 -0.84023279
+x2  0.38654310
+x3 -0.11396993
+x4 -0.07611821
+> y <- factor(y)
+> 
+> # TODO Following causes the following warning:
+> #      Warning: from glmnet Fortran code (error code -90); Convergence for 90th lambda value not reached after maxit=100000 iterations; solutions for larger lambdas returned
+> multinomial.mod <- glmnet(x, y, family="multinomial")
+Warning: from glmnet C++ code (error code -90); Convergence for 90th lambda value not reached after maxit=100000 iterations; solutions for larger lambdas returned
+> 
+> plotres(multinomial.mod, nresponse=1, w1.main="nresponse=1",
++         main="family=\"multinomial\"",
++         smooth.col=0, info=TRUE,
++         trace=0, which=c(1,3), do.par=FALSE, xlim=c(-.2,1.2), ylim=c(-1.2, 1.2))
+> 
+> plotres(multinomial.mod, nresponse=2, w1.main="nresponse=2",
++         smooth.col=0, info=TRUE,
++         trace=0, which=c(1,3), do.par=FALSE, xlim=c(-.2,1.2), ylim=c(-1.2, 1.2))
+> 
+> plotres(multinomial.mod, nresponse=3, w1.main="nresponse=3",
++         smooth.col=0, info=TRUE,
++         trace=0, which=c(1,3), do.par=FALSE, xlim=c(-.2,1.2), ylim=c(-1.2, 1.2))
+> 
+> plotres(multinomial.mod, nresponse=4, w1.main="nresponse=4",
++         smooth.col=0, info=TRUE,
++         trace=0, which=c(1,3), do.par=FALSE, xlim=c(-.2,1.2), ylim=c(-1.2, 1.2))
+> 
+> plotmo(multinomial.mod, nresponse=1, trace=0, do.par=FALSE, degree1=1:2)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> plotmo(multinomial.mod, nresponse=2, trace=0, do.par=FALSE, degree1=1:2)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> 
+> par(mgp=c(1.5, .4, 0))
+> plot(multinomial.mod, xvar="norm") # compare to plot.glmnet
+> par(org.par)
+> 
+> # compare to earth
+> par(mfrow=c(4,3), mar=c(3,3,1,1))
+> yfac <- factor(c("a","b","c","d")[y])
+> earth.mod <- earth(x, yfac, trace=0)
+> 
+> plotres(earth.mod, nresponse=1,
++         main=sprint("multiresponse\nnresponse=1   rsq %.2g", earth.mod$rsq.per.response[1]),
++         which=3, xlim=c(-.2, 1.2), ylim=c(-1.2, 1.2),
++         smooth.col=0, info=TRUE,
++         do.par=FALSE, trace=0, jitter=7, cex.response=.7)
+> plotmo(earth.mod, nresponse=1, do.par=FALSE)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> 
+> plotres(earth.mod, nresponse=2,
++         main=sprint("nresponse=2   rsq %.2g", earth.mod$rsq.per.response[2]),
++         which=3, xlim=c(-.2, 1.2), ylim=c(-1.2, 1.2),
++         smooth.col=0, info=TRUE,
++         do.par=FALSE, trace=0, jitter=7, cex.response=.7)
+> plotmo(earth.mod, nresponse=2, do.par=FALSE)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> 
+> plotres(earth.mod, nresponse=3,
++         main=sprint("nresponse=3   rsq %.2g", earth.mod$rsq.per.response[3]),
++         which=3, xlim=c(-.2, 1.2), ylim=c(-1.2, 1.2),
++         smooth.col=0, info=TRUE,
++         do.par=FALSE, trace=0, jitter=7, cex.response=.7)
+> plotmo(earth.mod, nresponse=3, do.par=FALSE)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> 
+> plotres(earth.mod, nresponse=4,
++         main=sprint("nresponse=4   rsq %.2g", earth.mod$rsq.per.response[4]),
++         which=3, xlim=c(-.2, 1.2), ylim=c(-1.2, 1.2),
++         smooth.col=0, info=TRUE,
++         do.par=FALSE, trace=0, jitter=7, cex.response=.7)
+> plotmo(earth.mod, nresponse=4, do.par=FALSE)
+ plotmo grid:    x1        x2         x3         x4
+        -0.01157106 0.1530614 0.04853916 0.02097713
+> 
+> print(summary(earth.mod))
+Call: earth(x=x, y=yfac, trace=0)
+
+                           a          b           c          d
+(Intercept)      -0.00759508  0.4777590  0.32170406  0.2081320
+h(x1-0.333835)    2.90462369 -0.8647319 -0.45258311 -1.5873087
+h(x1-0.698191)   -2.95380448  0.8748909  0.44797354  1.6309401
+h(x2- -0.724713)  0.00083945  0.8851614 -0.25504553 -0.6309554
+h(x2- -0.399683)  0.00512171 -1.9558653 -0.04067399  1.9914176
+h(x2-0.255847)   -0.00181500  1.1141555  0.31084638 -1.4231869
+
+Selected 6 of 14 terms, and 2 of 4 predictors
+Termination condition: Reached nk 21
+Importance: x1, x2, x3-unused, x4-unused
+Number of terms at each degree of interaction: 1 5 (additive model)
+
+           GCV       RSS      GRSq       RSq
+a   0.01233701  2.203452 0.9438697 0.9493692
+b   0.10618691 18.965513 0.3429519 0.4073277
+c   0.08491793 15.166767 0.1053911 0.1930425
+d   0.07399172 13.215291 0.6874511 0.7180738
+All 0.27743357 49.551022 0.6109269 0.6490472
+> 
+> par(org.par)
+> 
+> printf("======== binomial model\n")
+======== binomial model
+> 
+> set.seed(2019)
+> n <- 50
+> p <- 4
+> x <- matrix(rnorm(n*p), n, p)
+> colnames(x) <- paste("x", 1:ncol(x), sep="")
+> y <- ifelse(x[,1] + x[,2] + .1 * rnorm(n) > .5, TRUE, FALSE)
+> print(cov(x, y))
+         [,1]
+x1 0.26996406
+x2 0.19322507
+x3 0.04850061
+x4 0.01568008
+> y <- factor(y)
+> glmnet.binomial <- glmnet(x, y, family="binomial")
+> par(mfrow=c(2,3), mar=c(3,3,1,1))
+> plotres(glmnet.binomial, info=T, predict.s=.02, which=c(1,3), do.par=FALSE, w1.main="glmnet.binomial")
+> plot(glmnet.binomial)
+> earth.mod <- earth(x, y)
+> set.seed(2019)
+> plotres(earth.mod, info=T, which=c(1,3), do.par=FALSE)
+> par(org.par)
+> par(mfrow=c(2,4), mar=c(3,3,1,1))
+> set.seed(2019)
+> plotmo(glmnet.binomial, do.par=FALSE)
+ plotmo grid:    x1         x2         x3         x4
+         0.05687241 -0.2477018 -0.1266239 -0.2475514
+> plotmo(earth.mod, do.par=FALSE, main="binomial earth.mod")
+ plotmo grid:    x1         x2         x3         x4
+         0.05687241 -0.2477018 -0.1266239 -0.2475514
+> par(org.par)
+> 
+> printf("======== glmnet family=\"mgaussian\"\n")
+======== glmnet family="mgaussian"
+> set.seed(2015)
+> p <- 10
+> n <- 30
+> x <- cbind((1:n)/n, matrix(rnorm(n*(p-1)),n,p-1))
+> colnames(x) <- paste0("x", 1:p)
+> # ymultresp <- cbind(rowSums(x[,1:5]^3), rowSums(x[,5:p]^3), 1:n)
+> set.seed(1)
+> ymultresp <- cbind(x[,1]+.001*rnorm(n), rowSums(x[,2:5]^3), rnorm(n))
+> glmnet.mgaussian <- glmnet(x, ymultresp, family="mgaussian")
+> plotres(glmnet.mgaussian, nresponse=1, SHOWCALL=TRUE, which=c(1:3), do.par=2, info=1)
+> # manually calculate the residuals
+> plot(x=predict(glmnet.mgaussian, newx=x, s=0)[,1,1],
++      y=ymultresp[,1] - predict(glmnet.mgaussian, newx=x, s=0)[,1,1],
++      pch=20, xlab="Fitted", ylab="Residuals",
++      main="Manually calculated residuals, nresponse=1, s=0")
+> abline(h=0, col="gray")
+> par(org.par)
+> plotres(glmnet.mgaussian, nresponse=2, SHOWCALL=TRUE, which=c(1:3), do.par=2, info=1)
+> # manually calculate the residuals
+> plot(x=predict(glmnet.mgaussian, newx=x, s=0)[,2,1],
++      y=ymultresp[,2] - predict(glmnet.mgaussian, newx=x, s=0)[,2,1],
++      pch=20, xlab="Fitted", ylab="Residuals",
++      main="Manually calculated residuals, nresponse=2, s=0")
+> abline(h=0, col="gray")
+> par(org.par)
+> plotmo(glmnet.mgaussian, nresponse=1, SHOWCALL=TRUE)
+ plotmo grid:    x1          x2        x3         x4         x5          x6
+          0.5166667 0.002216547 0.3749872 -0.1927516 -0.3806807 -0.03575992
+         x7        x8         x9       x10
+ 0.01386232 0.0135174 0.04028881 0.0426105
+> plotmo(glmnet.mgaussian, nresponse=2, SHOWCALL=TRUE)
+ plotmo grid:    x1          x2        x3         x4         x5          x6
+          0.5166667 0.002216547 0.3749872 -0.1927516 -0.3806807 -0.03575992
+         x7        x8         x9       x10
+ 0.01386232 0.0135174 0.04028881 0.0426105
+> 
+> graphics::par(mfrow=c(2,2), mgp=c(1.5,0.4,0), tcl=-0.3, cex.main=1,
++               font.main=1, mar=c(4,3,1.2,0.8), oma=c(0,0,4,0), cex=0.83)
+> 
+> plotres(glmnet.mgaussian, nresponse=2, SHOWCALL=TRUE, which=3, do.par=FALSE,
++         caption="glmnet.mgaussian compare to manually calculated residuals")
+> plot(x=predict(glmnet.mgaussian, newx=x, s=0)[,2,1],
++      y=ymultresp[,2] - predict(glmnet.mgaussian, newx=x, s=0)[,2,1],
++      pch=20, xlab="Fitted", ylab="Residuals",
++      main="Manual residuals, nresponse=2, s=0")
+> abline(h=0, col="gray")
+> 
+> plotres(glmnet.mgaussian, nresponse=2, predict.s=.5, SHOWCALL=TRUE, which=3, do.par=FALSE)
+> plot(x=predict(glmnet.mgaussian, newx=x, s=.5)[,2,1],
++      y=ymultresp[,2] - predict(glmnet.mgaussian, newx=x, s=.5)[,2,1],
++      pch=20, xlab="Fitted", ylab="Residuals",
++      main="Manual residuals, nresponse=2, s=.5")
+> abline(h=0, col="gray")
+> 
+> plotres(glmnet.mgaussian, predict.s=.05, nresponse=3, info=TRUE, SHOWCALL=TRUE) # essentially random
+> 
+> par(org.par)
+> par(mfrow=c(2,3), mar=c(3,3,3,.5), oma=c(0,0,3,0), mgp=c(1.5,0.4,0), tcl=-0.3)
+> 
+> data(trees)
+> set.seed(2015)
+> # variable with a long name
+> x50 <- cbind(trees[,1:2], Girth12345678901234567890=rnorm(nrow(trees)))
+> mod.with.long.name <- glmnet(data.matrix(x50),data.matrix(trees$Volume))
+> plotres(mod.with.long.name, which=1, caption="test plot_glmnet with x50 and x60")
+> 
+> # one inactive variable (all coefs are zero for variable "rand")
+> set.seed(2015)
+> x60 <- cbind(trees[,1], rand=rnorm(nrow(trees)), trees[,2])
+> # complicate the issue: use an unnamed column (column 3)
+> colnames(x60) <- c("Girth", "rand", "")
+> mod.with.inactive.var <- glmnet(data.matrix(x60),data.matrix(trees$Volume))
+> mod.with.inactive.var$beta["rand",] = 0 # TODO hack force inactive variable
+> plotres(mod.with.inactive.var, which=1)
+> plotres(mod.with.inactive.var, which=1, w1.xvar="norm")
+> # compare to plot.glmnet (but note that labels aren't always plotted unless par=c(1,1)?)
+> plot(mod.with.inactive.var, xvar="norm", label=TRUE)
+> # plotmo calls the unnamed column "x3", fair enough
+> plotmo(mod.with.inactive.var, do.par=FALSE, pt.col=2)
+ plotmo grid:    Girth        rand x3
+                  12.9 0.004544606 76
+> 
+> # single active variable
+> x70 <- cbind(trees[,1,drop=F], 0)
+> a <- glmnet(data.matrix(x70), data.matrix(trees$Volume))
+> par(org.par)
+> par(mfrow=c(2,2), mar=c(3,3,2,4))
+> plotres(a, which=1, predict.s=1, caption="single active variable")
+> plotres(a, which=1, w1.xvar="norm")
+> plotres(a, which=1, w1.xvar="lambda")
+> plotres(a, which=1, w1.xvar="dev")
+> 
+> #--- test interaction of w1. and non w1 args -------------------------------------
+> 
+> #--- glmnet model, which=1 ---
+> 
+> par(org.par)
+> par(mfrow=c(4,3), mar=c(3, 3, 4, 1), mgp=c(2, 0.6, 0))
+> 
+> plotres(mod.glmnet.xmat, which=1,
++         w1.xlim=c(6,-6),
++         w1.ylim=c(-5,5),
++         w1.col=1:2,
++         w1.main="TEST INTERACTION OF W1 ARGS PAGE 1 (which=1)\n\nwhich=1 w1.xlim=c(6,-6)\nw1.ylim=c(-5,5)) w1.col=1:2,")
+> 
+> plotres(mod.glmnet.xmat, which=1, cex.main=1.2,
++         xlim=c(9,-9),
++         ylim=c(-60,60),
++         col=3:4,
++         w1.main="which=1 xlim=c(9,-9)\nylim=c(-60,60)) col=3:4,")
+> 
+> plotres(mod.glmnet.xmat, which=1, cex.main=1,
++         xlim=c(9,-9), w1.xlim=c(6,-6),
++         ylim=c(-60,60), w1.ylim=c(-5,5),
++         w1.col=1:2, col=3:4,
++         w1.main="which=1 xlim=c(9,-9), w1.xlim=c(6,-6)\nylim=c(-60,60), w1.ylim=c(-5,5)) w1.col=1:2, col=3:4")
+> 
+> #--- glmnet model, which=c(1,3,4) ---
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), cex.main=1,
++         ylim=c(-70,70),    xlim=c(-20, 60),
++         col=2:3, do.par=FALSE,
++         w1.main="TEST INTERACTION OF W1 ARGS PAGE 1 (which=c(1,3,4))\nlim=c(-70,70), xlim=c(-20, 60)")
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), cex.main=1.2,
++         ylim=c(-70,70),    xlim=c(-20, 60), qq.xlim=c(-7,5),
++         col=2:3, do.par=FALSE,
++         w1.main="ylim=c(-70,70), xlim=c(-20, 60)\nqq.xlim=c(-7,5)")
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), cex.main=1.2,
++         w1.ylim=c(-7,7), w1.xlim=c(4,-4),     col=2:3, do.par=FALSE,
++         w1.main="w1.ylim=c(-7,7), w1.xlim=c(4,-4)")
+> 
+> # plotres(mod.glmnet.xmat, which=c(1,3,4), cex.main=.9,
+> #         w1.ylim=c(-7,7), ylim=c(-20,20),
+> #         qq.xlim=c(-7,5), col=2:3, do.par=FALSE,
+> #         qq.ylim=c(-100,100),
+> #         main="w1.ylim=c(-7,7) ylim=c(-20,20)\nqq.xlim=c(-7,5) qq.ylim=c(-100,100)")
+> 
+> par(org.par)
+> par(mfrow=c(3,3), mar=c(3, 3, 4, 1), mgp=c(2, 0.6, 0))
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), do.par=FALSE, #  w1.main="which=c(1,3,4)",
++         w1.xlim=c(6,-6),
++         w1.ylim=c(-5,5),
++         w1.col=2:3,
++         w1.main="TEST INTERACTION OF W1 ARGS PAGE 2\n\nwhich=c(1,3,4) w1.xlim=c(6,-6)\nw1.ylim=c(-5,5)) w1.col=2:3")
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), w1.cex.main=1,  do.par=FALSE, # w1.main="which=c(1,3,4)",
++         xlim=c(-20,70),
++         ylim=c(-60,60),
++         w1.col=2:3,
++         col=3:4,
++         w1.main="which=c(1,3,4) ylim=c(-60,60))\nw1.col=2:3, col=3:4")
+> 
+> plotres(mod.glmnet.xmat, which=c(1,3,4), w1.cex.main=1, do.par=FALSE, # w1.main="which=c(1,3,4)",
++         xlim=c(-20,70), w1.xlim=c(6,-6),
++         ylim=c(-60,60), w1.ylim=c(-5,5),
++         col=3:4,
++         w1.main="which=c(1,3,4) xlim=c(9,-9), w1.xlim=c(6,-6)\nylim=c(-60,60), w1.ylim=c(-5,5)) w1.col=1:2, col=3:4")
+> 
+> par(org.par)
+> 
+> #-- make sure that we can work with all families
+> 
+> set.seed(2016)
+> par(mfrow=c(3,3), mar=c(3,3,3,1))
+> n <- 100
+> p <- 4
+> x <- matrix(rnorm(n*p), n, p)
+> g2 <- sample(1:2, n, replace=TRUE)
+> for(family in c("gaussian","binomial","poisson")) {
++     mod <- glmnet(x,g2,family=family)
++     plot(mod, xvar="lambda")
++     plotres(mod, w1.xvar="lambda", main=paste("family", family),
++             which=c(1,3), do.par=FALSE)
++ }
+> # cox
+> library(plotmo)
+> n <- 100
+> p <- 20
+> nzc <- trunc(p/10)
+> set.seed(2016)
+> beta <- rnorm(nzc)
+> x7 <- matrix(rnorm(n*p), n, p)
+> beta <- rnorm(nzc)
+> fx <- x7[,seq(nzc)] %*% beta/3
+> hx <- exp(fx)
+> ty <- rexp(n, hx)
+> tcens <- rbinom(n=n, prob=.3, size=1)# censoring indicator
+> y <- cbind(time=ty, status=1-tcens) # y=Surv(ty,1-tcens) with library(survival)
+> glmnet.cox <- glmnet(x=x7, y=y, family="cox")
+> plot(glmnet.cox)
+> title("glmnet.cox", line=2)
+> plot_glmnet(glmnet.cox, xvar="norm")
+> plotres(glmnet.cox, which=3, do.par=FALSE)
+> par(org.par)
+> 
+> # test col argument
+> par(mfrow=c(2,3), mar=c(3,3,5,1), cex=1)
+> mod <- glmnet(as.matrix(mtcars[-1]), mtcars[,1])
+> plot_glmnet(mod, main="plot_glmnet  default")
+> plot_glmnet(mod, col=c(1,2,3,0,0,NA,0,0,0,0), main="col=c(1,2,3,0,0,NA,0,0,0,0)")
+> g <- "gray"
+> plot_glmnet(mod, col=c("black","red","green",g,g,g,g,g,"steelblue","darkorange"), main="col=c('black','red','green',g,g,g,g,g,'steelblue','darkorange')")
+> plot_glmnet(mod, col=c("black","red","green",0,0,0,0,0,"steelblue","darkorange"), main="col=c('black','red','green',0,0,0,0,0,'steelblue','darkorange')")
+> plot_glmnet(mod, col=c("black","red", 0), main="col=c('black','red', 0)") # test recycling, including 0
+> par(org.par)
+> 
+> source("test.epilog.R")

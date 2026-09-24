@@ -1,0 +1,393 @@
+---
+title: "dfba_mann_whitney"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_mann_whitney}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction and Overview
+
+The two-sample $t$-test is the standard frequentist parametric statistical method for data analysis when there are two independent groups and where the dependent variable is a continuous measure. This parametric procedure is based on the assumptions that the data are independent observations from two normal distributions that have the same population variance. It is not likely that these assumptions are strictly valid, so it is advantageous to have some nonparametric alternatives for data analysis. The *median test* and the *Mann-Whitney* $U$ *test* are two frequentist nonparametric methods that are the conventional alternatives to the two-sample $t$-test. The `DFBA` package has functions for doing a Bayesian form of each of those two procedures; the Mann-Whitney $U$ test is the more powerful method of the two (Siegel & Castellan, 1988).
+ 
+This vignette is organized into four sections. [Theoretical Framework for the Bayesian Mann-Whitney](#framework) provides the conceptual basis for understanding both frequentist and Bayesian statistical inference of the Mann-Whitney $U$ statistics. [Mathematical Basis for the Large-$n$ Model](#mathematical-basis) covers the mathematical basis for the large-$n$ approximation procedure.^[This material is technical and perhaps not necessary for many of the less mathematically oriented readers. Such readers, if they are willing to accept the large-$n$ algorithm as accurate, can skip this section.] [Using the `dfba_mann_whitney()` Function](#using-mann-whitney) is focused on the use of the `dfba_mann_whitney()` function. For additional information about Monte Carlo sampling, approximating the posterior distribution with a beta distribution, the likelihood principle, and the Bayes factor, please see the vignettes for the `dfba_beta_bayes_factor()` function, the `dfba_binomial()` function, and the `dfba_beta_contrast()` function. 
+
+ 
+# Theoretical Framework for the Bayesian Mann-Whitney {#framework}
+ 
+Mann and Whitney (1947) developed the idea of $U$ statistics. Earlier, Wilcoxon (1945) employed a ranking metric that could be used when there are two independent groups, but the $U$ statistics are preferable for testing whether one of two independent, continuous random variables is *stochastically larger* in the population than the other. Let us denote one of the conditions as $E$ for an *experimental group* and denote the other condition as $C$ for a *control group*. Given $n_E$ scores in the $E$ condition and $n_C$ scores in the $C$ condition, there are two $U$ statistics. In the sample, the $U_E$ statistic is the number of times that an $E$ labeled score is larger than a $C$ labeled score and the $U_C$ statistic is the number of times a $C$ variate is larger than an $E$ variate. Consider two examples to see how these metrics are computed. For the first example, suppose there are three scores in each condition, and these values are all distinctly different with the rank ordering (from low to high) of $1.~C~~2.~C~~3.~E~~4.~C~~5.~E~~6.~E$. The $U_E$ statistic can be found by counting for each $E$ score, the number of $C$ scores that are less than that $E$. That is, $U_E=2+3+3=8$. The corresponding $U_C$ calculation is $U_C=0+0+1=1$. The second example has some tied scores. Suppose there are four scores in each condition, and there is a cluster of three scores with the same value. The ranking in this second example is: $1.~C~~2.~C~~3.~E~~4.~(C,~E,~ C)~~7.~E~~8. E$ where the measures within the parenthesis are tied. Now the $U$ statistics are $U_E=2+2+4+4=12$ and $U_C=0+0+1+1=2$. If there are no ties, $U_E+U_C=n_E \cdot n_C$, but if there are clusters of tied scores $U_E+U_C \le n_E \cdot n_C$. Yet, *in all cases*, the $U$ statistics can be computed by the following method. 
+
+
+\begin{equation}
+  \begin{aligned}
+    U_E &= \sum_{i=1}^{n_E} \sum_{j=1}^{n_C} \delta_E(i,~j), \\
+    \delta_E(i,~j) &= \begin{cases}
+    1 & if~x_{C_j}<x_{E_i}, \\
+              0 & \text{otherwise}
+      \end{cases}
+  \end{aligned}
+  (\#eq:UEEquation)
+\end{equation}
+
+where $x_{E_i}$ is a continuous measure for the $i$th observation for the $E$ variate and $x_{C_j}$ is the $j$th measure for the $C$ variate. The corresponding $U_C$ formula is
+
+\begin{equation}
+  \begin{aligned}
+    U_C &= \sum_{i=1}^{n_E} \sum_{j=1}^{n_C} \delta_C(i,~j), \\
+    \delta_C(i,~j) &= \begin{cases}
+    1 & if~x_{C_j}>x_{E_i}, \\
+              0 & \text{otherwise}
+      \end{cases}
+  \end{aligned}
+  (\#eq:UCEquation)
+\end{equation}
+
+Following the notation used in Chechile (2020b), let us define a population parameter $\Omega_E$:
+
+\begin{equation}
+  \Omega_E = \lim_{n\to \infty} \frac{U_E}{U_E+U_C}.
+  (\#eq:OmegaEEquation)
+\end{equation}
+
+If $E$ is *stochastically dominant*, then $\Omega_E>.5$. If $\Omega_E<.5$, then $C$ is stochastically dominant. We can also define the population parameter $\Omega_C=\lim_{n\to \infty} \frac{U_C}{U_E+U_C}$, but since $\Omega_C=1-\Omega_E$, we need just one of these two population characteristics. The `DFBA` package uses the  $\Omega_E$ parameter as a fundamental measure of the relative stochastic dominance of the two treatment conditions.
+
+The frequentist Mann-Whitney test is based on likelihoods exclusively. In general a likelihood is the conditional probability of an outcome given an assumed value for the relevant population parameter. Effectively, the frequentist analysis assumes the population value of $\Omega_E=.5$ and computes the likelihood for the observed $U_E$ *plus more extreme (unobserved) outcomes*.  When $\Omega_E=.5$, the two conditions are not different, so any pattern for the rank ordering is equally probable. For the first example considered above where $nE=nC=3$, there are ten possible rank orderings, so each possible outcome has a likelihood value of $\frac{1}{10}$. Because there is only one more extreme possible event in this example than the observed rank ordering (*i.e.*, the order of $1.~C~~2.~C~~3.~C~~4.~E~~5.~E~~6.~E$), the summed likelihood is $.2$. The summed likelihood is the frequentist $p$-value for hypothesis testing. If $p$ is less than $\alpha$, then the null hypothesis is rejected in favor of the alternative hypothesis that $\Omega_E \ne .5$.^[The `wilcox.test(..., paired = FALSE)` function in the `stats` package performs the frequentist Mann-Whitney test; the value for $U_E$ defined above is called `W` in the `wilcox.test()` output].
+
+Chechile (2020a; 2020b) provided a Bayesian version of the Mann-Whitney test. There are a number of important differences between the frequentist analysis and the Bayesian analysis. Unlike the frequentist approach, the Bayesian analysis is not predicated on the assumption that $\Omega_E=.5$. Instead, there is an entire prior distribution for $\Omega_E$. Furthermore, unlike in the frequentist analysis, in the Bayesian analysis of the $U$ statistics, the only likelihood that is computed after the data are collected is the likelihood of the *observed* $U$ statistics given a value for the population $\Omega_E$ parameter; the likelihoods of non-observed outcomes are irrelevant.^[The frequentist inclusion of likelihoods for non-observed events violates an essential principle in Bayesian statistics that is called the *likelihood principle* (Berger & Wolpert, 1988). In essence, this principle is the idea that upon the completion of data collection, the only likelihood that should be computed is the likelihood of the data. Other possible non-observed events are not part of Bayes theorem, and therefore any non-observed outcomes are irrelevant. Several researchers have demonstrated inferential paradoxes when the likelihood principle is violated (Lindley & Phillips, 1976; Chechile, 2020b). For example, Chechile (2020b) described two studies with Bernoulli data where there are the same number of success outcomes and the same number of failures. The likelihood for the observed outcome is thus the same for the two experiments. However, because the two experiments used different stopping rules, the non-observed outcomes are different in the two studies. With the inclusion of the likelihoods for the non-observed events, the frequentist analyses arrive at different conclusions for the two experiments. In one study the inclusion of the likelihood from non-observed more extreme events resulted in $p>.05$; whereas in the other experiment the inclusion of non-observed extreme likelihoods resulted in $p<.05$. So, the two studies with the same frequencies for the Bernoulli processes have different conclusions when frequentist tests are used.] The problem is the likelihood $P(U_E, U_C | \Omega_E)$ is not known. However in the similar fashion as with the Bayesian analysis for the Wilcoxon signed-rank statistic^[See the vignette for the `dfba_wilcoxon()` function], the unknown likelihood can be approximated via a Monte Carlo sampling process. For small sample sizes, the `dfba_mann_whitney()` function uses a discrete approximation method. Rather than a continuous prior distribution for the $\Omega_E$ parameter, the small-$n$ method instead considers $200$ values for $\Omega_E$ that range from $.0025$ to $.9975$ in steps of $.005$. Let us denote one of these possible $200$ values as $\Omega_{E_i}$. The Monte Carlo process samples $n_E$ and $n_C$ random scores from two distributions that have the same $\Omega_{E_i}$ value. Any one of the random Monte Carlo data sets with $n_E$ and $n_C$ scores can either (1) have the same $U_E$ and $U_C$ values as the observed $U$ statistics or (2) have $U$ statistics that differ from the observed. This Monte Carlo sampling process is repeated many thousands of times. The proportion of the Monte Carlo sets of scores that have the same $U_E$ and $U_C$ values as the observed $U$ statistics is an approximation of the likelihood $P(U_E, U_C | \Omega_{E_i})$. 
+
+At this point, the reader might wonder how to sample from distributions that have any desired value for $\Omega_E$. Chechile (2020a) showed how to sample from two different exponential distributions that have the desired value for $\Omega_{Ei}$. The exponential distribution has a probability density $f(x)=ke^{-x}$, where $k$ is the rate parameter. Chechile (2020a) showed that if one random set of exponential scores had a rate of $k=1$ while the other random set of exponential scores had a rate of $k=\frac{1-\Omega_{E_i}}{\Omega_{E_i}}$, then the two exponential variates would have the desired $\Omega_E=\Omega_{E_i}$. Consequently, for the $200$ candidate values for $\Omega_{E_i}$ evaluated in the `dfba_mann_whitney()` function, the small-$n$ algorithm approximates the likelihoods via a Monte Carlo sampling process. Given a prior distribution for the set of $\Omega_{E_i}$ values along with the likelihood estimates, there is a corresponding posterior distribution via Bayes theorem. The rest of the statistical inference consists of point and interval estimation of the posterior distribution for $\Omega_E$. Probabilities for interval hypotheses can also be computed along with Bayes factors.
+    
+Chechile (2020a) showed that the time-consuming small-$n$ algorithm described above can be avoided when $n_E$ and $n_C$ are greater than $15$. For sufficiently large sample sizes, discrete probability distribution results can be estimated *via* approximation. In the large-$n$ approximation, the prior and posterior distributions are beta distributions with adjusted shape parameters. The details about the large-$n$ solution are technical. These details are described in [Mathematical Basis for the Large-$n$ Model](#mathematical-basis) for the mathematically curious reader. Others are encouraged to skip to [Using the `dfba_mann_whitney()` Function](#using-mann-whitney).
+ 
+
+
+# Mathematical Basis for the Large-$n$ Model {#mathematical-basis}
+
+This section contains the mathematical details and the rationale underlying the large-$n$ approximation for the posterior distribution of the $\Omega_E$ parameter. Readers who prefer to bypass learning about these details, may feel free to skip this section and go to the section [Using the `dfba_mann_whitney()` Function](#using-mann-whitney).
+
+Chechile (2020a) investigated the properties of the discrete Monte Carlo-based posterior for $\Omega_E$ as a function of sample size in an effort to see if there could be a large-$n$ approximation. He discovered that for larger sample sizes that a combination of the mean of the distribution $E$ and the variance of the distribution $V$ could be accurately predicted with a formula that only depended on $nE$, $nC$, $UE$ and $UC$. The large-$n$ prediction formula is
+
+\begin{equation}
+  \frac{E(1-E)}{V} \approx n_H\left(1.028 + .75\frac{UE}{UE+UC}\right)+3.
+  (\#eq:largeNpredictionformula)
+\end{equation}
+
+where $n_H$ is the harmonic mean of $n_E$ and $n_C$, which is $\frac{2 n_E\, n_C}{n_E+n_C}$. Chechile (2020a) reported that the approximation formula was fairly accurate when $n_E$ and $n_C$ are $15$ or more. In the `dfba_mann_whitney()` function, the large-$n$ approach is used in a default condition whenever the harmonic mean $n_H$ of the sample sizes of the two groups is equal to or greater than $20$. Furthermore, for any beta distribution with shape parameters $a^{*}$ and $b^{*}$, the quantity $\frac{E(1-E)}{V}=a^{*}+b^{*}+1$ (Johnson, Kotz, & Balakrishnan, 1995). Thus it follows that for large $n_H$:
+
+\begin{equation}
+  a^* + b^* \approx n_H\left(1.028 + .75\frac{UE}{UE+UC}\right)+2.
+  (\#eq:largeNastarbstar)
+\end{equation}
+
+The mean of the large-$n$ beta distribution approximation for $\Omega_E$, which is denoted here as $\widehat{\Omega}$, is $\frac{a^{*}}{a^{*}+b^{*}}$, so  $1-\widehat{\Omega}=\frac{b^{*}}{a^{*}+b^{*}}$. Thus, for the large-$n$ approximation we need a beta distribution where 
+
+\begin{equation}
+      a^{*} = \widehat{\Omega} \left[\frac{2n_E,~n_C}{n_E+n_C}\left(1.028 + .75\frac{U_E}{U_E+U_C}\right)+2\right]
+  (\#eq:betadistforlargeNa)
+\end{equation} 
+
+\begin{equation}
+b^{*} = (1-\widehat{\Omega})\left[\frac{2n_E,~n_C}{n_E+n_C}\left(1.028 + .75\frac{U_E}{U_E+U_C}\right)+2\right].
+  (\#eq:betadistforlargeNb)
+\end{equation} 
+
+The above formula enables identification of an approximating beta distribution provided that there is an estimate for $\widehat{\Omega}$ that can be made with only the values for $n_E$, $n_C$, $U_E$ and $U_C$. Based on symmetry considerations, it is clear that $\widehat{\Omega}$ should be $.5$ if $U_E=U_C$. If $U_E>U_C$, then $1 \ge \widehat{\Omega}>.5$, and if $U_E<U_C$, then $.5 > \widehat{\Omega} \ge 0$. Chechile (2020a) used a Lagrange interpolation method, which is more accurate than a linear interpolation (see Abramowitz & Stegun, 1972). Lagrange method is based on a polynomial interpolation formula where at some evenly-spaced fixed points the interpolation is constrained to fit perfectly. Let $x$ be the known variate and let $y$ be the predicted variate by means of Lagrange interpolation. Following Chechile (2020a; 2010b), the known variate $x$ is equal to $\frac{U_E}{U_E+U_C}$ when $U_E \ge U_C$; otherwise $x=\frac{U_C}{U_E+U_C}$. The predicted value via the interpolation is $\hat{y}=\widehat{\Omega}$ when $U_E \ge U_C$; otherwise $\hat{y}=1-\widehat{\Omega}$. Based on these definitions, $x$ and $y$ must be greater or equal to $.5$. Chechile (2020a; 2020b) used the six points for $x=.5,\,.6,\,\ldots\,, 1$ to constrain the interpolation to match six predetermined $y$ values. Clearly, $y=.5$ if $x=.5$. The other five $y$ values at the corresponding five $x$ points were modeled separately. The following $y$ values were determined from this empirical modeling:
+
+\begin{equation}
+  y_5 =\frac{n_H^{1.1489}}{n_H^{1.1489}+.4972},
+  (\#eq:EmpiricalInterpolation)
+\end{equation}
+
+and where the four $y_i$ values for $i=1,\,\ldots,4$ are:
+\begin{equation}
+  y_i = y_5 w_i + .5(1-w_i),
+  (\#eq:yiFormula)
+\end{equation}
+
+where
+
+\begin{equation}
+  \begin{aligned}
+    w_1 &= .2 - \frac{1}{4.813\,n_H+1},\\
+    w_2 &= .4 - \frac{1}{2.520\,n_H+1},\\
+    w_3 &= .6 - \frac{1}{2.111\,n_H+1},\\
+    w_4 &= .8 - \frac{1}{1.833\,n_H+1}.
+  \end{aligned}
+  (\#eq:yiinterpolations)
+\end{equation}
+
+Given a vector $\mathbf{Y}=[ .5~y_1~y_2~y_3~y_4~y_5]$ and a vector $\mathbf{X}=[1~x~x^{2}~x^{3}~x^{4}~x^{5}]$, the Lagrange polynomial prediction reduces to a single matrix formula:
+
+\begin{equation}
+  \hat{y} = \mathbf{Y}\cdot \mathbf{L} \cdot \mathbf{X^{T}},
+  (\#eq:matrixformula)
+\end{equation}
+
+where $\mathbf{L}$ is the following matrix:
+\[
+\mathbf{L}=\left[
+  \begin{array}{cccccc}
+  252 & -1627 & \frac{12500}{3} & -\frac{15875}{3} & \frac{1000}{3} & -\frac{2500}{3}\\
+  &&&&&\\
+  -1050  & \frac{42775}{6} & -\frac{38075}{2} & \frac{75125}{3} & -\frac{48750}{3} & \frac{12500}{3}\\
+  &&&&&\\ 
+  1800 & -12650 & \frac{104800}{3} & -\frac{142250}{3} & \frac{95000}{3} & -\frac{25000}{3}\\
+   &&&&&\\
+  -1575 & 11350 & -\frac{96575}{3} & \frac{134750}{3} & -\frac{92500}{3} & \frac{25000}{3}\\
+   &&&&&\\
+  700 & -\frac{15425}{3} & 14900 & -\frac{63875}{3} & 15000 & -\frac{12500}{3}\\
+   &&&&&\\
+  -126 & \frac{1879}{2} & -\frac{16625}{6} & \frac{12125}{3} & -\frac{8750}{3} & \frac{2500}{3}\\
+  \end{array}
+  \right]
+  \]
+
+The elements of matrix $\textbf{L}$ are constants, which are the coefficients of the six Lagrange polynomial functions for the six match points for $x$ (*i.e.*, $x \in (.5,\,.6,\ldots,1)$). The predicted $\widehat{y}$ from equation \@ref(eq:matrixformula) is equal to either $\widehat{\Omega}$, if $U_E \ge U_C$ or $1-\widehat{\Omega}$, if $U_E<U_C$. Equations \@ref(eq:betadistforlargeNa) and \@ref(eq:betadistforlargeNb) provide the shape parameters $a^{*}$ and $b^{*}$ for the approximating beta distribution. 
+
+Similar to the binomial model, the $a^{*}$ and $b^{*}$ shape parameters can be used to define a $n_a$ and $n_b$ parameters, such that 
+\begin{equation}
+  \begin{aligned}
+    n_a &=a^{*} -1,\\
+    n_b &=b^{*}-1.
+  \end{aligned}
+  (\#eq:naandnb)
+\end{equation}
+
+The general large-$n$ beta approximation model is a posterior beta distribution with shape parameters of 
+\begin{equation}
+  \begin{aligned}
+    a &= n_a + a_0,\\
+    b &= n_b + b_0,
+  \end{aligned}
+  (\#eq:aandb)
+\end{equation}
+
+where $a_0$ and $b_0$ are the shape parameters for the prior beta distribution.
+
+To illustrate the large-$n$ approximation, please consider the case where $n_E=20$ and $n_C=24$ scores were randomly sampled from non-normal shifted Weibull distributions. The resulting $U_E=305$ and $U_C=175$, so $x=\frac{U_E}{U_E+U_C}=.63542$. Assuming a uniform prior for $\Omega$, the large-$n$ algorithm resulted in finding a predicted mean $\widehat{\Omega}=.62507$ and found an equal-tail $95$ percent interval of $[.4609,~.7757]$. The posterior probability that $\Omega>.5$ is $.9335$. The large-$n$ approximating beta distribution has shape parameters of $21.7691$ and $13.05771$. These results can be compared to results from the Monte Carlo algorithm discussed in [Section 2 above](#framework) with $100,000$ random values for each of $200$ candidate values for $\Omega$. The discrete approach found a mean of $.62607$, which is off by only $.001$ from the large-$n$ value. The Monte Carlo-based $95$ percent equal-tail interval is $[.4603,~.7775]$, which is again very close to the large-$n$ interval. The posterior probability that $\Omega>.5$ for the Monte Carlo approach is $.9341$, which is within $.0006$ of the large-$n$ probability. For results of a more extensive set of tests of the large-$n$ approximation, see Chechile (2020a).   
+
+
+# Using the `dfba_mann_whitney()` Function {#using-mann-whitney}
+
+The `dfba_mann_whitney()` function has two required arguments and five optional arguments. The required arguments are `E` and `C`, which are vectors of continuous scores for the respective groups (the abbreviations `E` and `C` come from, respectively, the terms *experimental* and *control*; this naming convention reflects the shared background and interests of the package authors and is not meant to imply that the function is any less useful for nonexperimental data). The five optional arguments are: `a0`, `b0`, `prob_interval`, `samples`, and `method`. The `a0` and `b0` inputs are the beta distribution shape parameters for the prior distribution. These two arguments have a default value of $1$, which makes the uniform distribution as the default prior, and may be set to any desired values provided that both shape parameters are positive, finite values. The `prob_interval` argument is the value used for interval estimation of the $\Omega_E$ parameter; the default for this argument is $.95$. The `method` input can be either the string `"small"` or the string `"large"`, which directs the function either to use the small-$n$ Monte Carlo sampling algorithm described in [Section 2](#framework), or to use the large-$n$ approximation algorithm described in [Section 3](#mathematical-basis). The default for the `method` input is `NULL`: in that default case, the small-$n$ algorithm or the large-$n$ algorithm is deployed based on a simple rule. If the quantity $\frac{2n_En_C}{n_E+n_C}> 19$, then the program employs the large-$n$ algorithm; otherwise the function will use the small-$n$ algorithm.^[The quantity $\frac{2nEnC}{nE+nC}$ is the harmonic mean of the sample sizes in the two conditions. The harmonic mean is less than or equal to the arithmetic mean. Chechile (2020a) found that the harmonic mean was a more precise predictor (than either the arithmetic mean or the geometric mean) as to when the sample sizes were sufficiently large to justify the large-$n$ method. However, when $n_E=n_C$, the three types of means of the two sample size values are equivalent.] The optional argument `samples` is the number of Monte Carlo samples that are drawn for each of the $200$ discrete cases for $\Omega_E$ that are examined in the small-$n$ algorithm. The default for the `samples` argument is $30,000$.   
+
+## Example
+
+To illustrate the use of the `dfba_mann_whitney()` function, let us examine the following:
+ 
+```{r eval = FALSE}
+G1 <- c(96.49, 96.78, 97.26, 98.85, 99.75, 100.14, 101.15, 101.39, 102.58, 
+        107.22, 107.70, 113.26)
+ 
+G2 <- c(101.16, 102.09, 103.14, 104.70, 105.27, 108.22, 108.32, 108.51, 109.88,
+        110.32, 110.55, 113.42)
+
+set.seed(1)
+
+dfba_mann_whitney(E = G1, 
+                  C = G2, 
+                  hide_progress = TRUE)
+```
+
+```{r echo = FALSE}
+G1 <- c(96.49, 96.78, 97.26, 98.85, 99.75, 100.14, 101.15, 101.39, 102.58, 
+        107.22, 107.70, 113.26)
+ 
+G2 <- c(101.16, 102.09, 103.14, 104.70, 105.27, 108.22, 108.32, 108.51, 109.88,
+        110.32, 110.55, 113.42)
+load("mw_ex1")
+#mw_ex1
+```
+
+The above analysis is based on the default uniform prior and it obtains a posterior probability for $\Omega_E$, which is called `omega_E` in the output. Because the sample sizes are relatively small, the analysis used the discrete approximation method, which is based on Monte Carlo sampling. The posterior probability for $\Omega_E > .5$ is low, as is the corresponding Bayes factor $BF_{10}$ for that hypothesis. Hence, the probability is high that $\Omega_E<.5$. The Bayes factor for the hypothesis that $\Omega_E<.5$ is $BF_{01}=\frac{1}{BF_{10}}$, and that value is high. Because these results are based on Monte Carlo sampling, it is reasonable to expect some variability in observed `dfba_mann_whitney()` function results, for example, changing the seed from `1` (as in the above code) to `2` results in the following:
+
+```{r eval = FALSE}
+set.seed(2)
+dfba_mann_whitney(E = G1, 
+                  C = G2,
+                  hide_progress = TRUE)
+
+mw_ex2 <- dfba_mann_whitney(E = G1, 
+                  C = G2,
+                  hide_progress = TRUE)
+
+
+```
+
+```{r echo = FALSE}
+load("mw_ex2")
+mw_ex2
+```
+
+Although there are some small differences between the two implementations, the main conclusions are robust (*i.e.*, it is highly probable that $\Omega_E<.5$, which implies that $C$ is stochastically dominant relative to $E$). The sample $U$ statistics for these data are $U_E=24$ and $U_C=120$ for both analyses regardless of the seed. 
+
+The `plot()` method produces visualizations of the prior (optional) and posterior distributions (note: the representation of the prior distribution is optional: `plot.prior = TRUE` -- the default -- displays both the prior and posterior distribution; `plot.prior = FALSE` produces only a representation of the posterior distribution).  
+
+```{r eval = FALSE}
+plot(dfba_mann_whitney(E = G1, 
+                       C = G2,
+                       hide_progress = TRUE))
+```
+
+```{r echo = FALSE, fig.width = 7}
+plot(mw_ex2)
+```
+
+
+Although the above analysis used the Monte Carlo sampling approach, let us compare those analyses with the analysis based on the large-$n$ algorithm by specifying the `method` argument as `method = "large"`: 
+
+```{r}
+set.seed(1)
+dfba_mann_whitney(E = G1, 
+                  C = G2, 
+                  method = "large")
+
+```
+Note that a beta distribution with shape parameters of $a=4.460781$ and $b=17.37522$ yields values for the mean for $\Omega_E$ and the $95$-percent equal-tail interval limits that are close to the results found from the small-$n$ approach. 
+
+The `plot(dfba_mann_whitney())` method provides a display of the probability densities as a function of $\Omega_E$. Note that the small-$n$ displays are in terms of discrete probabilities for the $200$ intervals of width $.005$. However, the large-$n$ plot has a vertical axis that is *probability density* (rather than probability). Vectors of $x$ and $y$ data can be extracted from the `dfba_mann_whitney()` output values to customized data visualizations of prior and posterior probability values (*e.g.*,to create visualizations using the `ggplot2` or `plotly` packages):
+
+1. When `method = small`, the $x$ values for the prior and posterior distribution plots is given by the `omega_E` output value. The $y$ values for the prior and posterior distributions are given by, respectively: `priorvector` and `omegapost`.
+
+2. When `method = large`, the prior distribution is given by a beta distribution with shape parameters [`a0`, `b0`]; the posterior distribution is given by a beta distribution with shape parameters [`a_post`, `b_post`]. The `dbeta()` function from the `stats` package produces $y$ values for any defined sequence of $x$ values.
+
+
+The Monte Carlo algorithm is much slower to complete, especially as the sample sizes get to be increasingly large. It is our opinion, the default of `method = NULL` results in a reasonable rule-of-thumb that has been pretested over a wide range of sample sizes and data sets. Nonetheless, the user has the option of employing either the small-$n$ Monte Carlo algorithm or the large-$n$ algorithm by entering their choice with an input for `method`. 
+
+Finally, let us consider a case where there are more than two groups. For example, suppose that there were six independent groups tested in a $3 \times 2$ factorial study, and the following scores were observed.
+
+
+\begin{array}{c|ccc}
+& A1 & A2 & A3 \\
+\hline
+  & 11.541 & 11.210 & 4.762 \\
+  & 11.854 & 11.117 & 2.323 \\
+  & 11.313 & 12.967 &  5.890 \\
+B1 & 14.201 & 12.514 & 2.722 \\
+  & 11.333 & 11.232 & 2.499 \\
+  & 11.583 & 13.585 & 2.534 \\
+  & 11.223 & 11.023  & 2.016 \\
+  \hline
+  & 1.500 & 2.663 & 11.067 \\
+   & 1.562 & 1.503 & 11.117 \\
+  & 1.444 & 1.086 &  10.180 \\
+B2 & 1.822 & 1.459 & 10.060 \\
+  & 1.802 & 1.296 & 10.664 \\
+  & 1.075 & 1.009 & 10.074 \\
+  & 1.464 & 3.316  & 10.355 \\
+  \hline 
+  
+  \end{array}
+
+
+Let us code the data for each group as a vector. 
+
+```{r}
+A1B1 <- c(11.541, 11.854, 11.313, 14.201, 11.333, 11.583, 11.223)
+
+A2B1 <- c(11.210, 11.117, 12.967, 12.514, 11.232, 13.585, 11.023)
+
+A3B1 <- c(4.762, 2.323, 5.890, 2.722, 2.499, 2.534, 2.016)
+
+A1B2 <- c(1.500, 1.562, 1.444, 1.822, 1.802, 1.075, 1.464)
+
+A2B2 <- c(2.663, 1.503, 1.086, 1.459, 1.296, 1.009, 3.316)
+
+A3B2 <- c(11.067, 11.117, 10.180, 10.060, 10.664, 10.074, 10.355)
+```
+
+
+Before doing statistical analyses, let us first see a display of the means in the six conditions. Note that the resulting display is a connected graph rather than a more conventional bar chart. This plotting choice was done to better illustrate potential interactions of the two factors in the experiment.
+
+```{r echo=FALSE, fig.width=7}
+yB1 <- c(mean(A1B1), mean(A2B1), mean(A3B1))
+
+yB2 <- c(mean(A1B2), mean(A2B2), mean(A3B2))
+
+xA <- c(1, 2, 3)
+
+plot(xA, 
+     yB1, 
+     type = "o", 
+     xlab = "A levels", 
+     ylab = "group means", 
+     main = "B1 black; B2 red", 
+     ylim = c(0, 12))
+
+lines(xA, 
+      yB2, 
+      type = "o", 
+      col = "firebrick")
+```
+
+To see if there is an effect of the levels for the $B$ factor, we can use the `dfba_mann_whitney()` function:
+
+```{r}
+dfba_mann_whitney(E = c(A1B1, 
+                        A2B1, 
+                        A3B1), 
+                  C = c(A1B2, 
+                        A2B2, 
+                        A3B2))
+```
+
+The results show clear evidence that there is a $B$ effect (*i.e.*,  the pooled $B1$ group is stochastically dominant to the pooled $B2$ group because the Bayes factor $BF10$ for the hypothesis that $\Omega_E>.5$ is $198,990$). However, similar analyses to assess comparisons between any of the levels for the $A$ factor do not yield a sizable Bayes factor. Beside a main effect for the $B$ factor, the above plot of the means suggests that there may be a statistically reliable interaction. This interaction can be examined via a contrast $\Delta$ where
+
+
+\begin{equation}
+  \begin{aligned}
+  \Delta &= ([A_1B_1+A_2B_1] -[A_1B_2+A_2B_2]) - (A_3B_1 - A_3B_2)\\
+         &= (A_1B_1+A_2B_1+A_3B_2) - (A_1B_2+A_2B_2+A_3B_1).
+  \end{aligned}
+  (\#eq:InteractionContrastEquation)
+\end{equation}
+
+If $\Delta$ were substantially different from $0$, then there would be a reliable interaction effect. So, by the proper definition of the `E` and `C` groups, we can statistically assess the interaction with a Bayesian Mann-Whitney test:
+
+```{r}
+dfba_mann_whitney(E = c(A1B1, 
+                        A2B1, 
+                        A3B2), 
+                  C = c(A1B2, 
+                        A2B2, 
+                        A3B1))
+```
+
+This instruction results in finding an astronomically large Bayes factor of $BF10 > 2.47 \times 10^{12}$ that $\Delta>.5$. 
+
+This last example underscores how the Bayesian Mann-Whitney procedure can be used when there are more than two independent groups. With the appropriate pooling of the groups, specific contrast effects can be tested.  
+
+
+# References 
+ 
+Abramowitz, M., and Stegun, C. A. (1972). *Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables*. New York: Dover.
+ 
+Berger J. O., and Wolpert, R. L. (1988). *Likelihood Principle (2nd ed.)*. Hayward, CA: Institute of Mathematical Statistics.
+
+Chechile, R. A. (2020a). A Bayesian analysis for the Mann-Whitney statistic. *Communications in Statistics: Theory and Methods*}, **49**, 670-696. <https://doi.org/10.1080/03610926.2018.1549247>
+
+Chechile, R. A. (2020b). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge, MA: MIT Press.
+
+Johnson, N. L., Kotz, S., and Balakrishnan, N. (1995). *Continuous Univariate Distributions, vol. 2*, New York: Wiley. 
+
+Lindley, D. V., and Phillips, L. D. (1976). Inference for a Bernoulli process (a Bayesian view). *The American Statistician*, **30**, 112-119.
+ 
+Mann, H. B., and Whitney, D. R. (1947). On a test of whether one of two random variables is stochastically larger than the other. *Annals of Mathematical Statistics*, **18**, 50-60.
+ 
+Siegel, S., and Castellan N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+
+Wilcoxon, F. (1945). Individual comparisons by ranking methods. *Biometrics Bulletin*, **1**, 80-83.

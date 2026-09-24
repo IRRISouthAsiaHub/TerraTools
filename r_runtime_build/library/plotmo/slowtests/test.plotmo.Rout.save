@@ -1,0 +1,2803 @@
+> # test.plotmo.R: regression tests for plotmo
+> # Stephen Milborrow, Petaluma Jan 2007
+> 
+> print(R.version.string)
+[1] "R version 4.5.2 (2025-10-31 ucrt)"
+> 
+> source("test.prolog.R")
+> library(earth)
+Loading required package: Formula
+Loading required package: plotmo
+Loading required package: plotrix
+> options(warn=1) # print warnings as they occur
+> data(etitanic)
+> make.space.for.caption <- function(caption="CAPTION")
++ {
++     oma <- par("oma")
++     needed <- 3
++     # adjust for newlines in caption
++     newlines <- grep("\n", caption)
++     if(length(newlines) > 0)
++         needed <- needed + .5 * newlines # .5 seems enough although 1 in theory
++     if(!is.null(caption) && any(nchar(caption)) && oma[3] <= needed) {
++         oma[3] <- needed
++         par(oma=oma)
++     }
++ }
+> dopar <- function(nrows, ncols, caption = "")
++ {
++     cat("                             ", caption, "\n")
++     make.space.for.caption(caption)
++     par(mfrow=c(nrows, ncols))
++     par(mar = c(3, 3, 1.7, 0.5))
++     par(mgp = c(1.6, 0.6, 0))
++     par(cex = 0.7)
++ }
+> example(plotmo)
+
+plotmo> if (require(rpart)) {
+plotmo+     data(kyphosis)
+plotmo+     rpart.model <- rpart(Kyphosis~., data=kyphosis)
+plotmo+     # pass type="prob" to plotmo's internal calls to predict.rpart, and
+plotmo+     # select the column named "present" from the matrix returned by predict.rpart
+plotmo+     plotmo(rpart.model, type="prob", nresponse="present")
+plotmo+ }
+Loading required package: rpart
+ plotmo grid:    Age Number Start
+                  87      4    13
+
+plotmo> if (require(earth)) {
+plotmo+     data(ozone1)
+plotmo+     earth.model <- earth(O3 ~ ., data=ozone1, degree=2)
+plotmo+     plotmo(earth.model)
+plotmo+     # plotmo(earth.model, pmethod="partdep") # partial dependence plots
+plotmo+ }
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> caption <- "basic earth test of plotmo"
+> a <- earth(O3 ~ ., data=ozone1, degree=2)
+> plotmo(a, degree1=2, degree2=4, caption=caption, trace=-1)
+> 
+> caption <- "test 5 x 5 layout"
+> dopar(1,1,caption)
+                              test 5 x 5 layout 
+> a <- earth(O3 ~ ., data=ozone1, nk=51, pmethod="n", degree=2)
+> plotmo(a, caption=caption, trace=1)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from model.frame(O3 ~ vh + wind + humidity + temp + ib...,
+                                    data=call$data, na.action="na.fail")
+
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+
+> 
+> caption <- "test 4 x 4 layout with ylab"
+> dopar(1,1,caption)
+                              test 4 x 4 layout with ylab 
+> a <- earth(O3 ~ ., data=ozone1, nk=30, pmethod="n", degree=2)
+> plotmo(a, caption=caption, trace=2)
+plotmo trace 2: plotmo(object=a, caption=caption, trace=2)
+--get.model.env for object with class earth
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=30)
+using the environment saved in $terms of the earth model: R_GlobalEnv
+--plotmo_prolog for earth object 'a'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=30)
+
+get.x.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+naked formula is the same
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+x=model.frame[,-1] is usable and has column names vh wind humidity temp ibh dpg ibt vis doy
+plotmo_x returned[330,9]:
+      vh wind humidity temp  ibh dpg ibt vis doy
+1   5710    4       28   40 2693 -25  87 250  33
+2   5700    3       37   45  590 -24 128 100  34
+3   5760    3       51   54 1450  25 139  60  35
+... 5720    4       69   35 1568  15 121  60  36
+330 5550    4       85   39 5000   8  44 100 390
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[330,1]:
+          O3
+1   1.240608
+2   3.596894
+3   7.464276
+... 5.282731
+330 3.228830
+predict after processing with nresponse=NULL is [330,1]:
+          O3
+1   1.240608
+2   3.596894
+3   7.464276
+... 5.282731
+330 3.228830
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[330,1]:
+          O3
+1   1.240608
+2   3.596894
+3   7.464276
+... 5.282731
+330 3.228830
+fitted(object) after processing with nresponse=NULL is [330,1]:
+          O3
+1   1.240608
+2   3.596894
+3   7.464276
+... 5.282731
+330 3.228830
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=30)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name O3
+plotmo_y returned[330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+plotmo_y after processing with nresponse=NULL is [330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=30)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name O3
+got model response from model.frame(O3 ~ vh + wind + humidity + temp + ib...,
+                                    data=call$data, na.action="na.fail")
+plotmo_y returned[330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+plotmo_y after processing with nresponse=1 is [330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+got response name "O3" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: vh 53 wind 11 humidity 65 temp 63 ibh 196 dpg 128 ibt 193...
+
+----plotmo_singles for earth object
+singles: 4 temp, 5 ibh, 7 ibt, 8 vis, 9 doy 
+
+----plotmo_pairs for earth object
+pairs:
+      [,1]         [,2]    
+ [1,] "1 vh"       "4 temp"
+ [2,] "1 vh"       "9 doy" 
+ [3,] "2 wind"     "8 vis" 
+ [4,] "3 humidity" "4 temp"
+ [5,] "4 temp"     "5 ibh" 
+ [6,] "4 temp"     "6 dpg" 
+ [7,] "4 temp"     "9 doy" 
+ [8,] "5 ibh"      "6 dpg" 
+ [9,] "7 ibt"      "8 vis" 
+
+graphics::par(mfrow=c(4,4), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=2,
+              mar=c(3,2,1.2,0.8), oma=c(0,0,3,0), cex.main=1.1, cex.lab=1,
+              cex.axis=1, cex=0.66)
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable temp
+newdata[50,9]:
+      vh wind humidity     temp    ibh dpg   ibt vis   doy
+1   5760    5       64 25.00000 2112.5  24 167.5 120 205.5
+2   5760    5       64 26.38776 2112.5  24 167.5 120 205.5
+3   5760    5       64 27.77551 2112.5  24 167.5 120 205.5
+... 5760    5       64 29.16327 2112.5  24 167.5 120 205.5
+50  5760    5       64 93.00000 2112.5  24 167.5 120 205.5
+stats::predict(earth.object, data.frame[50,9], type="response")
+predict returned[50,1]:
+           O3
+1    8.724965
+2    8.813294
+3    8.901624
+...  8.989953
+50  18.716007
+predict after processing with nresponse=1 is [50,1]:
+           O3
+1    8.724965
+2    8.813294
+3    8.901624
+...  8.989953
+50  18.716007
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable ibh
+degree1 plot3 (pmethod "plotmo") variable ibt
+degree1 plot4 (pmethod "plotmo") variable vis
+degree1 plot5 (pmethod "plotmo") variable doy
+--plot.degree2(draw.plot=FALSE)
+degree2 plot1 (pmethod "plotmo") variables vh:temp
+newdata[400,9]:
+          vh wind humidity temp    ibh dpg   ibt vis   doy
+1   5320.000    5       64   25 2112.5  24 167.5 120 205.5
+2   5353.158    5       64   25 2112.5  24 167.5 120 205.5
+3   5386.316    5       64   25 2112.5  24 167.5 120 205.5
+... 5419.474    5       64   25 2112.5  24 167.5 120 205.5
+400 5950.000    5       64   93 2112.5  24 167.5 120 205.5
+stats::predict(earth.object, data.frame[400,9], type="response")
+predict returned[400,1]:
+          O3
+1   10.41649
+2   10.28902
+3   10.16155
+... 10.03408
+400 27.17075
+predict after processing with nresponse=1 is [400,1]:
+          O3
+1   10.41649
+2   10.28902
+3   10.16155
+... 10.03408
+400 27.17075
+Reducing trace level for subsequent degree2 plots
+degree2 plot2 (pmethod "plotmo") variables vh:doy
+degree2 plot3 (pmethod "plotmo") variables wind:vis
+degree2 plot4 (pmethod "plotmo") variables humidity:temp
+degree2 plot5 (pmethod "plotmo") variables temp:ibh
+degree2 plot6 (pmethod "plotmo") variables temp:dpg
+degree2 plot7 (pmethod "plotmo") variables temp:doy
+degree2 plot8 (pmethod "plotmo") variables ibh:dpg
+degree2 plot9 (pmethod "plotmo") variables ibt:vis
+--done get.ylim.by.dummy.plots
+
+ylim c(-33.06, 31.48)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+
+graphics::plot.default(x=c(25,26.39,27.7...), y=c(8.725,8.813,8...), type="n",
+                       main="1 temp", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(25,93), ylim=c(-33.06,31.48))
+--plot.degree2(draw.plot=TRUE)
+persp(vh:temp) theta -35
+persp(vh:doy) theta -35
+persp(wind:vis) theta 145
+persp(humidity:temp) theta -35
+persp(temp:ibh) theta 235
+persp(temp:dpg) theta 235
+persp(temp:doy) theta 235
+persp(ibh:dpg) theta 235
+persp(ibt:vis) theta 235
+> 
+> caption <- "test 3 x 3 layout"
+> dopar(1,1,caption)
+                              test 3 x 3 layout 
+> a <- earth(O3 ~ ., data=ozone1, nk=16, pmethod="n", degree=2)
+> plotmo(a, caption=caption, trace=3)
+plotmo trace 3: plotmo(object=a, caption=caption, trace=3)
+--get.model.env for object with class earth
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=16)
+using the environment saved in $terms of the earth model: R_GlobalEnv
+--plotmo_prolog for earth object 'a'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=16)
+
+get.x.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+naked formula is the same
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+model.env is R_GlobalEnv
+data[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+model.frame returned[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+x=model.frame[,-1] is usable and has column names vh wind humidity temp ibh dpg ibt vis doy
+plotmo_x returned[330,9]:
+      vh wind humidity temp  ibh dpg ibt vis doy
+1   5710    4       28   40 2693 -25  87 250  33
+2   5700    3       37   45  590 -24 128 100  34
+3   5760    3       51   54 1450  25 139  60  35
+... 5720    4       69   35 1568  15 121  60  36
+330 5550    4       85   39 5000   8  44 100 390
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[330,1]:
+          O3
+1   1.255037
+2   4.164931
+3   7.585888
+... 4.443360
+330 1.685101
+predict after processing with nresponse=NULL is [330,1]:
+          O3
+1   1.255037
+2   4.164931
+3   7.585888
+... 4.443360
+330 1.685101
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[330,1]:
+          O3
+1   1.255037
+2   4.164931
+3   7.585888
+... 4.443360
+330 1.685101
+fitted(object) after processing with nresponse=NULL is [330,1]:
+          O3
+1   1.255037
+2   4.164931
+3   7.585888
+... 4.443360
+330 1.685101
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=16)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+model.env is R_GlobalEnv
+data[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+model.frame returned[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+y=model.frame[,1] is usable and has column name O3
+plotmo_y returned[330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+plotmo_y after processing with nresponse=NULL is [330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~., data=ozone1, pmethod="n", degree=2, nk=16)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ vh + wind + humidity + temp + ibh + dpg + ibt + vis ...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+model.env is R_GlobalEnv
+data[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+stats::model.frame(O3 ~ vh + wind + humidity + temp + ib..., data=call$data, na.action="na.fail")
+model.frame returned[330,10]:
+    O3   vh wind humidity temp  ibh dpg ibt vis doy
+1    3 5710    4       28   40 2693 -25  87 250  33
+2    5 5700    3       37   45  590 -24 128 100  34
+3    5 5760    3       51   54 1450  25 139  60  35
+...  6 5720    4       69   35 1568  15 121  60  36
+330  1 5550    4       85   39 5000   8  44 100 390
+y=model.frame[,1] is usable and has column name O3
+got model response from model.frame(O3 ~ vh + wind + humidity + temp + ib...,
+                                    data=call$data, na.action="na.fail")
+plotmo_y returned[330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+plotmo_y after processing with nresponse=1 is [330,1]:
+    O3
+1    3
+2    5
+3    5
+...  6
+330  1
+got response name "O3" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: vh 53 wind 11 humidity 65 temp 63 ibh 196 dpg 128 ibt 193...
+
+----plotmo_singles for earth object
+singles: 4 temp, 5 ibh, 8 vis, 9 doy 
+
+----plotmo_pairs for earth object
+pairs:
+     [,1]         [,2]    
+[1,] "2 wind"     "8 vis" 
+[2,] "3 humidity" "4 temp"
+[3,] "4 temp"     "6 dpg" 
+
+do.par invoked call.dots
+TRACE do.par called call.dots(par, DROP="*", KEEP="PREFIX,PAR.ARGS",
+                         TRACE=if(trace>=2)trace-1e...), SCALAR=TRUE,
+                         def.mfrow=c(nrows,nrows), def.mgp=mgp, def.tcl=-0.3,
+                         def.font.main=def.font.main, def.mar=mar,
+                         def.oma=def.oma, def.cex.main=def.cex.main,
+                         def.cex.lab=cex.lab, def.cex.axis=cex.lab,
+                         force.cex=cex)
+PREFIX par.
+DROP .*
+KEEP >STANDARDPREFIXES|^force\.|^def\.|^drop\.
+     >PREFIX|^par\.
+     >CALLARGS|^def\.mfrow$|^def\.mgp$|^def\.tcl$|^def\.font\.main$|^def\.mar$|^def\.oma$|^def\.cex\.main$|^def\.cex\.lab$|^def\.cex\.axis$|^force\.cex$
+     >EXPLICIT
+     >PAR_ARGS|^adj$|^ann$|^ask$|^bg$|^bty$|^cex$|^cex\.axis$|^cex\.lab$|^cex\.main$|^cex\.sub$|^col\.axis$|^col\.lab$|^col\.main$|^col\.sub$|^crt$|^err$|^family$|^fg$|^fig$|^fin$|^font$|^font\.axis$|^font\.lab$|^font\.main$|^font\.sub$|^lab$|^las$|^lend$|^lheight$|^ljoin$|^lmitre$|^lty$|^mai$|^mar$|^mex$|^mfcol$|^mfg$|^mfrow$|^mgp$|^mkh$|^new$|^oma$|^omd$|^omi$|^pch$|^pin$|^plt$|^ps$|^pty$|^srt$|^tck$|^tcl$|^usr$|^xaxp$|^xaxs$|^xaxt$|^xlog$|^xpd$|^yaxp$|^yaxs$|^yaxt$|^ylbias$|^ylog$
+input dotnames       def.mfrow def.mgp def.tcl def.font.main def.mar def.oma def.cex.main def.cex.lab def.cex.axis force.cex
+after DROP and KEEP  def.mfrow def.mgp def.tcl def.font.main def.mar def.oma def.cex.main def.cex.lab def.cex.axis force.cex
+return dotnames      mfrow mgp tcl font.main mar oma cex.main cex.lab cex.axis cex
+
+graphics::par(mfrow=c(3,3), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=2,
+              mar=c(3,2,1.2,0.8), oma=c(0,0,3,0), cex.main=1.2, cex.lab=1,
+              cex.axis=1, cex=0.66)
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable temp
+newdata[50,9]:
+      vh wind humidity     temp    ibh dpg   ibt vis   doy
+1   5760    5       64 25.00000 2112.5  24 167.5 120 205.5
+2   5760    5       64 26.38776 2112.5  24 167.5 120 205.5
+3   5760    5       64 27.77551 2112.5  24 167.5 120 205.5
+... 5760    5       64 29.16327 2112.5  24 167.5 120 205.5
+50  5760    5       64 93.00000 2112.5  24 167.5 120 205.5
+stats::predict(earth.object, data.frame[50,9], type="response")
+predict returned[50,1]:
+           O3
+1    5.311674
+2    5.527233
+3    5.742791
+...  5.958350
+50  29.012915
+predict after processing with nresponse=1 is [50,1]:
+           O3
+1    5.311674
+2    5.527233
+3    5.742791
+...  5.958350
+50  29.012915
+degree1 plot2 (pmethod "plotmo") variable ibh
+newdata[50,9]:
+      vh wind humidity temp       ibh dpg   ibt vis   doy
+1   5760    5       64   62  111.0000  24 167.5 120 205.5
+2   5760    5       64   62  210.7755  24 167.5 120 205.5
+3   5760    5       64   62  310.5510  24 167.5 120 205.5
+... 5760    5       64   62  410.3265  24 167.5 120 205.5
+50  5760    5       64   62 5000.0000  24 167.5 120 205.5
+stats::predict(earth.object, data.frame[50,9], type="response")
+predict returned[50,1]:
+           O3
+1   10.870828
+2   11.135522
+3   11.400215
+... 11.664908
+50   9.845279
+predict after processing with nresponse=1 is [50,1]:
+           O3
+1   10.870828
+2   11.135522
+3   11.400215
+... 11.664908
+50   9.845279
+degree1 plot3 (pmethod "plotmo") variable vis
+newdata[50,9]:
+      vh wind humidity temp    ibh dpg   ibt        vis   doy
+1   5760    5       64   62 2112.5  24 167.5   0.000000 205.5
+2   5760    5       64   62 2112.5  24 167.5   7.142857 205.5
+3   5760    5       64   62 2112.5  24 167.5  14.285714 205.5
+... 5760    5       64   62 2112.5  24 167.5  21.428571 205.5
+50  5760    5       64   62 2112.5  24 167.5 350.000000 205.5
+stats::predict(earth.object, data.frame[50,9], type="response")
+predict returned[50,1]:
+          O3
+1   14.86257
+2   14.72553
+3   14.58850
+... 14.45147
+50  11.88484
+predict after processing with nresponse=1 is [50,1]:
+          O3
+1   14.86257
+2   14.72553
+3   14.58850
+... 14.45147
+50  11.88484
+degree1 plot4 (pmethod "plotmo") variable doy
+newdata[50,9]:
+      vh wind humidity temp    ibh dpg   ibt vis       doy
+1   5760    5       64   62 2112.5  24 167.5 120  33.00000
+2   5760    5       64   62 2112.5  24 167.5 120  40.28571
+3   5760    5       64   62 2112.5  24 167.5 120  47.57143
+... 5760    5       64   62 2112.5  24 167.5 120  54.85714
+50  5760    5       64   62 2112.5  24 167.5 120 390.00000
+stats::predict(earth.object, data.frame[50,9], type="response")
+predict returned[50,1]:
+           O3
+1    7.968080
+2    8.746490
+3    9.524900
+... 10.303310
+50   8.957033
+predict after processing with nresponse=1 is [50,1]:
+           O3
+1    7.968080
+2    8.746490
+3    9.524900
+... 10.303310
+50   8.957033
+--plot.degree2(draw.plot=FALSE)
+degree2 plot1 (pmethod "plotmo") variables wind:vis
+newdata[400,9]:
+      vh       wind humidity temp    ibh dpg   ibt vis   doy
+1   5760  0.0000000       64   62 2112.5  24 167.5   0 205.5
+2   5760  0.5789474       64   62 2112.5  24 167.5   0 205.5
+3   5760  1.1578947       64   62 2112.5  24 167.5   0 205.5
+... 5760  1.7368421       64   62 2112.5  24 167.5   0 205.5
+400 5760 11.0000000       64   62 2112.5  24 167.5 350 205.5
+stats::predict(earth.object, data.frame[400,9], type="response")
+predict returned[400,1]:
+          O3
+1   16.19942
+2   16.04463
+3   15.88983
+... 15.73504
+400 11.88484
+predict after processing with nresponse=1 is [400,1]:
+          O3
+1   16.19942
+2   16.04463
+3   15.88983
+... 15.73504
+400 11.88484
+degree2 plot2 (pmethod "plotmo") variables humidity:temp
+newdata[400,9]:
+      vh wind humidity temp    ibh dpg   ibt vis   doy
+1   5760    5 19.00000   25 2112.5  24 167.5 120 205.5
+2   5760    5 22.89474   25 2112.5  24 167.5 120 205.5
+3   5760    5 26.78947   25 2112.5  24 167.5 120 205.5
+... 5760    5 30.68421   25 2112.5  24 167.5 120 205.5
+400 5760    5 93.00000   93 2112.5  24 167.5 120 205.5
+stats::predict(earth.object, data.frame[400,9], type="response")
+predict returned[400,1]:
+           O3
+1    5.311674
+2    5.311674
+3    5.311674
+...  5.311674
+400 32.296021
+predict after processing with nresponse=1 is [400,1]:
+           O3
+1    5.311674
+2    5.311674
+3    5.311674
+...  5.311674
+400 32.296021
+degree2 plot3 (pmethod "plotmo") variables temp:dpg
+newdata[400,9]:
+      vh wind humidity     temp    ibh dpg   ibt vis   doy
+1   5760    5       64 25.00000 2112.5 -69 167.5 120 205.5
+2   5760    5       64 28.57895 2112.5 -69 167.5 120 205.5
+3   5760    5       64 32.15789 2112.5 -69 167.5 120 205.5
+... 5760    5       64 35.73684 2112.5 -69 167.5 120 205.5
+400 5760    5       64 93.00000 2112.5 107 167.5 120 205.5
+stats::predict(earth.object, data.frame[400,9], type="response")
+predict returned[400,1]:
+           O3
+1    5.311674
+2    5.867588
+3    6.423503
+...  6.979417
+400 -6.671880
+predict after processing with nresponse=1 is [400,1]:
+           O3
+1    5.311674
+2    5.867588
+3    6.423503
+...  6.979417
+400 -6.671880
+--done get.ylim.by.dummy.plots
+
+ylim c(-6.672, 40.23)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+
+draw.degree1 invoked call.dots
+TRACE draw.degree1 called call.plot(plot.default, PREFIX="degree1.",
+                         TRACE=if(isingle==1&&trace...),
+                         force.x=xframe[,ipred], force.y=yhat, force.type="n",
+                         force.main=main, force.xlab=xlab, force.ylab=ylab,
+                         force.xlim=xlim, force.ylim=ylim,
+                         def.xaxt=if(xaxis.is.levs)"n"...),
+                         def.yaxt=if(yaxis.is.levs)"n"...))
+PREFIX degree1.
+DROP .*
+KEEP >STANDARDPREFIXES|^force\.|^def\.|^drop\.
+     >PREFIX|^degree1\.
+     >CALLARGS|^force\.x$|^force\.y$|^force\.type$|^force\.main$|^force\.xlab$|^force\.ylab$|^force\.xlim$|^force\.ylim$|^def\.xaxt$|^def\.yaxt$
+     >EXPLICIT
+     >PLOT_ARGS|^add$|^adj$|^bty$|^cex$|^cex\.axis$|^cex\.lab$|^cex\.main$|^cex\.sub$|^col$|^col\.axis$|^col\.lab$|^col\.main$|^col\.sub$|^crt$|^family$|^font$|^font$|^font\.axis$|^font\.lab$|^font\.main$|^font\.sub$|^lend$|^ljoin$|^lmitre$|^lty$|^lwd$|^main$|^pch$|^srt$|^xaxp$|^xaxs$|^xaxt$|^xlab$|^xlim$|^xlog$|^xpd$|^yaxp$|^yaxs$|^yaxt$|^ylab$|^ylim$|^ylog$
+input dotnames       force.x force.y force.type force.main force.xlab force.ylab force.xlim force.ylim def.xaxt def.yaxt
+after DROP and KEEP  force.x force.y force.type force.main force.xlab force.ylab force.xlim force.ylim def.xaxt def.yaxt
+return dotnames      x y type main xlab ylab xaxt yaxt xlim ylim
+
+graphics::plot.default(x=c(25,26.39,27.7...), y=c(5.312,5.527,5...), type="n",
+                       main="1 temp", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(25,93), ylim=c(-6.67,40.23))
+--plot.degree2(draw.plot=TRUE)
+persp(wind:vis) theta 145
+TRACE plot.persp called deprefix(persp, FNAME="persp", KEEP="PREFIX,PLOT.ARGS",
+                         FORMALS=persp.def.formals,
+                         TRACE=if(ipair==1&&trace>=...), force.x=x1grid,
+                         force.y=x2grid, force.z=yhat,
+                         force.xlim=range(x1grid), force.ylim=range(x2grid),
+                         force.zlim=if(is.null(ylim))yli...), force.xlab=xlab,
+                         force.ylab=ylab, force.theta=theta, force.phi=30,
+                         force.d=1, force.main=main2, def.cex.lab=cex.lab,
+                         def.cex.axis=cex.lab, def.zlab=zlab,
+                         def.ticktype="simple", def.nticks=def.nticks,
+                         def.cex=cex1, force.col="lightblue", def.border=NULL,
+                         def.shade=0.5)
+PREFIX persp.
+DROP NULL
+KEEP >STANDARDPREFIXES|^force\.|^def\.|^drop\.
+     >PREFIX|^persp\.
+     >CALLARGS|^force\.x$|^force\.y$|^force\.z$|^force\.xlim$|^force\.ylim$|^force\.zlim$|^force\.xlab$|^force\.ylab$|^force\.theta$|^force\.phi$|^force\.d$|^force\.main$|^def\.cex\.lab$|^def\.cex\.axis$|^def\.zlab$|^def\.ticktype$|^def\.nticks$|^def\.cex$|^force\.col$|^def\.border$|^def\.shade$
+     >EXPLICIT
+     >PLOT_ARGS|^add$|^adj$|^bty$|^cex$|^cex\.axis$|^cex\.lab$|^cex\.main$|^cex\.sub$|^col$|^col\.axis$|^col\.lab$|^col\.main$|^col\.sub$|^crt$|^family$|^font$|^font$|^font\.axis$|^font\.lab$|^font\.main$|^font\.sub$|^lend$|^ljoin$|^lmitre$|^lty$|^lwd$|^main$|^pch$|^srt$|^xaxp$|^xaxs$|^xaxt$|^xlab$|^xlim$|^xlog$|^xpd$|^yaxp$|^yaxs$|^yaxt$|^ylab$|^ylim$|^ylog$
+input dotnames       force.x force.y force.z force.xlim force.ylim force.zlim force.xlab force.ylab force.theta force.phi force.d force.main def.cex.lab def.cex.axis def.zlab def.ticktype def.nticks def.cex force.col def.border def.shade
+after DROP and KEEP  force.x force.y force.z force.xlim force.ylim force.zlim force.xlab force.ylab force.theta force.phi force.d force.main def.cex.lab def.cex.axis def.zlab def.ticktype def.nticks def.cex force.col def.shade
+return dotnames      x y main xlab ylab cex.lab cex.axis zlab ticktype nticks cex shade z xlim ylim zlim theta phi d col
+
+persp(humidity:temp) theta -35
+persp(temp:dpg) theta 235
+> 
+> caption <- "test 2 x 2 layout"
+> dopar(1,1,caption)
+                              test 2 x 2 layout 
+> a <- earth(O3 ~ ., data=ozone1, nk=9, pmethod="n", degree=2)
+> plotmo(a, caption=caption)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> 
+> caption <- "test 1 x 1 layout"
+> dopar(1,1,caption)
+                              test 1 x 1 layout 
+> a <- earth(O3 ~ ., data=ozone1, nk=4, pmethod="n", degree=2)
+> plotmo(a, caption=caption)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> 
+> caption <- "test plotmo basic params"
+> a <- earth(O3 ~ ., data=ozone1, degree=2)
+> dopar(3,2,caption)
+                              test plotmo basic params 
+> plotmo(a, do.par=FALSE, degree1=1, nrug=-1, degree2=F, caption=caption,
++         main="test main", xlab="test xlab", ylab="test ylab")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=F, degree2=4, grid.func=mean, persp.col="white", ngrid2=10, persp.phi=40)
+> set.seed(2016)
+> plotmo(a, do.par=FALSE, degree1=1, degree1.lty=2, degree1.lwd=4, degree1.col=2, nrug=TRUE, degree2=F, main="nrug=300")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=1, nrug=-1, degree2=F, main="nrug=TRUE")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> set.seed(2016)
+> plotmo(a, do.par=FALSE, degree1=1, nrug=10, ngrid1=50, degree2=F, main="ngrid1=50 nrug=10")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=NA, degree2=1, persp.phi=60) # graph args
+> 
+> caption <- "test plotmo xlim and ylim"
+> a <- earth(O3 ~ ., data=ozone1, degree=2)
+> dopar(5,3,caption)
+                              test plotmo xlim and ylim 
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=4, caption=caption, xlab="ylim=default")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=4, ylim=NA, xlab="ylim=NA")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=4, ylim=c(0,20), xlab="ylim=c(0,20)")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=4, xlim=c(190,250), xlab="xlim=c(190,250)")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=4, xlim=c(190,250), ylim=c(11,18), xlab="xlim=c(190,250), ylim=c(11,18)")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> 
+> # check various types of predictors with grid.func and ndiscrete
+> 
+> varied.type.data <- data.frame(
++     y    = 1:13,
++     num  = c(1, 3, 2, 3, 4, 5, 6, 4, 5, 6.5, 3, 6, 5), # 7 unique values (but one is non integral)
++     int  = c(1L, 1L, 3L, 3L, 4L, 4L, 3L, 5L, 3L, 6L, 7L, 8L, 10L), # 8 unique values
++     bool = c(F, F, F, F, F, T, T, T, T, T, T, T, T),
++     date = as.Date(
++            c("2018-08-01", "2018-08-02", "2018-08-03",
++              "2018-08-04", "2018-08-05", "2018-08-06",
++              "2018-08-07", "2018-08-08", "2018-08-08",
++              "2018-08-08", "2018-08-10", "2018-08-11", "2018-08-11")),
++     ord  = ordered(c("ord3", "ord3", "ord3",
++                      "ord1", "ord2", "ord3",
++                      "ord1", "ord2", "ord3",
++                      "ord1", "ord1", "ord1", "ord1"),
++                    levels=c("ord1", "ord3", "ord2")),
++     fac  = as.factor(c("fac1", "fac1", "fac1",
++                        "fac2", "fac2", "fac2",
++                        "fac3", "fac3", "fac3",
++                        "fac1", "fac2", "fac3", "fac3")),
++     str  = c("str1", "str1", "str1", # will be treated like a factor
++              "str2", "str2", "str2",
++              "str3", "str3", "str3",
++              "str3", "str3", "str3", "str3"))
+> 
+> varied.type.lm <- lm(y ~ ., data = varied.type.data)
+> print(summary(varied.type.lm))
+
+Call:
+lm(formula = y ~ ., data = varied.type.data)
+
+Residuals:
+         1          2          3          4          5          6          7 
+ 9.619e-02  1.673e-01 -2.635e-01  1.297e-02 -1.297e-02 -6.592e-17 -1.029e-01 
+         8          9         10         11         12         13 
+ 1.297e-02  5.898e-17 -8.674e-17  5.204e-17  5.772e-02  3.220e-02 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)  
+(Intercept) -7192.3724  6018.6749  -1.195   0.3546  
+num             0.2618     0.1919   1.364   0.3057  
+int             0.6437     0.2279   2.824   0.1058  
+boolTRUE       -1.7185     0.5305  -3.240   0.0835 .
+date            0.4053     0.3392   1.195   0.3547  
+ord.L          -0.2014     0.1726  -1.167   0.3637  
+ord.Q          -1.5481     0.4045  -3.827   0.0620 .
+facfac2         0.4621     1.1289   0.409   0.7219  
+facfac3        -0.4299     0.5784  -0.743   0.5348  
+strstr2         1.3480     0.8570   1.573   0.2564  
+strstr3         5.0732     1.2534   4.048   0.0560 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.2471 on 2 degrees of freedom
+Multiple R-squared:  0.9993,	Adjusted R-squared:  0.996 
+F-statistic: 297.9 on 10 and 2 DF,  p-value: 0.003351
+
+> set.seed(2018)
+> plotres(varied.type.lm, info=TRUE)
+> plotmo(varied.type.lm, pmethod="apartdep", all2=TRUE, ticktype="d", col.response="red", caption="varied.type.lm\npmethod=\"apartdep\" default grid func")
+calculating apartdep for num 
+calculating apartdep for int 
+calculating apartdep for bool 
+calculating apartdep for date 
+calculating apartdep for ord 
+calculating apartdep for fac 
+calculating apartdep for str 
+calculating apartdep for num:int 01234567890
+calculating apartdep for num:bool 01234567890
+calculating apartdep for num:date 01234567890
+calculating apartdep for num:ord 01234567890
+calculating apartdep for num:fac 01234567890
+calculating apartdep for num:str 01234567890
+calculating apartdep for int:bool 01234567890
+calculating apartdep for int:date 01234567890
+calculating apartdep for int:ord 01234567890
+calculating apartdep for int:fac 01234567890
+calculating apartdep for int:str 01234567890
+calculating apartdep for bool:date 0123456790
+calculating apartdep for bool:ord 0123456790
+calculating apartdep for bool:fac 0123456790
+calculating apartdep for bool:str 0123456790
+calculating apartdep for date:ord 01234567890
+calculating apartdep for date:fac 01234567890
+calculating apartdep for date:str 01234567890
+calculating apartdep for ord:fac 01234567890
+calculating apartdep for ord:str 01234567890
+calculating apartdep for fac:str 01234567890
+> plotmo(varied.type.lm, all2=TRUE, ticktype="d", col.response="red", caption="varied.type.lm\ndefault grid func")
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> plotmo(varied.type.lm, all2=TRUE, ndiscre=1, caption="varied.type.lm\nndiscrete=1")
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> plotmo(varied.type.lm, all2=TRUE, ndiscr=2, caption="varied.type.lm\nndiscrete=2")
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> plotmo(varied.type.lm, all2=TRUE, ndis=100, caption="varied.type.lm\nndiscrete=100")
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> cat("grid.func=median:\n")
+grid.func=median:
+> plotmo(varied.type.lm, all2=TRUE, grid.func=median, caption="varied.type.lm\ngrid.func=median")
+Warning: grid.func failed for ord, so will use the most common value of ord
+Warning: grid.func failed for fac, so will use the most common value of fac
+Warning: grid.func failed for str, so will use the most common value of str
+Warning: grid.func failed for ord, so will use the most common value of ord
+Warning: grid.func failed for fac, so will use the most common value of fac
+Warning: grid.func failed for str, so will use the most common value of str
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> cat("grid.func=quantile:\n")
+grid.func=quantile:
+> plotmo(varied.type.lm, all2=TRUE, grid.func=function(x, ...) quantile(x, 0.5), caption="varied.type.lm\ngrid.func=function(x, ...) quantile(x, 0.5)")
+Warning: grid.func failed for date, so will use the default grid.func for date
+Warning: grid.func failed for ord, so will use the most common value of ord
+Warning: grid.func failed for fac, so will use the most common value of fac
+Warning: grid.func failed for str, so will use the most common value of str
+Warning: grid.func failed for date, so will use the default grid.func for date
+Warning: grid.func failed for ord, so will use the most common value of ord
+Warning: grid.func failed for fac, so will use the most common value of fac
+Warning: grid.func failed for str, so will use the most common value of str
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> cat("grid.func=mean:\n")
+grid.func=mean:
+> plotmo(varied.type.lm, all2=TRUE, grid.func=mean, caption="varied.type.lm\ngrid.func=mean")
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for ord, so will use the default grid.func for ord
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for fac, so will use the default grid.func for fac
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for str, so will use the default grid.func for str
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for ord, so will use the default grid.func for ord
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for fac, so will use the default grid.func for fac
+Warning in mean.default(x, na.rm = TRUE) :
+  argument is not numeric or logical: returning NA
+Warning: grid.func returned NA for str, so will use the default grid.func for str
+ plotmo grid:    num int bool       date  ord  fac  str
+            4.115385   4 TRUE 2018-08-06 ord1 fac3 str3
+> 
+> varied.type.earth <- earth(y ~ ., data = varied.type.data, thresh=0, penalty=-1, trace=1)
+x[13,10] with colnames num int boolTRUE date ord.L ord.Q facfac2 facfac3 strstr2...
+y[13,1] with colname y, and values 1, 2, 3, 4, 5, 6, 7, 8, 9, 10...
+Forward pass term 1, 2, 4, 6, 8, 10, 12, 14, 16, 18
+Reached maximum RSq 1.0000 at 19 terms, 13 terms used (RSq 1.0000)
+After forward pass GRSq 1.000 RSq 1.000
+Prune backward penalty -1 nprune null: selected 13 of 13 terms, and 9 of 10 preds
+After pruning pass GRSq 1 RSq 1
+> print(summary(varied.type.earth))
+Call: earth(formula=y~., data=varied.type.data, trace=1, thresh=0, penalty=-1)
+
+              coefficients
+(Intercept)      9.5964912
+boolTRUE        -2.0473684
+ord.L            0.4986964
+ord.Q            0.0859470
+facfac2         -4.4157895
+facfac3         -3.1526316
+strstr2          3.2526316
+h(4-num)         1.4105263
+h(num-4)        -0.3157895
+h(4-int)         2.1157895
+h(int-4)         0.3421053
+h(17749-date)   -3.8210526
+h(date-17749)    1.4368421
+
+Selected 13 of 13 terms, and 9 of 10 predictors
+Termination condition: Reached maximum RSq 1.0000 at 13 terms
+Importance: date, facfac2, facfac3, int, strstr2, boolTRUE, num, ord.L, ...
+Number of terms at each degree of interaction: 1 12 (additive model)
+GCV 0    RSS 0    GRSq 1    RSq 1
+> set.seed(2018)
+> plotres(varied.type.earth, info=TRUE)
+Warning in cor(rank(x), rank(y)) : the standard deviation is zero
+Warning: draw.density.along.the.bottom: cannot determine density
+> plotmo(varied.type.earth, all1=TRUE, all2=TRUE, persp.ticktype="d", col.response="red")
+ plotmo grid:    num int bool       date  ord  fac  str
+                   4   4 TRUE 2018-08-07 ord1 fac3 str3
+> 
+> # term.plot calls predict.earth with an se parameter, even with termplot(se=FALSE)
+> 
+> caption <- "basic earth test against termplot"
+> dopar(4,4,caption)
+                              basic earth test against termplot 
+> make.space.for.caption("test caption1")
+> a <- earth(O3 ~ ., data=ozone1, degree=2)
+> plotmo(a, do.par=FALSE, ylim=NA, caption=caption, degree2=FALSE)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> cat("Ignore warning: predict.earth ignored argument \"se.fit\"\n")
+Ignore warning: predict.earth ignored argument "se.fit"
+> termplot(a)
+Warning: predict.earth ignored argument 'se.fit'
+> 
+> caption <- "test change order of earth predictors and cex"
+> dopar(4,4,caption)
+                              test change order of earth predictors and cex 
+> # minspan=1 to force two degree2 graphs for the test (wasn't necessary in old versions of earth)
+> a <- earth(doy ~ humidity + temp + wind, data=ozone1, degree=2, minspan=1)
+> plotmo(a, do.par=FALSE, ylim=NA, caption=caption, degree2=c(1,2), cex=1.2)
+ plotmo grid:    humidity temp wind
+                       64   62    5
+> termplot(a)
+Warning: predict.earth ignored argument 'se.fit'
+> 
+> caption <- "test all1=TRUE"
+> a <- earth(doy ~ humidity + temp + wind, data=ozone1, degree=2)
+> plotmo(a, caption=caption, all1=TRUE, persp.ticktype="d", persp.nticks=2)
+ plotmo grid:    humidity temp wind
+                       64   62    5
+> caption <- "test all2=TRUE"
+> print(summary(a))
+Call: earth(formula=doy~humidity+temp+wind, data=ozone1, degree=2)
+
+                            coefficients
+(Intercept)                   150.868918
+h(humidity-28)                  1.614397
+h(49-temp)                     -6.984397
+h(3-wind)                      50.527668
+h(28-humidity) * h(temp-53)     8.123127
+h(28-humidity) * h(53-temp)     1.520105
+h(28-humidity) * h(temp-45)     5.390040
+h(28-humidity) * h(temp-50)   -12.953206
+h(41-humidity) * h(wind-3)     -0.996454
+
+Selected 9 of 18 terms, and 3 of 3 predictors
+Termination condition: Reached nk 21
+Importance: wind, temp, humidity
+Number of terms at each degree of interaction: 1 3 5
+GCV 8954.829    RSS 2590958    GRSq 0.1805267    RSq 0.2771303
+> plotmo(a, caption=caption, all2=TRUE)
+ plotmo grid:    humidity temp wind
+                       64   62    5
+> 
+> oz <- ozone1[150:200,c("O3","temp","humidity","ibh")]
+> a.glob <- earth(O3~temp+humidity, data=oz, degree=2)
+> ad.glob <- earth(oz[,2:3], oz[,1], degree=2)
+> func1 <- function()
++ {
++     caption <- "test environments and finding the correct data"
++     dopar(4,4,caption)
++     set.seed(2016)
++ 
++     plotmo(a.glob, do.par=FALSE, main="a.glob oz",
++           degree1=1, all2=1, degree2=1, type2="im",
++           col.response=3, pt.pch=20, trace=2)
++     mtext(caption, outer=TRUE, font=2, line=1.5, cex=1)
++     plotmo(ad.glob, do.par=FALSE, main="ad.glob oz",
++           degree1=1, all2=1, degree2=1, type2="im",
++           col.response=3, pch.response=20, trace=2) # pch.response test backcompat
++ 
++     a <- earth(O3~temp+humidity, data=oz, degree=2)
++     plotmo(a, do.par=FALSE, main="a oz",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++     ad <- earth(oz[,2:3], oz[,1], degree=2)
++     plotmo(ad, do.par=FALSE, main="ad oz",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++     oz.org <- oz
++     oz10 <- 10 * oz # multiply by 10 so we can see by the axis labels if right data is being used
++     oz <- oz10      # oz is now local to this function, but multiplied by 10
++     a.oz10 <- earth(O3~temp+humidity, data=oz, degree=2)
++     a.oz10.keep <- earth(O3~temp+humidity, data=oz, degree=2, keepxy=TRUE)
++     plotmo(a.oz10, do.par=FALSE, main="a oz10",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++     ad.oz10 <- earth(oz[,2:3], oz[,1], degree=2)
++     ad.oz10.keep <- earth(oz[,2:3], oz[,1], degree=2, keepxy=TRUE)
++     plotmo(ad.oz10, do.par=FALSE, main="ad oz10",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++     func2 <- function() {
++         a.func <- earth(O3 ~ temp +   humidity, data=oz10, degree=2)
++         plotmo(a.func, do.par=FALSE, main="a.func oz10",
++                degree1=1, all2=1, degree2=1, type2="im",
++                col.response=3, pt.pch=20)
++ 
++         ad.func <- earth(oz10[,2:3], oz10[,1], degree=2)
++         plotmo(ad.func, do.par=FALSE, main="ad.func oz10",
++                degree1=1, all2=1, degree2=1, type2="im",
++                col.response=3, pt.pch=20)
++ 
++         caption <- "test environments and finding the correct data, continued"
++         dopar(4,4,caption)
++ 
++         oz <- .1 * oz.org
++         a.func <- earth(O3~temp+ humidity , data=oz, degree=2)
++         plotmo(a.func, do.par=FALSE, main="a.func oz.1",
++                degree1=1, all2=1, degree2=1, type2="im",
++                col.response=3, pt.pch=20)
++ 
++         ad.func <- earth(oz[,2:3], oz[,1], degree=2)
++         plotmo(ad.func, do.par=FALSE, main="ad.func oz.1",
++                degree1=1, all2=1, degree2=1, type2="im",
++                col.response=3, pt.pch=20)
++ 
++         plotmo(a.oz10.keep, do.par=FALSE, main="func1:a.oz10.keep",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++         plotmo(ad.oz10.keep, do.par=FALSE, main="func1:ad.oz10.keep",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20)
++ 
++         cat("Expect error msg: formal argument \"do.par\" matched by multiple actual arguments\n")
++         expect.err(try(plotmo(a.oz10, do.par=FALSE, main="func1:a.oz10",
++            degree1=1, all2=1, degree2=1, type2="im",
++            col.response=3, pt.pch=20, do.par=FALSE)))
++     }
++     func2()
++ 
++     y  <- 3:11
++     x1 <- c(1,3,2,4,5,6,6,6,6)
++     x2 <- c(2,3,4,5,6,7,8,9,10)
++     frame <- data.frame(y=y, x1=x1, x2=x2)
++     foo <- function()
++     {
++         lm.18.out <- lm(y~x1+x2, model=FALSE)
++         x1[2] <- 18
++         y[3] <- 19
++         frame <- data.frame(y=y, x1=x1, x2=x2)
++         list(lm.18.out   = lm.18.out,
++              lm.18       = lm(y~x1+x2),
++              lm.18.keep  = lm(y~x1+x2, x=TRUE, y=TRUE),
++              lm.18.frame = lm(y~x1+x2, data=frame))
++     }
++     temp <- foo()
++         lm.18.out   <- temp$lm.18.out
++         lm.18       <- temp$lm.18
++         lm.18.keep  <- temp$lm.18.keep
++         lm.18.frame <- temp$lm.18.frame
++ 
++     # following should all use the x1 and y inside foo
++ 
++     cat("==lm.18.out\n")
++     plotmo(lm.18.out, main="lm.18.out",
++            do.par=FALSE, degree1=1, clip=FALSE, ylim=c(0,20),
++            col.response=2, pt.pch=20)
++ 
++     cat("==lm.18\n")
++     plotmo(lm.18, main="lm.18",
++            do.par=FALSE, degree1=1, clip=FALSE, ylim=c(0,20),
++            col.response=2, pt.pch=20)
++ 
++     cat("==lm.18.keep\n")
++     plotmo(lm.18.keep, main="lm.18.keep", trace=2,
++            do.par=FALSE, degree1=1, clip=FALSE, ylim=c(0,20),
++            col.response=2, pt.pch=20)
++ 
++     cat("==lm.18.frame\n")
++     plotmo(lm.18.frame, main="lm.18.frame",
++            do.par=FALSE, degree1=1, clip=FALSE, ylim=c(0,20),
++            col.response=2, pt.pch=20)
++ }
+> func1()
+                              test environments and finding the correct data 
+plotmo trace 2: plotmo(object=a.glob, type2="im", degree1=1, degree2=1, all2=1,
+                       do.par=FALSE, trace=2, main="a.glob oz", col.response=3,
+                       pt.pch=20)
+--get.model.env for object with class earth
+object call is earth(formula=O3~temp+humidity, data=oz, degree=2)
+using the environment saved in $terms of the earth model: R_GlobalEnv
+--plotmo_prolog for earth object 'a.glob'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(formula=O3~temp+humidity, data=oz, degree=2)
+
+get.x.from.model.frame:
+formula(object) is O3 ~ temp + humidity
+naked formula is the same
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 temp humidity ibh
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ temp + humidity, data=call$data, na.action="na.fail")
+x=model.frame[,-1] is usable and has column names temp humidity
+plotmo_x returned[51,2]:
+    temp humidity
+150   48       81
+151   59       63
+152   67       58
+...   66       68
+200   79       65
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[51,1]:
+           O3
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+predict after processing with nresponse=NULL is [51,1]:
+           O3
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[51,1]:
+           O3
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+fitted(object) after processing with nresponse=NULL is [51,1]:
+           O3
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~temp+humidity, data=oz, degree=2)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ temp + humidity
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 temp humidity ibh
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ temp + humidity, data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name O3
+plotmo_y returned[51,1]:
+    O3
+150  2
+151 12
+152 22
+... 17
+200 14
+plotmo_y after processing with nresponse=NULL is [51,1]:
+    O3
+150  2
+151 12
+152 22
+... 17
+200 14
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(formula=O3~temp+humidity, data=oz, degree=2)
+
+get.y.from.model.frame:
+formula(object) is O3 ~ temp + humidity
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 temp humidity ibh
+na.action(object) is "na.fail"
+stats::model.frame(O3 ~ temp + humidity, data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name O3
+got model response from model.frame(O3 ~ temp + humidity,
+                                    data=call$data, na.action="na.fail")
+plotmo_y returned[51,1]:
+    O3
+150  2
+151 12
+152 22
+... 17
+200 14
+plotmo_y after processing with nresponse=1 is [51,1]:
+    O3
+150  2
+151 12
+152 22
+... 17
+200 14
+got response name "O3" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: temp 27 humidity 27
+
+----plotmo_singles for earth object
+singles: 1 temp 
+
+----plotmo_pairs for earth object
+pairs:
+     [,1]     [,2]        
+[1,] "1 temp" "2 humidity"
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable temp
+newdata[50,2]:
+        temp humidity
+1   48.00000       68
+2   48.91837       68
+3   49.83673       68
+... 50.75510       68
+50  93.00000       68
+stats::predict(earth.object, data.frame[50,2], type="response")
+predict returned[50,1]:
+           O3
+1    7.990058
+2    8.278609
+3    8.567159
+...  8.855710
+50  29.834221
+predict after processing with nresponse=1 is [50,1]:
+           O3
+1    7.990058
+2    8.278609
+3    8.567159
+...  8.855710
+50  29.834221
+--plot.degree2(draw.plot=FALSE)
+degree2 plot1 (pmethod "plotmo") variables temp:humidity
+newdata[400,2]:
+        temp humidity
+1   48.00000       33
+2   50.36842       33
+3   52.73684       33
+... 55.10526       33
+400 93.00000       90
+stats::predict(earth.object, data.frame[400,2], type="response")
+predict returned[400,1]:
+           O3
+1    7.990058
+2    8.734215
+3    9.478372
+... 10.222529
+400 33.851866
+predict after processing with nresponse=1 is [400,1]:
+           O3
+1    7.990058
+2    8.734215
+3    9.478372
+... 10.222529
+400 33.851866
+--done get.ylim.by.dummy.plots
+
+ylim c(1.936, 33.94)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    temp humidity
+                   80       68
+
+graphics::plot.default(x=c(48,48.92,49.8...), y=c(7.99,8.279,8...), type="n",
+                       main="a.glob oz", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(47.98,93.08), ylim=c(1.94,33.94))
+--plot.degree2(draw.plot=TRUE)
+plotmo trace 2: plotmo(object=ad.glob, type2="im", degree1=1, degree2=1,
+                       all2=1, do.par=FALSE, trace=2, main="ad.glob oz",
+                       col.response=3, pch.response=20)
+--get.model.env for object with class earth
+object call is earth(x=oz[, 2:3], y=oz[, 1], degree=2)
+assuming the environment of the earth model is that of plotmo's caller: env(caption)
+--plotmo_prolog for earth object 'ad.glob'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(x=oz[, 2:3], y=oz[, 1], degree=2)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, env(caption))
+getCall(object)$x is usable and has column names temp humidity
+plotmo_x returned[51,2]:
+    temp humidity
+150   48       81
+151   59       63
+152   67       58
+...   66       68
+200   79       65
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[51,1]:
+      oz[, 1]
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+predict after processing with nresponse=NULL is [51,1]:
+      oz[, 1]
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[51,1]:
+      oz[, 1]
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+fitted(object) after processing with nresponse=NULL is [51,1]:
+      oz[, 1]
+1    7.990058
+2   11.446254
+3   13.959851
+... 13.645652
+51  18.207402
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(x=oz[, 2:3], y=oz[, 1], degree=2)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(caption))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "degree"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+colname was NULL now "y"
+plotmo_y returned[51,1]:
+     y
+1    2
+2   12
+3   22
+... 17
+51  14
+plotmo_y after processing with nresponse=NULL is [51,1]:
+     y
+1    2
+2   12
+3   22
+... 17
+51  14
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is earth(x=oz[, 2:3], y=oz[, 1], degree=2)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, env(caption))
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "degree"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+got model response from getCall(object)$y
+colname was NULL now "y"
+plotmo_y returned[51,1]:
+     y
+1    2
+2   12
+3   22
+... 17
+51  14
+plotmo_y after processing with nresponse=1 is [51,1]:
+     y
+1    2
+2   12
+3   22
+... 17
+51  14
+got response name "oz[, 1]" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: temp 27 humidity 27
+
+----plotmo_singles for earth object
+singles: 1 temp 
+
+----plotmo_pairs for earth object
+pairs:
+     [,1]     [,2]        
+[1,] "1 temp" "2 humidity"
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable temp
+newdata[50,2]:
+        temp humidity
+1   48.00000       68
+2   48.91837       68
+3   49.83673       68
+... 50.75510       68
+50  93.00000       68
+stats::predict(earth.object, data.frame[50,2], type="response")
+predict returned[50,1]:
+      oz[, 1]
+1    7.990058
+2    8.278609
+3    8.567159
+...  8.855710
+50  29.834221
+predict after processing with nresponse=1 is [50,1]:
+      oz[, 1]
+1    7.990058
+2    8.278609
+3    8.567159
+...  8.855710
+50  29.834221
+--plot.degree2(draw.plot=FALSE)
+degree2 plot1 (pmethod "plotmo") variables temp:humidity
+newdata[400,2]:
+        temp humidity
+1   48.00000       33
+2   50.36842       33
+3   52.73684       33
+... 55.10526       33
+400 93.00000       90
+stats::predict(earth.object, data.frame[400,2], type="response")
+predict returned[400,1]:
+      oz[, 1]
+1    7.990058
+2    8.734215
+3    9.478372
+... 10.222529
+400 33.851866
+predict after processing with nresponse=1 is [400,1]:
+      oz[, 1]
+1    7.990058
+2    8.734215
+3    9.478372
+... 10.222529
+400 33.851866
+--done get.ylim.by.dummy.plots
+
+ylim c(1.931, 34)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    temp humidity
+                   80       68
+
+graphics::plot.default(x=c(48,48.92,49.8...), y=c(7.99,8.279,8...), type="n",
+                       main="ad.glob oz", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(48,93), ylim=c(1.93,34))
+--plot.degree2(draw.plot=TRUE)
+ plotmo grid:    temp humidity
+                   80       68
+ plotmo grid:    temp humidity
+                   80       68
+ plotmo grid:    temp humidity
+                  800      680
+ plotmo grid:    temp humidity
+                  800      680
+ plotmo grid:    temp humidity
+                  800      680
+ plotmo grid:    temp humidity
+                  800      680
+                              test environments and finding the correct data, continued 
+ plotmo grid:    temp humidity
+                    8      6.8
+ plotmo grid:    temp humidity
+                    8      6.8
+ plotmo grid:    temp humidity
+                  800      680
+ plotmo grid:    temp humidity
+                  800      680
+Expect error msg: formal argument "do.par" matched by multiple actual arguments
+Error in plotmo(a.oz10, do.par = FALSE, main = "func1:a.oz10", degree1 = 1,  : 
+  formal argument "do.par" matched by multiple actual arguments
+Got expected error from try(plotmo(a.oz10, do.par = FALSE, main = "func1:a.oz10", degree1 = 1,     all2 = 1, degree2 = 1, type2 = "im", col.response = 3, pt.pch = 20,     do.par = FALSE))
+==lm.18.out
+ plotmo grid:    x1 x2
+                  6  6
+==lm.18
+ plotmo grid:    x1 x2
+                  6  6
+==lm.18.keep
+plotmo trace 2: plotmo(object=lm.18.keep, degree1=1, do.par=FALSE, clip=FALSE,
+                       ylim=c(0,20), trace=2, main="lm.18.keep",
+                       col.response=2, pt.pch=20)
+--get.model.env for object with class lm
+object call is lm(formula=y~x1+x2, x=TRUE, y=TRUE)
+using the environment saved in $terms of the lm model: env(frame, lm.18.out, x1, y)
+--plotmo_prolog for lm object 'lm.18.keep'
+--plotmo_x for lm object
+
+get.object.x:
+object$x is usable and has column names (Intercept) x1 x2
+dropped "(Intercept)" column from x
+plotmo_x returned[9,2]:
+    x1 x2
+1    1  2
+2   18  3
+3    2  4
+...  4  5
+9    6 10
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.lm with NULL newdata
+stats::predict(lm.object, NULL, type="response")
+predict returned[9,1] with no column names:
+             
+1    8.098674
+2    3.323243
+3    8.792796
+...  8.674176
+9   10.564707
+predict after processing with nresponse=NULL is [9,1] with no column names:
+             
+1    8.098674
+2    3.323243
+3    8.792796
+...  8.674176
+9   10.564707
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=lm.object)
+fitted(object) returned[9,1] with no column names:
+             
+1    8.098674
+2    3.323243
+3    8.792796
+...  8.674176
+9   10.564707
+fitted(object) after processing with nresponse=NULL is [9,1] with no column names:
+             
+1    8.098674
+2    3.323243
+3    8.792796
+...  8.674176
+9   10.564707
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for lm object
+
+get.object.y:
+object$y is usable but without colnames so we will keep on searching
+
+object call is lm(formula=y~x1+x2, x=TRUE, y=TRUE)
+
+get.y.from.model.frame:
+formula(object) is y ~ x1 + x2
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names y x1 x2
+y=model.frame[,1] is usable and has column name y
+plotmo_y returned[9,1]:
+     y
+1    3
+2    4
+3   19
+...  6
+9   11
+plotmo_y after processing with nresponse=NULL is [9,1]:
+     y
+1    3
+2    4
+3   19
+...  6
+9   11
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for lm object
+
+get.object.y:
+object$y is usable but without colnames so we will keep on searching
+
+object call is lm(formula=y~x1+x2, x=TRUE, y=TRUE)
+
+get.y.from.model.frame:
+formula(object) is y ~ x1 + x2
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names y x1 x2
+y=model.frame[,1] is usable and has column name y
+got model response from object$model
+plotmo_y returned[9,1]:
+     y
+1    3
+2    4
+3   19
+...  6
+9   11
+plotmo_y after processing with nresponse=1 is [9,1]:
+     y
+1    3
+2    4
+3   19
+...  6
+9   11
+got response name "y" from yfull
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: x1 6 x2 9
+
+----plotmo_singles for lm object
+singles: 1 x1 
+
+----plotmo_pairs for lm object
+formula(object) returned y ~ x1 + x2
+formula.vars "x1" "x2"
+term.labels "x1" "x2"
+plotmo_pairs_from_term_labels
+term.labels: "x1" "x2" "x1" "x2"
+pred.names:  "x1" "x2"
+considering x1
+considering x2
+considering x1
+considering x2
+no pairs
+
+----Figuring out ylim
+ylim c(0, 20)    clip FALSE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    x1 x2
+                  6  6
+
+degree1 plot1 (pmethod "plotmo") variable x1
+newdata[50,2]:
+           x1 x2
+1    1.000000  6
+2    1.346939  6
+3    1.693878  6
+...  2.040816  6
+50  18.000000  6
+stats::predict(lm.object, data.frame[50,2], type="response")
+predict returned[50,1] with no column names:
+             
+1   10.107826
+2   10.000117
+3    9.892409
+...  9.784700
+50   4.830107
+predict after processing with nresponse=1 is [50,1]:
+      predict
+1   10.107826
+2   10.000117
+3    9.892409
+...  9.784700
+50   4.830107
+graphics::plot.default(x=c(1,1.347,1.694...), y=c(10.11,10,9.89...), type="n",
+                       main="lm.18.keep", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(1,18.04), ylim=c(0,20))
+==lm.18.frame
+ plotmo grid:    x1 x2
+                  6  6
+> 
+> caption <- "test earth formula versus x,y model"
+> # dopar(4,4,caption)
+> # mtext(caption, outer=TRUE, font=2, line=1.5, cex=1)
+> a <- earth(O3 ~ ., data=ozone1, degree=2)
+> plotmo(a, caption="test earth formula versus xy model (formula)")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> a <- earth(ozone1[, -1], ozone1[,1], degree=2)
+> plotmo(a, caption="test earth formula versus xy model (xy)")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> 
+> # single predictor
+> caption <- "test earth(O3~wind, data=ozone1, degree=2), single predictor"
+> dopar(2,2,caption)
+                              test earth(O3~wind, data=ozone1, degree=2), single predictor 
+> a <- earth(O3~wind, data=ozone1, degree=2)
+> plotmo(a)
+> 
+> caption = "se=2, earth(doy~humidity+temp+wind, data=ozone1) versus termplot (expect no se lines)"
+> dopar(3,3,caption)
+                              se=2, earth(doy~humidity+temp+wind, data=ozone1) versus termplot (expect no se lines) 
+> mtext(caption, outer=TRUE, font=2, line=1.5, cex=1)
+> # minspan=1 to force two degree2 graphs for the test (wasn't necessary in old versions of earth)
+> a <- earth(doy~humidity + temp + wind, data=ozone1, degree=2, minspan=1)
+> cat("Ignore warning: predict.earth ignored argument \"se\"\n")
+Ignore warning: predict.earth ignored argument "se"
+> termplot(a)
+Warning: predict.earth ignored argument 'se.fit'
+> plotmo(a, do.par=FALSE, ylim=NA, degree2=c(1:2), clip=FALSE, caption=caption)
+ plotmo grid:    humidity temp wind
+                       64   62    5
+> 
+> # test fix to bug reported by Joe Retzer, FIXED Dec 7, 2007
+> N <- 650
+> set.seed(2007)
+> q_4    <- runif(N, -1, 1)
+> q_2102 <- runif(N, -1, 1)
+> q_2104 <- runif(N, -1, 1)
+> q_3105 <- runif(N, -1, 1)
+> q_3106 <- runif(N, -1, 1)
+> q_4104 <- runif(N, -1, 1)
+> q_6101 <- runif(N, -1, 1)
+> q_6103 <- runif(N, -1, 1)
+> q_7104 <- runif(N, -1, 1)
+> q_3109 <- runif(N, -1, 1)
+> q_4103 <- runif(N, -1, 1)
+> q_2111 <- runif(N, -1, 1)
+> q_3107 <- runif(N, -1, 1)
+> q_3101 <- runif(N, -1, 1)
+> q_3104 <- runif(N, -1, 1)
+> q_7107 <- runif(N, -1, 1)
+> depIndex <- sin(1.0 * q_4 + rnorm(650, sd=.8)) + sin(1.8 * q_2102 + rnorm(650, sd=.8)) + sin(1.3 * q_2104 + rnorm(650, sd=.8)) + sin(1.4 * q_3105 + rnorm(650, sd=.8)) +
++             sin(1.5 * q_3106 + rnorm(650, sd=.8)) + sin(1.6 * q_4104 + rnorm(650, sd=.8)) + sin(1.8 * q_6101 + rnorm(650, sd=.8)) + sin(1.8 * q_6103 + rnorm(650, sd=.8)) +
++             sin(1.9 * q_7104 + rnorm(650, sd=.8)) + sin(2.0 * q_3109 + rnorm(650, sd=.8))
+> 
+> regDatCWD <- as.data.frame(cbind(depIndex, q_4, q_2102, q_2104, q_3105, q_3106, q_4104, q_6101, q_6103, q_7104, q_3109, q_4103, q_2111, q_3107, q_3101, q_3104, q_7107))
+> cat("--plotmo(earthobj5)--\n")
+--plotmo(earthobj5)--
+> earthobj5 <- earth(depIndex ~  q_4+q_2102+q_2104+q_3105+q_3106+q_4104+q_6101+q_6103+q_7104+q_3109+q_4103+q_2111+q_3107+q_3101+q_3104+q_7107, data=regDatCWD)
+> print(summary(earthobj5, digits = 2))
+Call: earth(formula=depIndex~q_4+q_2102+q_2104+q_3105+q_3106+q_4104+q_...),
+            data=regDatCWD)
+
+                     coefficients
+(Intercept)                  1.79
+h(0.782075-q_4)             -0.97
+h(q_4-0.782075)             -5.36
+h(q_2102- -0.664223)         1.19
+h(q_2104- -0.954733)         0.85
+h(0.83147-q_3105)           -0.77
+h(0.492009-q_3106)          -0.93
+h(q_4104- -0.671276)         1.02
+h(0.483685-q_6101)          -1.10
+h(0.914724-q_6103)          -1.12
+h(0.545206-q_7104)          -1.19
+h(-0.157173-q_3109)         -0.96
+h(q_3109- -0.157173)         1.03
+
+Selected 13 of 21 terms, and 10 of 16 predictors
+Termination condition: RSq changed by less than 0.001 at 21 terms
+Importance: q_6103, q_4104, q_2102, q_7104, q_3109, q_6101, q_2104, q_4, ...
+Number of terms at each degree of interaction: 1 12 (additive model)
+GCV 2.5    RSS 1509    GRSq 0.53    RSq 0.57
+> plotmo(earthobj5)
+ plotmo grid:    q_4     q_2102      q_2104      q_3105      q_3106     q_4104
+          0.05726625 0.01725001 0.004659335 -0.01826179 -0.00913319 0.01401429
+      q_6101     q_6103     q_7104      q_3109     q_4103     q_2111
+ -0.04790454 0.03681165 0.01827148 -0.09899272 -0.0623349 0.01007481
+      q_3107      q_3101       q_3104     q_7107
+ -0.02481171 -0.07733527 -0.003053319 0.02821214
+> 
+> # long predictor names
+> 
+> a.rather.long.in.fact.very.long.name.q_4 <- q_4
+> a.rather.long.in.fact.very.long.name.q_2102 <- q_2102
+> a.rather.long.in.fact.very.long.name.q_2104 <- q_2104
+> a.rather.long.in.fact.very.long.name.q_3105 <- q_3105
+> a.rather.long.in.fact.very.long.name.q_3106 <- q_3106
+> a.rather.long.in.fact.very.long.name.q_4104 <- q_4104
+> a.rather.long.in.fact.very.long.name.q_6101 <- q_6101
+> a.rather.long.in.fact.very.long.name.q_6103 <- q_6103
+> a.rather.long.in.fact.very.long.name.q_7104 <- q_7104
+> a.rather.long.in.fact.very.long.name.q_3109 <- q_3109
+> a.rather.long.in.fact.very.long.name.q_4103 <- q_4103
+> a.rather.long.in.fact.very.long.name.q_2111 <- q_2111
+> a.rather.long.in.fact.very.long.name.q_3107 <- q_3107
+> a.rather.long.in.fact.very.long.name.q_3101 <- q_3101
+> a.rather.long.in.fact.very.long.name.q_3104 <- q_3104
+> a.rather.long.in.fact.very.long.name.q_7107 <- q_7107
+> a.rather.long.in.fact.very.long.name.for.the.response <- depIndex
+> a.rather.long.in.fact.very.long.name.for.the.dataframe <-
++         as.data.frame(cbind(
++                 a.rather.long.in.fact.very.long.name.for.the.response,
++                 a.rather.long.in.fact.very.long.name.q_4,
++                 a.rather.long.in.fact.very.long.name.q_2102,
++                 a.rather.long.in.fact.very.long.name.q_2104,
++                 a.rather.long.in.fact.very.long.name.q_3105,
++                 a.rather.long.in.fact.very.long.name.q_3106,
++                 a.rather.long.in.fact.very.long.name.q_4104,
++                 a.rather.long.in.fact.very.long.name.q_6101,
++                 a.rather.long.in.fact.very.long.name.q_6103,
++                 a.rather.long.in.fact.very.long.name.q_7104,
++                 a.rather.long.in.fact.very.long.name.q_3109,
++                 a.rather.long.in.fact.very.long.name.q_4103,
++                 a.rather.long.in.fact.very.long.name.q_2111,
++                 a.rather.long.in.fact.very.long.name.q_3107,
++                 a.rather.long.in.fact.very.long.name.q_3101,
++                 a.rather.long.in.fact.very.long.name.q_3104,
++                 a.rather.long.in.fact.very.long.name.q_7107))
+> 
+> cat("--a.rather.long.in.fact.very.long.name.for.the...A--\n")
+--a.rather.long.in.fact.very.long.name.for.the...A--
+> a.rather.long.in.fact.very.long.name.for.the.modelA <-
++         earth(a.rather.long.in.fact.very.long.name.for.the.response ~
++                 a.rather.long.in.fact.very.long.name.q_4 +
++                 a.rather.long.in.fact.very.long.name.q_2102 +
++                 a.rather.long.in.fact.very.long.name.q_2104 +
++                 a.rather.long.in.fact.very.long.name.q_3105 +
++                 a.rather.long.in.fact.very.long.name.q_3106 +
++                 a.rather.long.in.fact.very.long.name.q_4104 +
++                 a.rather.long.in.fact.very.long.name.q_6101 +
++                 a.rather.long.in.fact.very.long.name.q_6103 +
++                 a.rather.long.in.fact.very.long.name.q_7104 +
++                 a.rather.long.in.fact.very.long.name.q_3109 +
++                 a.rather.long.in.fact.very.long.name.q_4103 +
++                 a.rather.long.in.fact.very.long.name.q_2111 +
++                 a.rather.long.in.fact.very.long.name.q_3107 +
++                 a.rather.long.in.fact.very.long.name.q_3101 +
++                 a.rather.long.in.fact.very.long.name.q_3104 +
++                 a.rather.long.in.fact.very.long.name.q_7107,
++                 data = a.rather.long.in.fact.very.long.name.for.the.dataframe)
+> print(summary(a.rather.long.in.fact.very.long.name.for.the.modelA, digits = 2))
+Call: earth(formula=a.rather.long.in.fact.very.long.name.for.the.respo...),
+            data=a.rather.long.in.fact.very.long.name.for.the.da...)
+
+                                                          coefficients
+(Intercept)                                                       1.79
+h(0.782075-a.rather.long.in.fact.very.long.name.q_4)             -0.97
+h(a.rather.long.in.fact.very.long.name.q_4-0.782075)             -5.36
+h(a.rather.long.in.fact.very.long.name.q_2102- -0.664223)         1.19
+h(a.rather.long.in.fact.very.long.name.q_2104- -0.954733)         0.85
+h(0.83147-a.rather.long.in.fact.very.long.name.q_3105)           -0.77
+h(0.492009-a.rather.long.in.fact.very.long.name.q_3106)          -0.93
+h(a.rather.long.in.fact.very.long.name.q_4104- -0.671276)         1.02
+h(0.483685-a.rather.long.in.fact.very.long.name.q_6101)          -1.10
+h(0.914724-a.rather.long.in.fact.very.long.name.q_6103)          -1.12
+h(0.545206-a.rather.long.in.fact.very.long.name.q_7104)          -1.19
+h(-0.157173-a.rather.long.in.fact.very.long.name.q_3109)         -0.96
+h(a.rather.long.in.fact.very.long.name.q_3109- -0.157173)         1.03
+
+Selected 13 of 21 terms, and 10 of 16 predictors
+Termination condition: RSq changed by less than 0.001 at 21 terms
+Importance: a.rather.long.in.fact.very.long.name.q_6103, ...
+Number of terms at each degree of interaction: 1 12 (additive model)
+GCV 2.5    RSS 1509    GRSq 0.53    RSq 0.57
+> plot(a.rather.long.in.fact.very.long.name.for.the.modelA)
+> plotmo(a.rather.long.in.fact.very.long.name.for.the.modelA)
+ plotmo grid:    a.rather.long.in.fact.very.long.name.q_4
+                                               0.05726625
+ a.rather.long.in.fact.very.long.name.q_2102
+                                  0.01725001
+ a.rather.long.in.fact.very.long.name.q_2104
+                                 0.004659335
+ a.rather.long.in.fact.very.long.name.q_3105
+                                 -0.01826179
+ a.rather.long.in.fact.very.long.name.q_3106
+                                 -0.00913319
+ a.rather.long.in.fact.very.long.name.q_4104
+                                  0.01401429
+ a.rather.long.in.fact.very.long.name.q_6101
+                                 -0.04790454
+ a.rather.long.in.fact.very.long.name.q_6103
+                                  0.03681165
+ a.rather.long.in.fact.very.long.name.q_7104
+                                  0.01827148
+ a.rather.long.in.fact.very.long.name.q_3109
+                                 -0.09899272
+ a.rather.long.in.fact.very.long.name.q_4103
+                                  -0.0623349
+ a.rather.long.in.fact.very.long.name.q_2111
+                                  0.01007481
+ a.rather.long.in.fact.very.long.name.q_3107
+                                 -0.02481171
+ a.rather.long.in.fact.very.long.name.q_3101
+                                 -0.07733527
+ a.rather.long.in.fact.very.long.name.q_3104
+                                -0.003053319
+ a.rather.long.in.fact.very.long.name.q_7107
+                                  0.02821214
+> 
+> cat("--a.rather.long.in.fact.very.long.name.for.the...C--\n")
+--a.rather.long.in.fact.very.long.name.for.the...C--
+> a.rather.long.in.fact.very.long.name.for.the.modelC <-
++         earth(x = a.rather.long.in.fact.very.long.name.for.the.dataframe[,-1],
++           y = a.rather.long.in.fact.very.long.name.for.the.response,
++                   degree = 3)
+> print(summary(a.rather.long.in.fact.very.long.name.for.the.modelC, digits = 2))
+Call: earth(x=a.rather.long.in.fact.very.long.name.for.the.dataf...),
+            y=a.rather.long.in.fact.very.long.name.for.the.re..., degree=3)
+
+                                                                                                                                                                          coefficients
+(Intercept)                                                                                                                                                                       1.72
+h(0.782075-a.rather.long.in.fact.very.long.name.q_4)                                                                                                                             -1.02
+h(a.rather.long.in.fact.very.long.name.q_4-0.782075)                                                                                                                            -10.33
+h(a.rather.long.in.fact.very.long.name.q_2102- -0.664223)                                                                                                                         1.27
+h(a.rather.long.in.fact.very.long.name.q_2104- -0.954733)                                                                                                                         0.82
+h(0.83147-a.rather.long.in.fact.very.long.name.q_3105)                                                                                                                           -1.00
+h(0.492009-a.rather.long.in.fact.very.long.name.q_3106)                                                                                                                          -0.90
+h(a.rather.long.in.fact.very.long.name.q_4104- -0.671276)                                                                                                                         1.01
+h(0.483685-a.rather.long.in.fact.very.long.name.q_6101)                                                                                                                          -1.09
+h(0.914724-a.rather.long.in.fact.very.long.name.q_6103)                                                                                                                          -1.18
+h(0.545206-a.rather.long.in.fact.very.long.name.q_7104)                                                                                                                          -1.62
+h(-0.157173-a.rather.long.in.fact.very.long.name.q_3109)                                                                                                                         -1.81
+h(a.rather.long.in.fact.very.long.name.q_3109- -0.157173)                                                                                                                         1.15
+h(-0.664223-a.rather.long.in.fact.very.long.name.q_2102) * h(a.rather.long.in.fact.very.long.name.q_3106- -0.148502)                                                              3.71
+h(0.83147-a.rather.long.in.fact.very.long.name.q_3105) * h(a.rather.long.in.fact.very.long.name.q_7107- -0.748278)                                                                0.31
+h(0.914724-a.rather.long.in.fact.very.long.name.q_6103) * h(-0.713314-a.rather.long.in.fact.very.long.name.q_3107)                                                                2.90
+h(0.545206-a.rather.long.in.fact.very.long.name.q_7104) * h(a.rather.long.in.fact.very.long.name.q_2111- -0.544753)                                                               0.61
+h(-0.157173-a.rather.long.in.fact.very.long.name.q_3109) * h(0.700096-a.rather.long.in.fact.very.long.name.q_2111)                                                                1.33
+h(a.rather.long.in.fact.very.long.name.q_4-0.82106) * h(0.545206-a.rather.long.in.fact.very.long.name.q_7104) * h(a.rather.long.in.fact.very.long.name.q_2111- -0.544753)        15.97
+
+Selected 19 of 33 terms, and 13 of 16 predictors
+Termination condition: Reached nk 33
+Importance: a.rather.long.in.fact.very.long.name.q_6103, ...
+Number of terms at each degree of interaction: 1 12 5 1
+GCV 2.4    RSS 1374    GRSq 0.54    RSq 0.6
+> plot(a.rather.long.in.fact.very.long.name.for.the.modelC)
+> plotmo(a.rather.long.in.fact.very.long.name.for.the.modelC)
+ plotmo grid:    a.rather.long.in.fact.very.long.name.q_4
+                                               0.05726625
+ a.rather.long.in.fact.very.long.name.q_2102
+                                  0.01725001
+ a.rather.long.in.fact.very.long.name.q_2104
+                                 0.004659335
+ a.rather.long.in.fact.very.long.name.q_3105
+                                 -0.01826179
+ a.rather.long.in.fact.very.long.name.q_3106
+                                 -0.00913319
+ a.rather.long.in.fact.very.long.name.q_4104
+                                  0.01401429
+ a.rather.long.in.fact.very.long.name.q_6101
+                                 -0.04790454
+ a.rather.long.in.fact.very.long.name.q_6103
+                                  0.03681165
+ a.rather.long.in.fact.very.long.name.q_7104
+                                  0.01827148
+ a.rather.long.in.fact.very.long.name.q_3109
+                                 -0.09899272
+ a.rather.long.in.fact.very.long.name.q_4103
+                                  -0.0623349
+ a.rather.long.in.fact.very.long.name.q_2111
+                                  0.01007481
+ a.rather.long.in.fact.very.long.name.q_3107
+                                 -0.02481171
+ a.rather.long.in.fact.very.long.name.q_3101
+                                 -0.07733527
+ a.rather.long.in.fact.very.long.name.q_3104
+                                -0.003053319
+ a.rather.long.in.fact.very.long.name.q_7107
+                                  0.02821214
+> 
+> a <- earth(survived ~ pclass+sex+age, data=etitanic, degree=2)
+> print(summary(a))
+Call: earth(formula=survived~pclass+sex+age, data=etitanic, degree=2)
+
+                    coefficients
+(Intercept)           0.92939850
+pclass3rd            -0.45571429
+pclass2nd * sexmale  -0.27354805
+pclass3rd * sexmale   0.18991361
+sexmale * h(age-16)   0.05497748
+sexmale * h(age-25)  -0.01885057
+sexmale * h(age-2)   -0.04217428
+
+Selected 7 of 14 terms, and 4 of 4 predictors
+Termination condition: Reached nk 21
+Importance: sexmale, pclass3rd, pclass2nd, age
+Number of terms at each degree of interaction: 1 1 5
+GCV 0.1442766    RSS 146.3318    GRSq 0.4039126    RSq 0.4209023
+> plotmo(a, caption="plotmo with facs: pclass+sex+age")
+ plotmo grid:    pclass  sex age
+                    3rd male  28
+> plotmo(a, caption="plotmo with facs: pclass+sex+age, all1=T, grid.col=\"gray\"", all1=T, grid.col="gray")
+ plotmo grid:    pclass  sex age
+                    3rd male  28
+> plotmo(a, caption="plotmo with facs: pclass+sex+age, all2=T, col.grid=\"green\"", all2=T, col.grid="green")
+ plotmo grid:    pclass  sex age
+                    3rd male  28
+> plotmo(a, caption="plotmo with facs: pclass+sex+age, all1=T, all2=T, grid=2", all1=T, all2=T, grid.col=2)
+ plotmo grid:    pclass  sex age
+                    3rd male  28
+> plotmo(a, clip=FALSE, degree2=FALSE, caption="plotmo (no degree2) with facs: pclass+sex+age")
+ plotmo grid:    pclass  sex age
+                    3rd male  28
+> plotmo(a, clip=FALSE, grid.levels=list(pclass="2n", sex="ma"),
++        caption="plotmo with grid.levels: pclass+sex+age")
+ plotmo grid:    pclass  sex age
+                    2nd male  28
+> # in above tests, all degree2 terms use facs
+> # now build a model with some degree2 term that use facs, some that don't
+> a <- earth(survived ~ pclass+age+sibsp, data=etitanic, degree=2)
+> print(summary(a))
+Call: earth(formula=survived~pclass+age+sibsp, data=etitanic, degree=2)
+
+                       coefficients
+(Intercept)              1.20590993
+pclass2nd               -0.27484540
+pclass3rd               -0.45765086
+h(age-5)                -0.03561187
+h(age-18)                0.03022469
+h(18-age) * h(sibsp-2)  -0.04797511
+h(18-age) * h(sibsp-3)   0.04721023
+
+Selected 7 of 17 terms, and 4 of 4 predictors
+Termination condition: Reached nk 21
+Importance: pclass3rd, age, pclass2nd, sibsp
+Number of terms at each degree of interaction: 1 4 2
+GCV 0.2040487    RSS 206.9554    GRSq 0.1569604    RSq 0.1809888
+> plotmo(a, caption="plotmo with mixed fac and non-fac degree2 terms", persp.border=NA)
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> plotmo(a, caption="plotmo with mixed fac and non-fac degree2 terms and grid.levels",
++        grid.levels=list(pclass="2n", age=20), # test partial matching of grid levels, and numeric preds
++        persp.ticktype="d", persp.nticks=2)
+ plotmo grid:    pclass age sibsp
+                    2nd  20     0
+> 
+> # check detection of illegal grid.levels argument
+> expect.err(try(plotmo(a, grid.levels=list(pcla="1", pclass="2"))), 'illegal grid.levels argument ("pcla" and "pclass" both match "pclass")')
+Error : illegal grid.levels argument ("pcla" and "pclass" both match "pclass")
+Got expected error from try(plotmo(a, grid.levels = list(pcla = "1", pclass = "2")))
+> expect.err(try(plotmo(a, grid.levels=list(pclass="1", pcla="2"))), 'illegal grid.levels argument ("pclass" and "pcla" both match "pclass")')
+Error : illegal grid.levels argument ("pclass" and "pcla" both match "pclass")
+Got expected error from try(plotmo(a, grid.levels = list(pclass = "1", pcla = "2")))
+> expect.err(try(plotmo(a, grid.levels=list(pcla="nonesuch"))), 'illegal level "nonesuch" for "pclass" in grid.levels (allowed levels are "1st" "2nd" "3rd")')
+Error : illegal level "nonesuch" for "pclass" in grid.levels (allowed levels are "1st" "2nd" "3rd")
+Got expected error from try(plotmo(a, grid.levels = list(pcla = "nonesuch")))
+> expect.err(try(plotmo(a, grid.levels=list(pcla="1sx"))), 'illegal level "1sx" for "pclass" in grid.levels (allowed levels are "1st" "2nd" "3rd")')
+Error : illegal level "1sx" for "pclass" in grid.levels (allowed levels are "1st" "2nd" "3rd")
+Got expected error from try(plotmo(a, grid.levels = list(pcla = "1sx")))
+> expect.err(try(plotmo(a, grid.levels=list(pcla=1))), 'illegal level for "pclass" in grid.levels (specify factor levels with a string)')
+Error : illegal level for "pclass" in grid.levels (specify factor levels with a string)
+Got expected error from try(plotmo(a, grid.levels = list(pcla = 1)))
+> expect.err(try(plotmo(a, grid.levels=list(pcla=c("ab", "cd")))), "length(pclass) in grid.levels is not 1")
+Error : length(pclass) in grid.levels is not 1
+Got expected error from try(plotmo(a, grid.levels = list(pcla = c("ab", "cd"))))
+> expect.err(try(plotmo(a, grid.levels=list(pcla=NA))), 'pclass in grid.levels is NA')
+Error : pclass in grid.levels is NA
+Got expected error from try(plotmo(a, grid.levels = list(pcla = NA)))
+> expect.err(try(plotmo(a, grid.levels=list(pcla=Inf))), 'pclass in grid.levels is infinite')
+Error : pclass in grid.levels is infinite
+Got expected error from try(plotmo(a, grid.levels = list(pcla = Inf)))
+> expect.err(try(plotmo(a, grid.levels=list(pcla=9))), 'illegal level for "pclass" in grid.levels (specify factor levels with a string)')
+Error : illegal level for "pclass" in grid.levels (specify factor levels with a string)
+Got expected error from try(plotmo(a, grid.levels = list(pcla = 9)))
+> options(warn=2)
+> expect.err(try(plotmo(a, grid.levels=list(age="ab"))), 'grid.levels returned class \"character\" for age, so will use the default grid.func for age')
+Error : (converted from warning) grid.levels returned class "character" for age, so will use the default grid.func for age
+Got expected error from try(plotmo(a, grid.levels = list(age = "ab")))
+> options(warn=1)
+> expect.err(try(plotmo(a, grid.levels=list(age=NA))), 'age in grid.levels is NA')
+Error : age in grid.levels is NA
+Got expected error from try(plotmo(a, grid.levels = list(age = NA)))
+> expect.err(try(plotmo(a, grid.levels=list(age=Inf))), 'age in grid.levels is infinite')
+Error : age in grid.levels is infinite
+Got expected error from try(plotmo(a, grid.levels = list(age = Inf)))
+> expect.err(try(plotmo(a, grid.lev=list(age=list(1,2)))), 'length(age) in grid.levels is not 1')
+Error : length(age) in grid.levels is not 1
+Got expected error from try(plotmo(a, grid.lev = list(age = list(1, 2))))
+> 
+> # more-or-less repeat above, but with glm models
+> a <- earth(survived ~ pclass+age+sibsp, data=etitanic, degree=2, glm=list(family=binomial))
+> print(summary(a))
+Call: earth(formula=survived~pclass+age+sibsp, data=etitanic,
+            glm=list(family=binomial), degree=2)
+
+GLM coefficients
+                         survived
+(Intercept)             3.4306891
+pclass2nd              -1.2012524
+pclass3rd              -2.0973424
+h(age-5)               -0.1769427
+h(age-18)               0.1502007
+h(18-age) * h(sibsp-2) -0.2887477
+h(18-age) * h(sibsp-3)  0.2820357
+
+GLM (family binomial, link logit):
+ nulldev   df       dev   df   devratio     AIC iters converged
+ 1414.62 1045   1212.21 1039      0.143    1226     5         1
+
+Earth selected 7 of 17 terms, and 4 of 4 predictors
+Termination condition: Reached nk 21
+Importance: pclass3rd, age, pclass2nd, sibsp
+Number of terms at each degree of interaction: 1 4 2
+Earth GCV 0.2040487    RSS 206.9554    GRSq 0.1569604    RSq 0.1809888
+> plotmo(a, ylim=c(0, 1), caption="plotmo glm with mixed fac and non-fac degree2 terms")
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> plotmo(a, ylim=c(0, 1), caption="plotmo glm with mixed fac and non-fac degree2 terms and grid.levels",
++        grid.levels=list(pcl="2nd")) # test partial matching of variable name in grid levels
+ plotmo grid:    pclass age sibsp
+                    2nd  28     0
+> plotmo(a, type="earth", ylim=c(0, 1), caption="type=\"earth\" plotmo glm with mixed fac and non-fac degree2 terms")
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> plotmo(a, type="link", ylim=c(0, 1), clip=FALSE, caption="type=\"link\" plotmo glm with mixed fac and non-fac degree2 terms")
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> plotmo(a, type="class", ylim=c(0, 1), caption="type=\"class\" plotmo glm with mixed fac and non-fac degree2 terms")
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> plotmo(a, ylim=c(0, 1), caption="default type (\"response\")\nplotmo glm with mixed fac and non-fac degree2 terms")
+ plotmo grid:    pclass age sibsp
+                    3rd  28     0
+> # now with different type2s
+> set.seed(2016)
+> plotmo(a, do.par=FALSE, type2="persp", persp.theta=-20, degree1=FALSE, grid.levels=list(pclass="2nd"))
+> mtext("different type2s", outer=TRUE, font=2, line=1.5, cex=1)
+> plotmo(a, do.par=FALSE, type2="contour", degree1=FALSE, grid.levels=list(pclass="2nd"))
+> plotmo(a, do.par=FALSE, type2="image",   degree1=FALSE, grid.levels=list(pclass="2nd"),
++        col.response=as.numeric(etitanic$survived)+2, pt.pch=20)
+> plotmo(a, do.par=FALSE, type="earth", type2="image", degree1=FALSE,
++        grid.levels=list(pclass="2"))
+> 
+> # grid.levels with partdep
+> 
+> set.seed(2018)
+> x1 <- (1:11) + runif(11)
+> x2 <- (1:11) + runif(11)
+> x3 <- as.integer((1:11) + runif(11))
+> x4 <- runif(11) > .5 # logical
+> y <- x1 - x2 + x3 + x4
+> data <- data.frame(y=y, x1=x1, x2=x2, x3=x3, x4=x4)
+> lm.x1.x2.x3 <- lm(y ~ x1 + x2 + x3 + x4 + x1*x2 + x1*x3, data=data)
+> cat("summary(lm.x1.x2.x3):\n")
+summary(lm.x1.x2.x3):
+> print(summary(lm.x1.x2.x3))
+Warning in summary.lm(lm.x1.x2.x3) :
+  essentially perfect fit: summary may be unreliable
+
+Call:
+lm(formula = y ~ x1 + x2 + x3 + x4 + x1 * x2 + x1 * x3, data = data)
+
+Residuals:
+         1          2          3          4          5          6          7 
+ 4.445e-17 -2.215e-16  9.227e-18  2.871e-16  2.251e-16 -9.376e-17 -5.566e-16 
+         8          9         10         11 
+ 1.746e-17  2.252e-16  3.073e-16 -2.440e-16 
+
+Coefficients:
+              Estimate Std. Error    t value Pr(>|t|)    
+(Intercept)  2.142e-15  1.549e-15  1.383e+00    0.239    
+x1           1.000e+00  6.608e-16  1.513e+15   <2e-16 ***
+x2          -1.000e+00  1.816e-15 -5.507e+14   <2e-16 ***
+x3           1.000e+00  1.818e-15  5.502e+14   <2e-16 ***
+x4TRUE       1.000e+00  3.109e-16  3.216e+15   <2e-16 ***
+x1:x2        3.625e-16  2.328e-16  1.557e+00    0.195    
+x1:x3       -3.314e-16  2.274e-16 -1.458e+00    0.219    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 4.207e-16 on 4 degrees of freedom
+Multiple R-squared:      1,	Adjusted R-squared:      1 
+F-statistic: 1.326e+32 on 6 and 4 DF,  p-value: < 2.2e-16
+
+> par(mfrow = c(5, 6), mar = c(2, 3, 2, 1), mgp = c(1.5, 0.5, 0), cex = 0.6, oma=c(0,0,8,0))
+> plotmo(lm.x1.x2.x3, do.par=0, ylim=c(0,16), pt.col=2,
++        caption="row1 default\nrow2 grid.levels=list(x3=15)\nrow3 partdep\nrow4 partdetp grid.levels=list(x3=15)")
+ plotmo grid:    x1       x2 x3   x4
+           6.301049 6.270736  6 TRUE
+> plotmo(lm.x1.x2.x3, do.par=0, ylim=c(0,16), pt.col=2, grid.levels=list(x3=15))
+ plotmo grid:    x1       x2 x3   x4
+           6.301049 6.270736 15 TRUE
+> plotmo(lm.x1.x2.x3, do.par=0, ylim=c(0,16), pt.col=2, pmethod="partdep")
+calculating partdep for x1 
+calculating partdep for x2 
+calculating partdep for x3 
+calculating partdep for x4 
+calculating partdep for x1:x2 01234567890
+calculating partdep for x1:x3 01234567890
+> plotmo(lm.x1.x2.x3, do.par=0, ylim=c(0,16), pt.col=2, pmethod="partdep", grid.levels=list(x3=15))
+calculating partdep for x1 
+calculating partdep for x2 
+calculating partdep for x3 
+calculating partdep for x4 
+calculating partdep for x1:x2 01234567890
+calculating partdep for x1:x3 01234567890
+> 
+> # check auto type convert in grid.levels
+> plotmo(lm.x1.x2.x3, degree1="x1", degree2=0, main="x1 (x2=5L))",  ylim=c(0,16), do.par=0, pmethod="partdep", grid.levels=list(x2=15L)) # integer to numeric
+calculating partdep for x1 
+> plotmo(lm.x1.x2.x3, degree1="x1", degree2=0, main="x1 (x3=5))",   ylim=c(0,16), do.par=0, pmethod="partdep", grid.levels=list(x3=15))  # numeric to integer
+calculating partdep for x1 
+> plotmo(lm.x1.x2.x3, degree1="x1", degree2=0, main="x1 (x4=1))",   ylim=c(0,16), do.par=0, pmethod="partdep", grid.levels=list(x4=1))   # numeric to logical
+calculating partdep for x1 
+> expect.err(try(plotmo(lm.x1.x2.x3, degree1="x1", degree2=0, main="x1 (x4=1))",   ylim=c(0,16), do.par=0, pmethod="partdep", grid.levels=list(x4="x"))), "expected a logical value in grid.levels for x4") # char to logical
+Error : expected a logical value in grid.levels for x4
+Got expected error from try(plotmo(lm.x1.x2.x3, degree1 = "x1", degree2 = 0, main = "x1 (x4=1))",     ylim = c(0, 16), do.par = 0, pmethod = "partdep", grid.levels = list(x4 = "x")))
+> expect.err(try(plotmo(lm.x1.x2.x3, degree1="x2", do.par=0, pmethod="partdep", grid.levels=list(x1="1"))), "the class \"character\" of \"x1\" in grid.levels does not match its class \"numeric\" in the input data")
+Warning: grid.levels returned class "character" for x1, so will use the default grid.func for x1
+Error : the class "character" of "x1" in grid.levels does not match its class "numeric" in the input data
+Got expected error from try(plotmo(lm.x1.x2.x3, degree1 = "x2", do.par = 0, pmethod = "partdep",     grid.levels = list(x1 = "1")))
+> par(org.par)
+> 
+> # test vector main
+> 
+> a20 <- earth(O3 ~ humidity + temp + doy, data=ozone1, degree=2, glm=list(family=Gamma))
+> 
+> dopar(2, 2)
+                               
+> plotmo(a20, nrug=-1)
+ plotmo grid:    humidity temp   doy
+                       64   62 205.5
+> 
+> set.seed(2016)
+> plotmo(a20, nrug=10, caption="Test plotmo with a vector main (and npoints=200)",
++        main=c("Humidity", "Temperature", "Day of year", "Humidity: Temperature", "Temperature: Day of Year"),
++        col.response="darkgray", pt.pch=".", cex.response=3, npoints=200) # cex.response tests back compat
+ plotmo grid:    humidity temp   doy
+                       64   62 205.5
+> 
+> cat("Expect warning below (missing double titles)\n")
+Expect warning below (missing double titles)
+> plotmo(a20, nrug=-1, caption="Test plotmo with a vector main (and plain smooth)",
++        main=c("Humidity", "Temperature", "Day of year", "Humidity: Temperature", "Temp: Doy"),
++        smooth.col="indianred")
+ plotmo grid:    humidity temp   doy
+                       64   62 205.5
+> 
+> cat("Expect warning below (missing single titles)\n")
+Expect warning below (missing single titles)
+> plotmo(a20, nrug=-1, caption="Test plotmo with a vector main (and smooth args)",
++        main=c("Humidity", "Temperature"),
++        smooth.col="indianred", smooth.lwd=2, smooth.lty=2, smooth.f=.1,
++        col.response="gray", npoints=500)
+ plotmo grid:    humidity temp   doy
+                       64   62 205.5
+> 
+> plotmo(a20, nrug=-1, caption="Test plotmo with pt.pch=paste(1:nrow(ozone1))",
++        type2="im",
++        col.response=2, pt.cex=.8, pt.pch=paste(1:nrow(ozone1)), npoints=100)
+ plotmo grid:    humidity temp   doy
+                       64   62 205.5
+> 
+> aflip <- earth(O3~vh + wind + humidity + temp, data=ozone1, degree=2)
+> 
+> # test all1 and all2, with and without degree1 and degree2
+> plotmo(aflip, all2=T, caption="all2=T", npoints=TRUE)
+ plotmo grid:    vh wind humidity temp
+               5760    5       64   62
+> plotmo(aflip, all2=T, degree2=c(4, 2), caption="all2=T, degree2=c(4, 2)")
+ plotmo grid:    vh wind humidity temp
+               5760    5       64   62
+> plotmo(aflip, all1=T, caption="all1=T")
+ plotmo grid:    vh wind humidity temp
+               5760    5       64   62
+> plotmo(aflip, all1=T, degree1=c(3,1), degree2=NA, caption="all1=T, degree1=c(3,1), degree2=NA")
+ plotmo grid:    vh wind humidity temp
+               5760    5       64   62
+> 
+> options(warn=2)
+> expect.err(try(plotmo(aflip, no.such.arg=9)), "(converted from warning) predict.earth ignored argument 'no.such.arg'")
+
+stats::predict(earth.object, NULL, type="response", no.such.arg=9)
+
+Error : (converted from warning) predict.earth ignored argument 'no.such.arg'
+Got expected error from try(plotmo(aflip, no.such.arg = 9))
+> expect.err(try(plotmo(aflip, ycolumn=1)), "(converted from warning) predict.earth ignored argument 'ycolumn'")
+
+stats::predict(earth.object, NULL, type="response", ycolumn=1)
+
+Error : (converted from warning) predict.earth ignored argument 'ycolumn'
+Got expected error from try(plotmo(aflip, ycolumn = 1))
+> expect.err(try(plotmo(aflip, title="abc")), "(converted from warning) predict.earth ignored argument 'title'")
+
+stats::predict(earth.object, NULL, type="response", title="abc")
+
+Error : (converted from warning) predict.earth ignored argument 'title'
+Got expected error from try(plotmo(aflip, title = "abc"))
+> expect.err(try(plotmo(aflip, persp.ticktype="d", persp.ntick=3, tic=3, tick=9)), "(converted from warning) predict.earth ignored argument 'tic'")
+
+stats::predict(earth.object, NULL, type="response", tic=3, tick=9)
+
+Error : (converted from warning) predict.earth ignored argument 'tic'
+Got expected error from try(plotmo(aflip, persp.ticktype = "d", persp.ntick = 3, tic = 3,     tick = 9))
+> expect.err(try(plotmo(aflip, persp.ticktype="d", ntick=3, tic=3)), "(converted from warning) predict.earth ignored argument 'ntick'")
+
+stats::predict(earth.object, NULL, type="response", ntick=3, tic=3)
+
+Error : (converted from warning) predict.earth ignored argument 'ntick'
+Got expected error from try(plotmo(aflip, persp.ticktype = "d", ntick = 3, tic = 3))
+> options(warn=1)
+> # expect.err(try(plotmo(aflip, adj1=8, adj2=9))) # Error : plotmo: illegal argument "adj1"
+> # expect.err(try(plotmo(aflip, yc=8, x2=9))) # "ycolumn" is no longer legal, use "nresponse" instead
+> # expect.err(try(plotmo(aflip, persp.ticktype="d", ntick=3, ti=3))) # Error : "title" is illegal, use "caption" instead ("ti" taken to mean "title")
+> # expect.err(try(plotmo(aflip, persp.ticktype="d", ntick=3, title=3))) # Error : "title" is illegal, use "caption" instead
+> # expect.err(try(plotmo(aflip, persp.ticktype="d", ntick=3, tit=3, titl=7))) # Error : "title" is illegal, use "caption" instead ("tit" taken to mean "title")
+> # expect.err(try(plotmo(aflip, zlab="abc"))) # "zlab" is illegal, use "ylab" instead
+> # expect.err(try(plotmo(aflip, z="abc"))) # "zlab" is illegal, use "ylab" instead ("z" taken to mean "zlab")
+> expect.err(try(plotmo(aflip, degree1=c(4,1))), "'degree1' is out of range, allowed values are 1 to 2")
+Error : 'degree1' is out of range, allowed values are 1 to 2
+Got expected error from try(plotmo(aflip, degree1 = c(4, 1)))
+> # expect.err(try(plotmo(aflip, none.such=TRUE))) # illegal argument "all1"
+> # expect.err(try(plotmo(aflip, ntick=3, type2="im"))) # the ntick argument is illegal for type2="image"
+> # expect.err(try(plotmo(aflip, breaks=3, type2="persp"))) # the breaks argument is illegal for type2="persp"
+> # expect.err(try(plotmo(aflip, breaks=99, type2="cont"))) #  the breaks argument is illegal for type2="contour"
+> 
+> # Test error handling when accessing the original data
+> 
+> lm.bad <- lm.fit(as.matrix(ozone1[,-1]), as.matrix(ozone1[,1]))
+> expect.err(try(plotmo(lm.bad)), "'lm.bad' is a plain list, not an S3 model")
+Error : 'lm.bad' is a plain list, not an S3 model
+Got expected error from try(plotmo(lm.bad))
+> expect.err(try(plotmo(99)), "'99' is not an S3 model")
+Error : '99' is not an S3 model
+Got expected error from try(plotmo(99))
+> 
+> x <- matrix(c(1,3,2,4,5,6,7,8,9,10,
++               2,3,4,5,6,7,8,9,8,9), ncol=2)
+> 
+> colnames(x) <- c("c1", "c2")
+> x1 <- x[,1]
+> x2 <- x[,2]
+> y <- 3:12
+> df <- data.frame(y=y, x1=x1, x2=x2)
+> foo1 <- function()
++ {
++     a.foo1 <- lm(y~x1+x2, model=FALSE)
++     x1 <- NULL
++     expect.err(try(plotmo(a.foo1)), "cannot get the original model predictors")
++ }
+> foo1()
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: invalid type (NULL) for variable 'x1'
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(a.foo1))
+> foo2 <- function()
++ {
++     a.foo2 <- lm(y~x1+x2, data=df, model=FALSE)
++     df <- 99 # note that df <- NULL here will not cause an error msg
++     y <- 99  # also needed else model.frame in plotmo will find the global y
++     expect.err(try(plotmo(a.foo2)), "cannot get the original model predictors")
++ }
+> foo2()
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: variable lengths differ (found for 'x1')
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(a.foo2))
+> foo3 <- function()
++ {
++     a.foo3 <- lm(y~x) # lm() builds an lm model for which predict doesn't work
++     expect.err(try(plotmo(a.foo3)), "predict returned the wrong length (got 10 but expected 50)")
++ }
+> foo3()
+Warning: the variable on the right side of the formula is a matrix or data.frame
+         plotmo often cannot process such variables
+Warning: 'newdata' had 50 rows but variables found have 10 rows
+Error : predict returned the wrong length (got 10 but expected 50)
+Got expected error from try(plotmo(a.foo3))
+> foo3a <- function()
++ {
++     a.foo3a <- lm(y~x) # lm() builds an lm model for which predict doesn't work
++     # this tests "ngrid1 <- ngrid1 + 1" in plotmo.R
++     expect.err(try(plotmo(a.foo3a, ngrid1=nrow(x))), "predict returned the wrong length (got 10 but expected 11)")
++ }
+> foo3a()
+Warning: the variable on the right side of the formula is a matrix or data.frame
+         plotmo often cannot process such variables
+Warning: 'newdata' had 11 rows but variables found have 10 rows
+Error : predict returned the wrong length (got 10 but expected 11)
+Got expected error from try(plotmo(a.foo3a, ngrid1 = nrow(x)))
+> foo4 <- function()
++ {
++     a.foo4 <- lm(y~x[,1]+x[,2])  # builds an lm model for which predict doesn't work
++     # causes 'newdata' had 8 rows but variables found have 10 rows
++     expect.err(try(plotmo(a.foo4)), "predict returned the wrong length (got 10 but expected 50)")
++ }
+> foo4()
+Warning: Cannot determine which variables to plot in degree2 plots (use all2=TRUE?)
+         Confused by variable name "x[, 1]"
+Warning: 'newdata' had 50 rows but variables found have 10 rows
+Error : predict returned the wrong length (got 10 but expected 50)
+Got expected error from try(plotmo(a.foo4))
+> foo5 <- function()
++ {
++     a.foo5 <- lm(y~x1+x2, model=FALSE)
++     x1 <- c(1,2,3)
++     # causes Error in model.frame.default: variable lengths differ (found for 'x1')
++     expect.err(try(plotmo(a.foo5)), "cannot get the original model predictors")
++ }
+> foo5()
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: variable lengths differ (found for 'x1')
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(a.foo5))
+> foo6 <- function()
++ {
++     a.foo6 <- lm(y~x1+x2, model=FALSE)
++     y[1] <- NA
++     # Error in na.fail.default: missing values in object
++     expect.err(try(plotmo(a.foo6, col.response=3)), "cannot get the original model predictors")
++ }
+> foo6()
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: missing values in object
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(a.foo6, col.response = 3))
+> foo7 <- function()
++ {
++     a.foo7 <- lm(y~x1+x2, model=FALSE)
++     y[1] <- Inf
++     options <- options("warn")
++     on.exit(options(warn=options$warn))
++     options(warn=2)
++     expect.err(try(plotmo(a.foo7, col.response=3)), "non-finite values returned by plotmo_y")
++ }
+> foo7()
+Error : (converted from warning) non-finite values returned by plotmo_y
+Got expected error from try(plotmo(a.foo7, col.response = 3))
+> options(warn=1)
+> foo8 <- function()
++ {
++     i <- 1
++     a.foo8 <- lm(y~x[,i]+x[,2])
++     options <- options("warn")
++     on.exit(options(warn=options$warn))
++     options(warn=2)
++     expect.err(try(plotmo(a.foo8)), "Cannot determine which variables to plot in degree2 plots (use all2=TRUE?)")
++     options(warn=options$warn)
++     expect.err(try(plotmo(a.foo8)), "predict returned the wrong length (got 10 but expected 50)")
++ }
+> foo8()
+Error : (converted from warning) Cannot determine which variables to plot in degree2 plots (use all2=TRUE?)
+         Confused by variable name "x[, i]"
+Got expected error from try(plotmo(a.foo8))
+Warning: Cannot determine which variables to plot in degree2 plots (use all2=TRUE?)
+         Confused by variable name "x[, i]"
+Warning: 'newdata' had 50 rows but variables found have 10 rows
+Error : predict returned the wrong length (got 10 but expected 50)
+Got expected error from try(plotmo(a.foo8))
+> options(warn=1)
+> foo9 <- function()
++ {
++     my.list <- list(j=2)
++     a.foo9 <- lm(y~x[,1]+x[,my.list$j])
++     expect.err(try(plotmo(a.foo9)), "cannot get the original model predictors")
++ }
+> foo9()
+Warning: "$" in the formula is not supported by plotmo, will try to get the data elsewhere
+         formula: x[, 1] + x[, my.list$j]
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: formula(object): "$" in formula is not allowed
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(a.foo9))
+> foo9a <- function()
++ {
++     df <- data.frame(y=y, x1=x[,1], x2=x[,2])
++     a.foo9a <- lm(y~x1+x2, data=df)
++     par(mfrow = c(2, 2), oma=c(0,0,4,0))
++     set.seed(2018)
++     plotmo(a.foo9a, col.resp=2, do.par=FALSE,
++            caption="top two plots should be identical to bottom two plots")
++     x2 <- rep(99, length(x2))
++     a.foo9b <- lm(y~x1+x2, data=df)
++     x2 <- rep(199, length(x2))
++     plotmo(a.foo9b, col.resp=2, do.par=FALSE)
++ }
+> foo9a()
+ plotmo grid:    x1  x2
+                5.5 6.5
+ plotmo grid:    x1  x2
+                5.5 6.5
+> par(org.par)
+> 
+> foo20.func <- function()
++ {
++     par(mfrow = c(2, 2), oma=c(0,0,4,0))
++     foo20 <- lm(y~x1+x2)
++     set.seed(2018)
++     plotmo(foo20, degree1=1:2, col.resp=2, do.par=FALSE,
++            caption="top two plots should be identical to bottom two plots\nbecause we use saved lm$model")
++     x1 <- 99
++     plotmo(foo20, degree1=1:2, col.resp=2, do.par=FALSE)
++ }
+> foo20.func()
+ plotmo grid:    x1  x2
+                5.5 6.5
+ plotmo grid:    x1  x2
+                5.5 6.5
+> par(org.par)
+> 
+> set.seed(1235)
+> tit <- etitanic
+> tit <- tit[c(30:80,330:380,630:680), ]
+> a <- earth(survived~., data=tit, glm=list(family=binomial), degree=2)
+> plotmo(a, grid.levels=list(sex="ma"),
++        caption="smooth: survived, sex=\"m\"    jitter=1",
++        smooth.col="indianred", smooth.lwd=2,
++        col.response=as.numeric(tit$survived)+2, pt.pch=".", type2="im",
++        pt.cex=3, jitter=1) # big jitter
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  29     0     0
+> set.seed(1238)
+> a <- earth(pclass~., data=tit)
+> plotmo(a, type="class", nresponse=1,
++        grid.levels=list(sex="ma"),
++        caption="smooth: pclass, sex=\"m\"", SHOWCALL=TRUE,
++        smooth.col="indianred", smooth.lwd=2,
++        col.response=as.numeric(tit$pclass)+1, type2="im",
++        pt.pch=".", pt.cex=3)
+ plotmo grid:    survived  sex age sibsp parch
+                        0 male  29     0     0
+> plotmo(a, type="class", nresponse=1,
++        grid.levels=list(sex="ma"),
++        caption="smooth: pclass, sex=\"m\"      jitter=.3", SHOWCALL=TRUE,
++        smooth.col="indianred", smooth.lwd=2,
++        col.response=as.numeric(tit$pclass)+1, type2="im",
++        pt.pch="x", jit=.3) # small jitter
+ plotmo grid:    survived  sex age sibsp parch
+                        0 male  29     0     0
+> plotmo(a, nresponse=1,
++        type="class", grid.levels=list(sex="ma"),
++        caption="smooth: pclass, sex=\"m\"",  SHOWCALL=TRUE,
++        smooth.col="indianred", smooth.lwd=2,
++        col.response=as.numeric(tit$pclass)+1, type2="im",
++        pt.pch=paste(1:nrow(tit)))
+ plotmo grid:    survived  sex age sibsp parch
+                        0 male  29     0     0
+> 
+> # test the extend argument
+> 
+> plotmo(a, nresponse=1,             pt.col=2, degree2=0, SHOWCALL=TRUE,
++        caption="test extend: extend=0 (reference plot)")
+ plotmo grid:    survived  sex age sibsp parch
+                        0 male  29     0     0
+> plotmo(a, nresponse=1, extend=.5, pt.col=2, SHOWCALL=TRUE,
++        caption="test extend: extend=.5")
+ plotmo grid:    survived  sex age sibsp parch
+                        0 male  29     0     0
+> plotmo(a, nresponse=1, degree1=0, extend=.2, pt.col=2, SHOWCALL=TRUE) # nothing to plot
+Warning: plotmo: nothing to plot
+> 
+> a <- earth(survived~pclass+age, data=etitanic, degree=2)
+> # expect warning: extend=.5 not degree2 plots
+> plotmo(a, extend=.5, pt.col=2, SHOWCALL=TRUE,
++        caption="test extend: extend=.5")
+Warning: extend=0.5: will not plot degree2 plots (extend is not yet implemented for degree2 plots)
+ plotmo grid:    pclass age
+                    3rd  28
+> 
+> # intercept only models
+> 
+> dopar(2, 2, caption = "intercept-only models")
+                              intercept-only models 
+> set.seed(1)
+> x <- 1:10
+> y <- runif(length(x))
+> earth.intercept.only <- earth(x, y)
+> plotmo(earth.intercept.only, do.par=FALSE, main="earth intercept-only model")
+> plotmo(earth.intercept.only, do.par=FALSE, col.response=1, pt.pch=20)
+> # TODO following draws a plot but it shouldn't (very minor bug because int-only model with a bad degree1 spec)
+> plotmo(earth.intercept.only, do.par=FALSE, degree1=3) # expect warning: 'degree1' specified but no degree1 plots
+Warning: 'degree1' specified but no degree1 plots (maybe use all1=TRUE?)
+> plotmo(earth.intercept.only, do.par=FALSE, degree1=0) # expect warning: plotmo: nothing to plot
+Warning: plotmo: nothing to plot
+> library(rpart)
+> rpart.intercept.only <- rpart(y~x)
+> plotmo(rpart.intercept.only, do.par=FALSE, main="rpart.plot intercept-only model")
+> plotmo(rpart.intercept.only, do.par=FALSE, degree1=0)
+Warning: plotmo: nothing to plot
+> par(org.par)
+> 
+> # nrug argument
+> 
+> par(mfrow=c(3,3), mar=c(3,3,3,1), mgp=c(1.5, 0.5, 0))
+> mod.nrug <- earth(survived~age, data=etitanic)
+> set.seed(2016)
+> plotmo(mod.nrug, do.par=0, nrug=-1,   main="nrug=-1")
+> plotmo(mod.nrug, do.par=0, nrug=TRUE, main="nrug=TRUE")
+> plotmo(mod.nrug, do.par=0, nrug=10, rug.col=2,            main="nrug=10, rug.col=2")
+> plotmo(mod.nrug, do.par=0, nrug=5,  rug.col=2, rug.lwd=2, main="nrug=5, rug.col=2, rug.lwd=2")
+> plotmo(mod.nrug, do.par=0, nrug="density", main="nrug=\"density\"")
+> plotmo(mod.nrug, do.par=0, nrug="density", density.col=2, density.lwd=2, main="nrug=\"density\"\ndensity.col=2, density.lwd=2")
+> plotmo(mod.nrug, do.par=0, nrug="density", density.adj=.2, density.col=1, main="nrug=\"density\"\ndensity.adj=.2, density.col=1")
+> par(org.par)
+> 
+> # a <- earth(ozone1[,3]~ozone1[,1]+ozone1[,2]+ozone1[,4]+ozone1[,5]+ozone1[,6], data=ozone1)
+> # # TODO fails: actual.nrows=330 expected.nrows=50 fitted.nrows=330
+> # plotmo(a)
+> 
+> # # TODO following fails in plotmo with
+> # # Error : get.earth.x from model.matrix.earth from predict.earth: x has 2 columns, expected 4 to match: 1 2 3 Girth
+> # a <- earth(Volume~poly(Height, degree=3)+Girth, data=trees, subset=4:23, linpreds=TRUE)
+> # plotmo(a, trace=-1, do.par=FALSE, caption="all three rows should be the same")
+> 
+> source("test.epilog.R")

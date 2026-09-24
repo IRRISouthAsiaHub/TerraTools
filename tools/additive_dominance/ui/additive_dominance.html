@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Genomic Relationship Matrix Builder</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+    :root {
+        --primary: #1a3a2a; --primary-mid: #2d6a4f; --accent: #52b788; --accent-light: #95d5b2;
+        --bg-card: rgba(245,250,247,0.97); --text-dark: #1a2e22; --text-muted: #5a7566;
+        --border: rgba(82,183,136,0.18); --shadow-card: 0 4px 24px rgba(26,58,42,0.08);
+        --radius: 12px; --radius-sm: 7px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f5faf7; color: var(--text-dark); min-height: 100vh; padding: 24px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; box-shadow: 0 4px 18px rgba(82,183,136,0.35); }
+    header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; color: var(--primary); font-weight: 700; }
+    header p { color: var(--text-muted); font-size: 0.9rem; }
+    .dashboard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(26,58,42,0.10); border: 1px solid var(--border); }
+    .tabs { display: flex; flex-wrap: wrap; background: rgba(245,250,247,0.98); border-bottom: 1.5px solid var(--border); padding: 0 8px; }
+    .tab-btn { padding: 14px 20px; cursor: pointer; background: none; border: none; font-family: 'DM Sans'; font-size: 0.9rem; font-weight: 500;
+        color: var(--text-muted); display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; position: relative; top: 1.5px; }
+    .tab-btn:hover { color: var(--primary-mid); background: rgba(82,183,136,0.07); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--accent); background: white; font-weight: 600; }
+    .tab-content { padding: 26px 30px 34px; min-height: 480px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .section-header h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--primary); font-weight: 600; }
+    .section-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; margin-bottom: 20px; }
+    .card { background: var(--bg-card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-card); border: 1px solid var(--border); margin-bottom: 18px; }
+    .card h3 { color: var(--primary); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card h3 i { color: var(--accent); }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 500; margin: 10px 0 5px; }
+    input[type=text], input[type=number], select { width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+        font-family: 'DM Sans'; font-size: 0.88rem; background: white; color: var(--text-dark); }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .file-row { display: flex; gap: 8px; }
+    .file-row input { flex: 1; }
+    .btn { padding: 9px 16px; border-radius: var(--radius-sm); border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans'; transition: background 0.2s; }
+    .btn-secondary { background: transparent; color: var(--primary-mid); border: 1.5px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(82,183,136,0.10); }
+    .btn-run { width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); color: white;
+        display: flex; align-items: center; justify-content: center; gap: 10px; border: none; }
+    .btn-run:hover { opacity: 0.92; }
+    .btn-run:disabled { opacity: 0.6; cursor: not-allowed; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.88rem; }
+    .status-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 0.85rem; color: var(--text-muted); }
+    .spinner { width: 16px; height: 16px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.95rem; }
+    .empty-state i { font-size: 2.2rem; color: var(--accent-light); margin-bottom: 12px; display: block; }
+    .downloads { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 4px; border-bottom: 1.5px solid var(--border); }
+    .subtab-btn { padding: 8px 14px; cursor: pointer; background: none; border: none; font-family: 'DM Sans'; font-size: 0.85rem; font-weight: 500;
+        color: var(--text-muted); border-bottom: 2.5px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .subtab-btn:hover { color: var(--primary-mid); }
+    .subtab-btn.active { color: var(--primary); font-weight: 700; border-bottom: 2.5px solid var(--accent); }
+    .subtab-pane { display: none; padding-top: 16px; }
+    .subtab-pane.active { display: block; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .stat-card .value { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+    .stat-card .label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+    .plot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px,1fr)); gap: 18px; }
+    .plot-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; padding-bottom: 8px; }
+    .plot-card img { width: 100%; display: block; background: white; }
+    .plot-card .dl-row { padding: 8px 12px 0; }
+    .plot-card .plot-label { padding: 4px 12px 8px; font-size: 0.82rem; color: var(--primary); font-weight: 600; }
+    .table-wrap { max-height: 420px; overflow: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 18px; }
+    table.results-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    table.results-table th, table.results-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    table.results-table th { background: rgba(245,250,247,0.98); color: var(--primary); font-weight: 600; position: sticky; top: 0; }
+    table.results-table tr:hover td { background: rgba(82,183,136,0.05); }
+    .interp-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 18px; font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; }
+    .info-note { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 0.82rem; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-icon"><i class="fas fa-dna"></i></div>
+        <div>
+            <h1>Genomic Relationship Matrix Builder</h1>
+            <p>Additive (rrBLUP A.mat) and dominance (sommer D.mat) genomic relationship matrices from SNP dosage data</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="input-settings"><i class="fas fa-sliders-h"></i> Input &amp; Settings</button>
+            <button class="tab-btn" data-tab="results"><i class="fas fa-th-large"></i> Results</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- INPUT & SETTINGS -->
+            <div class="tab-pane active" id="input-settings">
+
+                <div class="card">
+                    <h3><i class="fas fa-folder-open"></i> SNP Data</h3>
+                    <label>SNP file (CSV or TSV)</label>
+                    <div class="file-row">
+                        <input type="text" id="snpFilePath" readonly placeholder="Select a file...">
+                        <button class="btn btn-secondary" onclick="browseSnpFile()"><i class="fas fa-folder-open"></i></button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-info-circle"></i> Expected CSV Format</h3>
+                    <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.8;">
+                        Rows = samples, columns = SNP markers &nbsp;&bull;&nbsp; First column = sample IDs<br>
+                        Marker encoding: 0 (AA) / 1 (Aa) / 2 (aa) &nbsp;&bull;&nbsp; Missing values are imputed automatically
+                    </div>
+                </div>
+
+                <div class="section-header" style="margin-top:8px;">
+                    <h2>Parameters</h2>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-fill-drip"></i> Imputation</h3>
+                        <label>Missing value method</label>
+                        <select id="imputeMethod">
+                            <option value="mean" selected>Mean imputation</option>
+                            <option value="median">Median imputation</option>
+                            <option value="zero">Zero fill</option>
+                        </select>
+                    </div>
+
+                    <div class="col card">
+                        <h3><i class="fas fa-table-cells"></i> Matrix Type</h3>
+                        <div class="checkbox-row"><input type="checkbox" id="matAdditive" checked><label for="matAdditive" style="margin:0;">Additive (A)</label></div>
+                        <div class="checkbox-row"><input type="checkbox" id="matDominance" checked><label for="matDominance" style="margin:0;">Dominance (D)</label></div>
+                    </div>
+                </div>
+
+                <button id="runBtn" class="btn btn-run" onclick="runMatrices()">
+                    <span id="spinner" class="spinner"></span>
+                    <i class="fas fa-play"></i> Compute Matrices
+                </button>
+                <div class="status-bar"><span id="statusText">Ready.</span></div>
+
+            </div>
+
+            <!-- RESULTS -->
+            <div class="tab-pane" id="results">
+                <div class="section-header">
+                    <h2>Results</h2>
+                    <p id="resultsSubhead">Run the analysis to see results here.</p>
+                </div>
+
+                <div id="resultsEmpty" class="empty-state">
+                    <i class="fas fa-dna"></i>
+                    Run the analysis to see results here.
+                </div>
+
+                <div id="resultsBody" style="display:none;">
+
+                    <div class="stat-grid">
+                        <div class="stat-card"><div class="value" id="statSamples">–</div><div class="label">Samples</div></div>
+                        <div class="stat-card"><div class="value" id="statSnps">–</div><div class="label">SNP Markers</div></div>
+                        <div class="stat-card"><div class="value" id="statMissing">–</div><div class="label">Missing (%)</div></div>
+                        <div class="stat-card"><div class="value" id="statMaf">–</div><div class="label">MAF &gt; 0.05</div></div>
+                    </div>
+
+                    <div class="subtabs">
+                        <button class="subtab-btn active" data-subtab="st-heatmaps"><i class="fas fa-th"></i> Heatmaps</button>
+                        <button class="subtab-btn" data-subtab="st-hist"><i class="fas fa-chart-column"></i> Histogram</button>
+                        <button class="subtab-btn" data-subtab="st-table"><i class="fas fa-table"></i> Data Table</button>
+                        <button class="subtab-btn" data-subtab="st-downloads"><i class="fas fa-download"></i> Downloads</button>
+                    </div>
+
+                    <div class="subtab-pane active" id="st-heatmaps">
+                        <div class="plot-grid" id="heatmapGrid"></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-hist">
+                        <div class="plot-grid" id="histGrid"></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-table">
+                        <label style="max-width:220px;">View matrix</label>
+                        <select id="tableChoice" onchange="renderMatrixTable()" style="max-width:220px; margin-bottom:14px;">
+                            <option value="A">Additive</option>
+                            <option value="D">Dominance</option>
+                        </select>
+                        <div class="table-wrap"><table class="results-table" id="matrixTable"><thead></thead><tbody></tbody></table></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-downloads">
+                        <div class="downloads" id="downloadsWrap"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+
+let additiveDominanceBridge = null;
+let currentResult = null;
+
+/* =========================================================
+   STATUS / SPINNER
+   ========================================================= */
+
+function setStatus(text) {
+    document.getElementById('statusText').textContent = text;
+}
+
+function setRunning(running) {
+    document.getElementById('runBtn').disabled = running;
+    document.getElementById('spinner').classList.toggle('active', running);
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
+        });
+    });
+    document.querySelectorAll('.subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.subtab).classList.add('active');
+        });
+    });
+});
+
+/* =========================================================
+   BRIDGE CONNECTION
+   ========================================================= */
+
+console.log("[ADDITIVE-DOMINANCE] Initializing QWebChannel...");
+
+if (typeof qt === "undefined" || !qt.webChannelTransport) {
+
+    setStatus("Browser preview (no Qt bridge).");
+
+} else {
+
+    try {
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+
+            console.log("[ADDITIVE-DOMINANCE] QWebChannel callback fired");
+
+            additiveDominanceBridge = channel.objects.additiveDominanceBridge;
+
+            if (!additiveDominanceBridge) {
+                console.error("[ADDITIVE-DOMINANCE] bridge not found. Available:", Object.keys(channel.objects));
+                setStatus("Bridge not found.");
+                return;
+            }
+
+            additiveDominanceBridge.resultReady.connect(function(jsonStr) {
+                console.log("[ADDITIVE-DOMINANCE] resultReady received, length:", jsonStr ? jsonStr.length : 0);
+                try {
+                    onResult(JSON.parse(jsonStr));
+                } catch (err) {
+                    console.error("[ADDITIVE-DOMINANCE] onResult() threw:", err);
+                    setStatus("Frontend error: " + err.message);
+                    setRunning(false);
+                }
+            });
+
+            additiveDominanceBridge.statusUpdate.connect(function(txt) {
+                console.log("[ADDITIVE-DOMINANCE] statusUpdate:", txt);
+                setStatus(txt);
+            });
+
+            console.log("[ADDITIVE-DOMINANCE] bridge connected");
+        });
+
+    } catch (err) {
+        console.error("[ADDITIVE-DOMINANCE] QWebChannel setup threw:", err);
+    }
+}
+
+window.addEventListener("error", function(e) {
+    console.error("[ADDITIVE-DOMINANCE] Uncaught JS error:", e.message, "at", e.filename, ":", e.lineno);
+});
+
+/* =========================================================
+   FILE BROWSING
+   ========================================================= */
+
+function browseSnpFile() {
+
+    if (!additiveDominanceBridge || typeof additiveDominanceBridge.browse_snp_file !== "function") {
+        setStatus("Qt bridge not connected.");
+        return;
+    }
+
+    additiveDominanceBridge.browse_snp_file(function(path) {
+        console.log("[ADDITIVE-DOMINANCE] browse_snp_file returned:", path);
+        if (path) document.getElementById('snpFilePath').value = path;
+    });
+}
+
+/* =========================================================
+   RUN
+   ========================================================= */
+
+function runMatrices() {
+
+    const snpFile = document.getElementById('snpFilePath').value.trim();
+
+    if (!snpFile) {
+        setStatus("Please select a SNP file first.");
+        return;
+    }
+
+    const matrixTypes = [];
+    if (document.getElementById('matAdditive').checked) matrixTypes.push('additive');
+    if (document.getElementById('matDominance').checked) matrixTypes.push('dominance');
+
+    if (matrixTypes.length === 0) {
+        setStatus("Select at least one matrix type.");
+        return;
+    }
+
+    const config = {
+        snp_file: snpFile,
+        impute_method: document.getElementById('imputeMethod').value,
+        matrix_types: matrixTypes,
+    };
+
+    console.log("[ADDITIVE-DOMINANCE] runMatrices() called with config:", config);
+
+    if (!additiveDominanceBridge || typeof additiveDominanceBridge.run_matrices !== "function") {
+        setStatus("Qt bridge not connected.");
+        return;
+    }
+
+    setRunning(true);
+    setStatus("Building relationship matrices...");
+
+    additiveDominanceBridge.run_matrices(JSON.stringify(config));
+}
+
+/* =========================================================
+   RESULT RENDERING
+   ========================================================= */
+
+function plotCard(label, path) {
+    if (!path) {
+        return `<div class="plot-card"><div class="plot-label">${label}</div>
+            <div class="empty-state" style="padding:30px 10px;"><i class="fas fa-image"></i>Not computed.</div></div>`;
+    }
+    return `<div class="plot-card">
+        <img src="file://${path}?t=${Date.now()}">
+        <div class="plot-label">${label}</div>
+    </div>`;
+}
+
+function renderMatrixTable() {
+
+    if (!currentResult) return;
+
+    const choice = document.getElementById('tableChoice').value;
+    const rows = choice === 'A' ? currentResult.table_additive : currentResult.table_dominance;
+
+    const table = document.getElementById('matrixTable');
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+
+    if (!rows || rows.length === 0) {
+        thead.innerHTML = '';
+        tbody.innerHTML = `<tr><td style="color:var(--text-muted); text-align:center; padding:16px;">Not computed.</td></tr>`;
+        return;
+    }
+
+    const columns = Object.keys(rows[0]);
+    thead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+    tbody.innerHTML = rows.map(r => '<tr>' + columns.map(c => `<td>${r[c] === null || r[c] === undefined ? '–' : r[c]}</td>`).join('') + '</tr>').join('');
+}
+
+function renderDownloads(result) {
+
+    const wrap = document.getElementById('downloadsWrap');
+    const buttons = [];
+
+    if (result.additive_csv) {
+        buttons.push(`<button class="btn btn-secondary" onclick="downloadResult('additive')"><i class="fas fa-download"></i> Additive Matrix (CSV)</button>`);
+    }
+    if (result.dominance_csv) {
+        buttons.push(`<button class="btn btn-secondary" onclick="downloadResult('dominance')"><i class="fas fa-download"></i> Dominance Matrix (CSV)</button>`);
+    }
+
+    wrap.innerHTML = buttons.join('') || `<div class="empty-state"><i class="fas fa-download"></i>Nothing to download.</div>`;
+}
+
+function onResult(result) {
+
+    console.log("[ADDITIVE-DOMINANCE] onResult() starting, status:", result ? result.status : result);
+
+    setRunning(false);
+
+    if (!result) {
+        setStatus("No result returned.");
+        return;
+    }
+
+    if (result.status === "error") {
+        setStatus("Error: " + (result.message || "Matrix computation failed."));
+        return;
+    }
+
+    currentResult = result;
+
+    const s = result.summary || {};
+
+    let msg = `Done. Built ${(s.matrix_types || []).join(' + ')} matrix for ${s.n_samples} samples \u00d7 ${s.n_snps} markers.`;
+    if (s.mono_removed) msg += ` (${s.mono_removed} monomorphic marker(s) removed)`;
+    setStatus(msg);
+
+    document.getElementById('resultsEmpty').style.display = 'none';
+    document.getElementById('resultsBody').style.display = 'block';
+    document.getElementById('resultsSubhead').textContent = msg;
+
+    document.getElementById('statSamples').textContent = s.n_samples ?? '–';
+    document.getElementById('statSnps').textContent = s.n_snps ?? '–';
+    document.getElementById('statMissing').textContent = (s.pct_missing ?? '–') + '%';
+    document.getElementById('statMaf').textContent = s.maf_pass ?? '–';
+
+    document.getElementById('heatmapGrid').innerHTML =
+        plotCard('Additive Matrix', result.heatmap_additive) +
+        plotCard('Dominance Matrix', result.heatmap_dominance);
+
+    document.getElementById('histGrid').innerHTML =
+        plotCard('Additive — off-diagonal distribution', result.hist_additive) +
+        plotCard('Dominance — off-diagonal distribution', result.hist_dominance);
+
+    const tableChoice = document.getElementById('tableChoice');
+    if (result.table_additive && result.table_additive.length > 0) {
+        tableChoice.value = 'A';
+    } else if (result.table_dominance && result.table_dominance.length > 0) {
+        tableChoice.value = 'D';
+    }
+    renderMatrixTable();
+
+    renderDownloads(result);
+
+    // Switch to Results tab.
+    document.querySelector('.tab-btn[data-tab="results"]').click();
+
+    console.log("[ADDITIVE-DOMINANCE] onResult() finished");
+}
+
+/* =========================================================
+   DOWNLOAD
+   ========================================================= */
+
+function downloadResult(type) {
+
+    console.log("[ADDITIVE-DOMINANCE] downloadResult() called for:", type);
+
+    if (!additiveDominanceBridge || typeof additiveDominanceBridge.download_result !== "function") {
+        setStatus("Qt bridge not connected.");
+        return;
+    }
+
+    additiveDominanceBridge.download_result(type);
+}
+
+</script>
+</body>
+</html>

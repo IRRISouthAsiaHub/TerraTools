@@ -1,0 +1,239 @@
+---
+title: "Miscellaneous tools"
+date: today
+date-format: long
+bibliography: ../inst/REFERENCES.bib
+vignette: >
+  %\VignetteIndexEntry{Miscellaneous tools}
+  %\VignetteEngine{quarto::pdf}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Select a subset of coefficients
+
+Complex models may include a large set of coefficients. Consider for
+example the estimation of a probit model with instrumental
+variables. The exogenous covariates are denoted $x_1$, the endogenous
+covariates $e$ and the external instruments $x_2$.  The density that
+enters the log-likelihood function is:
+
+$$
+f(y_n \mid d_n) = \Phi\left(q_n\frac{\theta ^ \top u_n}{\sigma} \right) = 
+\Phi\left(q_n\frac{\gamma ^ \top z_n + \sigma_{\epsilon\nu}
+^ \top \Sigma_\nu ^ {-1}(e_n - \Pi w_n)}{\sqrt{\sigma_\epsilon ^ 2 -
+\sigma_{\epsilon\nu} ^\top \Sigma_\nu ^ {-1} \sigma_{\epsilon\nu}}}\right)
+$$
+
+where $z^\top = (x_1 ^ \top, e ^ \top)$ are the covariates, $w^\top =
+(x_1^\top, x_2^\top)$ the instruments, and $e_n - \Pi x_n$ the error
+vector of the reduced form equation of the endegounous variable.
+
+In this case, coefficients belong to four different groups:
+
+- the coefficients associated with covariates (either exogenous or
+  endogenous), which are the coefficients of main interest ($\gamma$),
+- the coefficients associated with the errors of the reduced form
+  equation ($\sigma_{\epsilon\nu}$),
+- the coefficients of the reduced form equation ($\Pi$),
+- the matrix of covariance of the errors of the structural equations
+  ($\Sigma_\nu$).
+  
+Actually, a Cholesky decomposition of $\Sigma_\nu^{-1} = C ^ \top C$
+is used so that the second set of coefficients are $\rho ^ * = C
+\sigma_{\epsilon\nu}$ and the fourth set are the elements of $C$. The
+four sets are respectively denoted `"covariates"`, `"resid"`,
+`"instruments"` and `"chol"`.
+  
+We use as an example the `federiv` data set where the response is a
+dummy for foreign exchange derivatives use. The model is fitted using
+`binomreg` with a two-part formula which defines the covariates and
+the instruments:
+
+```{r }
+#| warning: false
+library(micsr)
+bank <- binomreg(federiv ~ eqrat + optval +  mktbk +
+                      perfor + dealdum | . - eqrat - optval +
+                      no_emp + no_subs + no_off,
+                  data = federiv, method = "ml")
+```
+
+The full set of coefficients is stored as a named vector in the
+`coefficients` element of `bank`:
+
+
+```{r }
+names(bank$coefficients)
+```
+
+Therefore, there are a total of 25 coefficients. Note tat some of them
+are prefixed by `"rho_"`, some other by `"instr_` and some other are
+named as the concatenation of two series separated by `"|"`. They form
+respectively the second, third, and fourth groups of parameters. This
+structure is stored in the `npar` element of `bank`:
+
+```{r }
+bank$npar
+```
+
+This is a named vector, the names being the name of the groups of
+parameters and the values the number of parameters for each group, in
+their order of appearance in `bank$coefficients`. This vector has
+an attribute called `"default"` which indicates which group, by
+default, should be considered in the printing of the model. Therefore,
+while using `coef`, `vcov` or `summary` methods, by default only the
+two first groups will be considered:
+
+```{r }
+coef(bank)
+```
+
+but the subset argument can be filled in order to indicate a specific
+set of parameters:
+
+```{r }
+coef(bank, subset = c("chol", "resid"))
+```
+
+The default value of `subset` is `NA` and in this case the default set
+of parameters is considered. If `subset` is set to `NULL` or `"all"`, all the
+parameters are returned
+
+```{r }
+#| eval: false
+coef(bank, subset = NULL)
+```
+
+Once the groups of parameters have been define using `subset`, a more
+precise selection can be using either a vector of names of
+coefficients or a regular expression, using respectively the `coef`
+and the `grep` arguments. For example, to select only the
+coefficients of `mktbk` and `perfor`:
+
+```{r }
+coef(bank, coef = c("mktbk", "perfor"))
+```
+
+To select all the coefficients that contains `"eqrat"` or `"perfor"`:
+
+```{r }
+coef(bank, grep = "eqrat|perfor")
+```
+
+Note that only the parameters of the default subset of coefficients
+are considered.
+
+```{r }
+coef(bank, grep = "eqrat|perfor", subset = c("instruments", "chol"))
+```
+
+Finally, the `invert` argument (by default `FALSE`) can be used to
+return the coefficients that don't match regular expression. For
+example, to return all the coefficients of the reduced form equations
+of the instruments except the intercepts:
+
+```{r }
+coef(bank, subset = "instruments", grep = "Intercept", invert = TRUE)
+```
+
+# Covariance matrix and standard errors
+
+The `vcov` method for `micsr` objects return the covariance matrix. A
+subset of coefficients can be selected using the same syntax as previously:
+
+```{r }
+vcov(bank, subset = "resid")
+```
+
+The `vcov` argument enables to use different flavors of covariance
+matrices:
+
+- `"info"` uses the information matrix,
+- `"hessian"` uses the hessian,
+- `"opg"` uses the outer product of the gradient,
+- `"hc"` uses the heteroscedastic consistent estimor.
+
+All these estimators are not available for all the models. If the
+argument `vcov` is left empty, the default behavior is to choose
+`"info"` if it exists, then `"hessian"` if not and `"opg"` if the
+previous two estimators are not available. Using `vcov = "hc"` results
+in an internal call to the `sandwich::vcovHC` function:
+
+```{r }
+vcov(bank, subset = "resid")
+vcov(bank, subset = "resid", vcov = "hessian")
+vcov(bank, subset = "resid", vcov = "opg")
+vcov(bank, subset = "resid", vcov = "hc")
+```
+**micsr** provides the convenient `stder` function to extract the
+standards errors of the coefficients. It can be used with the same
+argument as the `vcov` method:
+
+```{r }
+stder(bank, subset = "resid")
+stder(bank, vcov = "hc", subset = "resid")
+```
+
+# Dummies
+
+Categorial variables are stored with **R** using **factors** with a
+limited set of **levels**. For the purpose of estimation, using
+`model.matrix`, factors are translated into a set of contrats. The most
+common contrast is **treatment** contrast, it consists on generating a
+set of dummy variables for every level, except the first. However, it
+is sometimes easier to work directly with the dummy variables, and the
+`micsr::dummy` enables to create simply such dummies. Consider for
+example the `charitable` data set that contains two factors,
+`education` and `religion`. `dummy` can be used with a data frame as
+first arguments and factors for which one wants to create dummies as
+further unnamed arguments:
+
+```{r }
+charitable |> dummy( education, religion) |> head(2)
+```
+
+Two further named boolean arguments (`FALSE` by default) are
+available:
+
+- `keep` to indicate whether the factor should be kept in the
+  resulting data frame,
+- `ref` to indicate whether a dummy should be generated for the
+  reference level.
+  
+```{r }
+charitable |> dummy(religion, keep = TRUE) |> head(2)
+charitable |> dummy(religion, ref = TRUE) |> head(2)
+```
+  
+# Short summary
+
+**R** is a not a verbose language as every function returns an object
+that can be stored by the user. Then, special `print` methods (or
+`print.summary` methods) are used to print some of the
+result. However, the output is quite heavy and take too much place to
+be used in a document. For this reason, `micsr` provides a `gaze`
+function with several methods to print the results of a model or of a
+test. Consider for example a t-test for charitable donations with two
+subsamples defined by the `married` dummy variable:
+
+```{r }
+t.test(donation ~ married, charitable)
+```
+The result of `t.test` is an object of class `htest` and the `print`
+method results in 12 lines, including 2 blank lines. `gaze` returns a
+one line result, with the essential informations:
+
+```{r }
+#| collapse: true
+t.test(donation ~ married, charitable) |> gaze()
+```
+
+For a fitted model, `gaze` returns the table of coefficients for all
+the fitted parameters and the value of the log-likelihood:
+
+
+```{r }
+tobit1(log(donation / 25) ~ married, charitable) |> gaze()
+```
+

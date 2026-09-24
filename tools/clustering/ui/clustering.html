@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Genotypic Clustering</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+    :root {
+        --primary: #1a3a2a; --primary-mid: #2d6a4f; --accent: #52b788; --accent-light: #95d5b2;
+        --bg-card: rgba(245,250,247,0.97); --text-dark: #1a2e22; --text-muted: #5a7566;
+        --border: rgba(82,183,136,0.18); --shadow-card: 0 4px 24px rgba(26,58,42,0.08);
+        --radius: 12px; --radius-sm: 7px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f5faf7; color: var(--text-dark); min-height: 100vh; padding: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; box-shadow: 0 4px 18px rgba(82,183,136,0.35); }
+    header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; color: var(--primary); font-weight: 700; }
+    header p { color: var(--text-muted); font-size: 0.9rem; }
+    .dashboard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(26,58,42,0.10); border: 1px solid var(--border); }
+    .tabs { display: flex; flex-wrap: wrap; background: rgba(245,250,247,0.98); border-bottom: 1.5px solid var(--border); padding: 0 8px; }
+    .tab-btn { padding: 14px 20px; cursor: pointer; background: none; border: none; font-family: 'DM Sans'; font-size: 0.9rem; font-weight: 500;
+        color: var(--text-muted); display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; position: relative; top: 1.5px; }
+    .tab-btn:hover { color: var(--primary-mid); background: rgba(82,183,136,0.07); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--accent); background: white; font-weight: 600; }
+    .tab-content { padding: 26px 30px 34px; min-height: 480px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .section-header h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--primary); font-weight: 600; }
+    .section-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; margin-bottom: 20px; }
+    .card { background: var(--bg-card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-card); border: 1px solid var(--border); margin-bottom: 18px; }
+    .card h3 { color: var(--primary); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card h3 i { color: var(--accent); }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 500; margin: 10px 0 5px; }
+    input[type=text] { width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+        font-family: 'DM Sans'; font-size: 0.88rem; background: white; color: var(--text-dark); }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .file-row { display: flex; gap: 8px; }
+    .file-row input { flex: 1; }
+    .btn { padding: 9px 16px; border-radius: var(--radius-sm); border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans'; transition: background 0.2s; }
+    .btn-secondary { background: transparent; color: var(--primary-mid); border: 1.5px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(82,183,136,0.10); }
+    .btn-run { width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); color: white;
+        display: flex; align-items: center; justify-content: center; gap: 10px; border: none; }
+    .btn-run:hover { opacity: 0.92; }
+    .btn-run:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 0.85rem; color: var(--text-muted); }
+    .spinner { width: 16px; height: 16px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.95rem; }
+    .empty-state i { font-size: 2.2rem; color: var(--accent-light); margin-bottom: 12px; display: block; }
+    .downloads { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    .plot-frame-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 18px; }
+    .plot-img { width: 100%; display: block; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-bottom: 18px; }
+    .summary-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; text-align: center; }
+    .summary-card .val { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+    .summary-card .lbl { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; }
+    .table-wrap { max-height: 380px; overflow: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 18px; }
+    table.results-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    table.results-table th, table.results-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    table.results-table th { background: rgba(245,250,247,0.98); color: var(--primary); font-weight: 600; position: sticky; top: 0; }
+    table.results-table tr:hover td { background: rgba(82,183,136,0.05); }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-icon"><i class="fas fa-object-group"></i></div>
+        <div>
+            <h1>Genotypic Clustering &amp; Genomic Selection</h1>
+            <p>PCA + K-Means clustering with stratified train/test split for genomic selection</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="input-settings"><i class="fas fa-sliders-h"></i> Input &amp; Settings</button>
+            <button class="tab-btn" data-tab="results"><i class="fas fa-th-large"></i> Results</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- INPUT & SETTINGS -->
+            <div class="tab-pane active" id="input-settings">
+                <div class="section-header">
+                    <h2>Genotype Data</h2>
+                    <p>Upload SNP genotype data (CSV or TSV). Missing values coded as -1 are handled automatically.</p>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-dna"></i> Genotype File</h3>
+                    <div class="file-row">
+                        <input type="text" id="filePath" placeholder="Select CSV/TSV (sample IDs in first column, SNP columns after)" readonly>
+                        <button class="btn btn-secondary" onclick="browseFile()"><i class="fas fa-folder-open"></i> Browse</button>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-object-group"></i> Number of Clusters</h3>
+                        <label>K: <span id="nClustersVal">5</span></label>
+                        <input type="range" id="nClusters" min="2" max="20" step="1" value="5" oninput="nClustersVal.textContent=this.value">
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-percentage"></i> Test Size</h3>
+                        <label>Fraction held out for testing: <span id="testSizeVal">0.20</span></label>
+                        <input type="range" id="testSize" min="0.1" max="0.8" step="0.05" value="0.2" oninput="testSizeVal.textContent=parseFloat(this.value).toFixed(2)">
+                    </div>
+                </div>
+
+                <button id="runBtn" class="btn btn-run" onclick="runClustering()">
+                    <span id="spinner" class="spinner"></span>
+                    <i class="fas fa-play"></i> Run Clustering &amp; Split
+                </button>
+                <div class="status-bar"><span id="statusText">Ready.</span></div>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="tab-pane" id="results">
+                <div class="section-header">
+                    <h2>Results</h2>
+                    <p id="resultsSubhead">Run the analysis to see results here.</p>
+                </div>
+
+                <div id="resultsEmpty" class="empty-state">
+                    <i class="fas fa-object-group"></i>
+                    Run the analysis to see results here.
+                </div>
+
+                <div id="resultsBody" style="display:none;">
+                    <div class="summary-grid" id="summaryGrid"></div>
+
+                    <div class="plot-frame-wrap" id="plotWrap"></div>
+
+                    <div class="downloads" id="downloads" style="margin-bottom:18px;"></div>
+
+                    <div class="table-wrap" id="tableWrap"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+    let clusteringBridge;
+    console.log("[CLUSTER] Initializing QWebChannel...");
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        clusteringBridge = channel.objects.clusteringBridge;
+        if (!clusteringBridge) { console.error("[CLUSTER] clusteringBridge not found"); return; }
+        clusteringBridge.resultReady.connect(function(jsonStr) {
+            console.log("[CLUSTER] resultReady received, length:", jsonStr.length);
+            try { onResult(jsonStr); }
+            catch (err) {
+                console.error("[CLUSTER] onResult() threw:", err);
+                document.getElementById('statusText').textContent = "Frontend error: " + err.message;
+                resetRunButton();
+            }
+        });
+        clusteringBridge.statusUpdate.connect(txt => {
+            console.log("[CLUSTER] statusUpdate:", txt);
+            document.getElementById('statusText').textContent = txt;
+        });
+        console.log("[CLUSTER] bridge connected");
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+    });
+
+    function browseFile() {
+        if (!clusteringBridge) return;
+        clusteringBridge.browse_file(function(path) {
+            if (path) document.getElementById('filePath').value = path;
+        });
+    }
+
+    function resetRunButton() {
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('spinner').classList.remove('active');
+    }
+
+    function collectConfig() {
+        return {
+            input_file: document.getElementById('filePath').value,
+            n_clusters: parseInt(document.getElementById('nClusters').value, 10),
+            test_size: parseFloat(document.getElementById('testSize').value),
+        };
+    }
+
+    function runClustering() {
+        if (!clusteringBridge) { console.error("[CLUSTER] Bridge not ready"); return; }
+        const cfg = collectConfig();
+        console.log("[CLUSTER] runClustering() called with config:", cfg);
+        if (!cfg.input_file) { document.getElementById('statusText').textContent = "Please select an input file."; return; }
+        document.getElementById('runBtn').disabled = true;
+        document.getElementById('spinner').classList.add('active');
+        document.getElementById('statusText').textContent = "Running clustering...";
+        clusteringBridge.run_clustering(JSON.stringify(cfg));
+    }
+
+    function downloadFile(sourcePath, suggestedName) {
+        if (!clusteringBridge) return;
+        clusteringBridge.save_file(sourcePath, suggestedName);
+    }
+
+    function onResult(jsonStr) {
+        resetRunButton();
+        const result = JSON.parse(jsonStr);
+        console.log("[CLUSTER] parsed result, status:", result.status);
+
+        if (result.status !== "success") {
+            document.getElementById('statusText').textContent = "Error: " + result.message;
+            return;
+        }
+        document.getElementById('statusText').textContent =
+            `Done — ${result.n_clusters_used} clusters, ${result.n_train} train / ${result.n_test} test samples.`;
+        document.getElementById('resultsSubhead').textContent =
+            `${result.n_samples} samples, ${result.n_features} markers, K=${result.n_clusters_used} (${result.split_method} split)`;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
+        document.getElementById('results').classList.add('active');
+
+        document.getElementById('resultsEmpty').style.display = 'none';
+        document.getElementById('resultsBody').style.display = 'block';
+
+        document.getElementById('summaryGrid').innerHTML = `
+            <div class="summary-card"><div class="val">${result.n_samples}</div><div class="lbl">Samples</div></div>
+            <div class="summary-card"><div class="val">${result.n_features}</div><div class="lbl">Markers</div></div>
+            <div class="summary-card"><div class="val">${result.n_clusters_used}</div><div class="lbl">Clusters</div></div>
+            <div class="summary-card"><div class="val">${result.n_train}</div><div class="lbl">Train samples</div></div>
+            <div class="summary-card"><div class="val">${result.n_test}</div><div class="lbl">Test samples</div></div>
+            <div class="summary-card"><div class="val">${result.pc1_variance}% / ${result.pc2_variance}%</div><div class="lbl">PC1 / PC2 variance</div></div>
+        `;
+
+        document.getElementById('plotWrap').innerHTML = `
+            <img class="plot-img" src="file://${result.plot_png}">
+            <div style="padding:10px 12px;">
+                <button class="btn btn-secondary" onclick="downloadFile('${result.plot_png}', 'cluster_plot.png')"><i class="fas fa-download"></i> Download PNG</button>
+            </div>`;
+
+        document.getElementById('downloads').innerHTML = `
+            <button class="btn btn-secondary" onclick="downloadFile('${result.train_csv}', 'Training_data_Cluster.csv')"><i class="fas fa-file-csv"></i> Training Data (CSV)</button>
+            <button class="btn btn-secondary" onclick="downloadFile('${result.test_csv}', 'Testing_data_Cluster.csv')"><i class="fas fa-file-csv"></i> Testing Data (CSV)</button>
+            <button class="btn btn-secondary" onclick="downloadFile('${result.cluster_table_csv}', 'cluster_membership.csv')"><i class="fas fa-file-csv"></i> Cluster Membership (CSV)</button>
+        `;
+
+        document.getElementById('tableWrap').innerHTML = tableHtml(result.cluster_table);
+    }
+
+    function tableHtml(rows) {
+        if (!rows || rows.length === 0) return '<div class="empty-state" style="padding:20px;">No data.</div>';
+        const cols = Object.keys(rows[0]);
+        let html = '<table class="results-table"><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+        for (const row of rows) {
+            html += '<tr>' + cols.map(c => `<td>${row[c] === null || row[c] === undefined ? '' : row[c]}</td>`).join('') + '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+    }
+</script>
+</body>
+</html>

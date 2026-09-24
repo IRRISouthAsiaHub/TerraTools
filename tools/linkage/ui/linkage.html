@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Linkage Map Creator</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+:root{--green:#1A4A1F;--green2:#2E6B35;--green3:#3A7D44;--light:#F7F7F5;--card:#FFF;--border:#DDE5DC;--text:#1A1A1A;--muted:#6B746B;--blue:#4A8FA0;--orange:#C8760A;--red:#990000;--indigo:#6366F1;--shadow:0 3px 14px rgba(25,60,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:var(--text);font-family:"DM Sans",Arial,sans-serif}button,input,select{font:inherit}
+.header{background:linear-gradient(135deg,#173f1b,#2E6B35);color:#fff;padding:22px 34px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.brand-icon{width:46px;height:46px;border-radius:12px;background:#ffffff22;display:flex;align-items:center;justify-content:center;font-size:25px}
+.brand h1{margin:0;font-family:"Playfair Display",serif;font-size:25px}.brand p{margin:3px 0 0;color:#D5E8D5;font-size:12px}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#D9ECD9}.status-dot{width:9px;height:9px;background:#7DCE88;border-radius:50%}
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 30px;display:flex;gap:4px;overflow-x:auto}.nav button{border:0;background:transparent;padding:14px 18px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--green2)}.nav button.active{color:var(--green);font-weight:600;border-bottom-color:var(--green2)}
+.main{padding:28px 34px 42px;max-width:1500px;margin:auto}.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.card-title{font-weight:700;color:var(--green);font-size:15px;margin-bottom:15px;display:flex;align-items:center;gap:8px}.section-label{font-size:12px;font-weight:600;color:var(--green2);border-bottom:1px solid #D9E7D9;padding-bottom:7px;margin:17px 0 12px}
+.info{background:#EAF4EA;border:1px solid #B9D9B9;border-left:4px solid var(--green2);padding:11px 13px;border-radius:7px;font-size:12px;color:var(--green);margin-top:10px}
+.warn{background:#FFF6E9;border:1px solid #EBD3A8;border-left:4px solid var(--orange);padding:9px 12px;border-radius:7px;font-size:11px;color:#7A4B08;margin-top:8px}
+.form-row{margin-bottom:14px}label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;border:1px solid #C9D4C8;border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--green2);box-shadow:0 0 0 3px #2e6b3517}.file-row{display:flex;gap:8px}.file-row input{flex:1}
+.btn{border:0;border-radius:7px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:12px}.btn-primary{background:var(--green2);color:#fff}.btn-primary:hover{background:var(--green)}.btn-secondary{background:#EDF2ED;color:var(--green)}.btn-info{background:#E8F2F5;color:#347284}.btn-success{background:#E8F3E9;color:#27652F}.btn-warning{background:#FFF2DE;color:#9A5C05}.btn:disabled{opacity:.5;cursor:not-allowed}
+.run{width:100%;margin-top:8px;padding:13px;font-size:14px}
+.range-wrap{display:flex;align-items:center;gap:10px}.range-wrap input[type=range]{flex:1}.range-value{min-width:50px;text-align:right;font-weight:600;color:var(--green)}input[type=range]{accent-color:var(--green2)}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.check{display:flex;gap:8px;align-items:center;font-size:12px}.check input{accent-color:var(--green2)}
+.chr-select{display:flex;flex-wrap:wrap;gap:6px;max-height:110px;overflow-y:auto;border:1px solid #DCE7DA;border-radius:7px;padding:8px;background:#FAFCF9}.chr-chip{font-size:11px;background:#EDF2ED;border:1px solid #C9D4C8;border-radius:20px;padding:4px 10px;cursor:pointer;user-select:none}.chr-chip.sel{background:var(--green2);color:#fff;border-color:var(--green2)}
+.dataset{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#F5F8F4;border:1px solid #DCE7DA;border-radius:9px;padding:14px;text-align:center}.stat-number{font-size:21px;font-weight:700;color:var(--green)}.stat-label{font-size:10px;color:var(--muted);margin-top:3px}
+.result-placeholder{min-height:280px;border:1px dashed #B9CDB8;border-radius:10px;background:#FBFCFA;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px}.result-placeholder .icon{font-size:36px;margin-bottom:10px}
+.plot-container{width:100%;min-height:320px;border:1px solid var(--border);border-radius:10px;background:#fff;overflow:auto}.plot-container img{max-width:100%;display:block;margin:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;background:#EFF5EE;color:var(--green);padding:10px;border-bottom:1px solid #D3E1D1;position:sticky;top:0}td{padding:9px 10px;border-bottom:1px solid #E9EEE8}.empty-table{text-align:center;color:var(--muted);padding:35px}.table-scroll{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+pre.report{background:#0F1B10;color:#D9ECD9;border-radius:9px;padding:16px;font-size:12px;line-height:1.5;overflow-x:auto;white-space:pre-wrap}
+.footer{text-align:center;color:#899289;font-size:11px;padding:20px}
+.chi-panel{background:#FBF6EC;border:1px solid #ECDDB4;border-radius:8px;padding:12px;margin-top:8px}.chi-disabled{font-size:11px;color:var(--muted);margin-top:8px}
+/* Cytogenetic */
+.cyto-controls{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+#cyto-scroll-wrapper{overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0F172A;max-height:640px}
+#cytoCanvas{display:block}
+#cyto-tooltip{position:fixed;display:none;background:#111827;color:#E5E7EB;border:1px solid #374151;border-radius:8px;padding:8px 11px;font-size:11px;line-height:1.6;pointer-events:none;z-index:999;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#cyto-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:11px;color:var(--muted)}.legend-item{display:flex;align-items:center;gap:6px}.legend-swatch{width:14px;height:14px;border-radius:3px;border:1px solid #ccc}
+@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:750px){.grid,.grid2{grid-template-columns:1fr}.main{padding:18px}.header{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="brand"><div class="brand-icon"><i class="fas fa-dna"></i></div><div><h1>TerraTools — Linkage Map Creator</h1><p>Genetic linkage mapping and cytogenetic visualization</p></div></div>
+<div class="status"><span class="status-dot"></span><span id="connectionStatus">Ready</span></div>
+</header>
+
+<nav class="nav">
+<button class="active" data-tab="upload"><i class="fas fa-upload"></i> Upload</button>
+<button data-tab="parameters"><i class="fas fa-sliders-h"></i> Parameters</button>
+<button data-tab="qc"><i class="fas fa-clipboard-check"></i> QC Report</button>
+<button data-tab="results"><i class="fas fa-table"></i> Results</button>
+<button data-tab="mapplot"><i class="fas fa-chart-bar"></i> Map Plot</button>
+<button data-tab="density"><i class="fas fa-chart-area"></i> Density &amp; RF</button>
+<button data-tab="cyto"><i class="fas fa-dna"></i> Cytogenetic</button>
+<button data-tab="help"><i class="fas fa-question-circle"></i> Help</button>
+</nav>
+
+<main class="main">
+
+<!-- ============================================================ UPLOAD ============================================================ -->
+<section id="upload" class="tab active">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-folder-open"></i> Upload Genotype Data</div>
+<div class="form-row"><label>Genotype Excel File (.xlsx)</label><div class="file-row"><input type="text" id="genoPath" placeholder="Select genotype file..." readonly><button class="btn btn-secondary" onclick="browseGenotype()">Browse</button></div></div>
+<div class="form-row"><label>Population Type</label><select id="populationType"><option value="F2" selected>F2</option><option value="RIL">RIL</option></select></div>
+<div class="info"><b>Features:</b><br>• High-resolution linkage map plot<br>• Recombination fraction heatmap<br>• Marker density distribution<br>• Cytogenetic ideogram with hover tooltips<br>• Allele-frequency banding per chromosome<br>• Full Excel export of all analysis sheets</div>
+</div>
+<div class="card" style="grid-column:span 2">
+<div class="card-title"><i class="fas fa-chart-simple"></i> Upload Status</div>
+<pre class="report" id="uploadStatus">No file uploaded yet.</pre>
+</div>
+</div>
+<div class="grid2">
+<div class="card">
+<div class="card-title"><i class="fas fa-table"></i> Data Preview (first 10 rows)</div>
+<div class="table-scroll"><table id="previewTable"><thead><tr></tr></thead><tbody><tr><td class="empty-table">No data loaded.</td></tr></tbody></table></div>
+</div>
+<div class="card">
+<div class="card-title"><i class="fas fa-dna"></i> Chromosome Assignments</div>
+<div class="table-scroll"><table id="chrSummaryTable"><thead><tr><th>Chromosome</th><th>N Markers</th></tr></thead><tbody><tr><td colspan="2" class="empty-table">No data loaded.</td></tr></tbody></table></div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ PARAMETERS ============================================================ -->
+<section id="parameters" class="tab">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-cogs"></i> Analysis Parameters</div>
+<div class="form-row"><label>Missing Data Threshold</label><div class="range-wrap"><input type="range" id="missingThreshold" min="0" max="1" value=".3" step=".05" oninput="updateRange('missingThreshold','missingValue',2)"><span class="range-value" id="missingValue">0.30</span></div></div>
+<div class="form-row"><label>Max Recombination Fraction (r)</label><div class="range-wrap"><input type="range" id="recombinationThreshold" min="0" max=".5" value=".45" step=".01" oninput="updateRange('recombinationThreshold','recombinationValue',2)"><span class="range-value" id="recombinationValue">0.45</span></div></div>
+<div class="section-label">Chi-Square Filter</div>
+<div class="check"><input type="checkbox" id="enableChiSquare" onchange="toggleChiPanel()"><label style="margin:0">Enable chi-square segregation distortion filter</label></div>
+<div class="chi-panel" id="chiPanel" style="display:none">
+<div class="form-row"><label>Significance level (α)</label><input type="number" id="chiSquareAlpha" value="0.05" min="0.001" max="0.2" step="0.005"></div>
+<div class="check"><input type="checkbox" id="useBonferroni"><label style="margin:0">Apply Bonferroni correction</label></div>
+<div class="warn">Chi-square filtering removes markers with skewed allele ratios.</div>
+</div>
+<div class="chi-disabled" id="chiDisabledNote" style="font-size:11px;color:var(--muted);margin-top:8px">Chi-square filter is OFF.</div>
+<div class="section-label">Map Scaling</div>
+<div class="form-row"><label>Max Total Map Length (cM)</label><input type="number" id="maxTotalCm" value="1500" min="100" max="10000" step="100"></div>
+<div class="form-row"><label>Scaling Method</label><select id="scalingMethod"><option value="proportional" selected>Proportional</option><option value="uniform">Uniform</option></select></div>
+<button class="btn btn-primary run" id="runAnalysisBtn" onclick="runAnalysis()" disabled><i class="fas fa-play"></i> Run Analysis</button>
+<div class="info" id="analysisStatus">Upload a genotype file first.</div>
+</div>
+<div class="card" style="grid-column:span 2">
+<div class="card-title"><i class="fas fa-book"></i> Parameter Guide</div>
+<ul style="font-size:12px;color:var(--text);line-height:1.7;padding-left:18px">
+<li><b>Missing Data Threshold:</b> markers with more than this fraction missing are excluded.</li>
+<li><b>Max Recombination Fraction:</b> marker pairs with r ≥ threshold get a 50 cM gap.</li>
+<li><b>Monomorphic Removal:</b> automatic — fixed-allele markers are excluded.</li>
+<li><b>Chi-Square Filter:</b> optional — removes segregation-distorted markers.</li>
+<li><b>Map Scaling:</b> proportional scales all chromosomes uniformly; uniform equalizes chromosome lengths.</li>
+</ul>
+<div class="section-label">Scaling Summary</div>
+<pre class="report" id="scalingSummary">Run analysis to see scaling summary.</pre>
+<div class="grid2">
+<div><div class="section-label">Before Scaling</div><pre class="report" id="beforeScalingStats">—</pre></div>
+<div><div class="section-label">After Scaling</div><pre class="report" id="afterScalingStats">—</pre></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ QC REPORT ============================================================ -->
+<section id="qc" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-clipboard-check"></i> Quality Control Report</div><pre class="report" id="qcReportOutput">Run analysis to see the QC report.</pre></div>
+<div class="card"><div class="card-title"><i class="fas fa-trash"></i> Removed Markers — Full Detail</div>
+<div class="table-scroll"><table id="removalLogTable"><thead><tr><th>Marker</th><th>Chromosome</th><th>Reason</th><th>Detail</th></tr></thead><tbody><tr><td colspan="4" class="empty-table">No removal log yet.</td></tr></tbody></table></div>
+<br><button class="btn btn-success" onclick="downloadResult('removal_log')"><i class="fas fa-file-excel"></i> Download Removal Log (.xlsx)</button>
+</div>
+</section>
+
+<!-- ============================================================ RESULTS ============================================================ -->
+<section id="results" class="tab">
+<div class="card" id="resultsEmpty"><p style="color:var(--muted);font-style:italic;text-align:center;padding:50px">Upload data and run analysis to see results.</p></div>
+<div id="resultsContent" style="display:none">
+<div class="card"><div class="card-title"><i class="fas fa-download"></i> Downloads</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-success" onclick="downloadResult('full_results')"><i class="fas fa-file-excel"></i> Full Excel Results</button>
+<button class="btn btn-info" onclick="downloadResult('all_markers')"><i class="fas fa-file-excel"></i> All Markers + Positions</button>
+<button class="btn btn-info" onclick="downloadResult('retained_markers')"><i class="fas fa-file-excel"></i> Retained Markers List</button>
+</div></div>
+<div class="card"><div class="card-title"><i class="fas fa-check"></i> Retained Markers</div><div class="table-scroll"><table id="retainedMarkersTable"><thead><tr></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-list"></i> All Markers — Status + Positions</div><div class="table-scroll"><table id="allMarkersTable"><thead><tr></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-map"></i> Linkage Map Table</div><div class="table-scroll"><table id="resultTable"><thead><tr></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-chart-line"></i> Summary Statistics</div><pre class="report" id="summaryStats">—</pre></div>
+</div>
+</section>
+
+<!-- ============================================================ MAP PLOT ============================================================ -->
+<section id="mapplot" class="tab">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-palette"></i> Plot Options</div>
+<div class="section-label">Chromosomes</div>
+<div class="chr-select" id="mapChrSelect"><span style="color:var(--muted);font-size:11px">Run analysis to populate.</span></div>
+<div class="form-row" style="margin-top:12px"><label>Plot Theme</label><select id="ggTheme"><option value="dark" selected>Dark</option><option value="blue">Blue/White</option><option value="minimal_white">Minimal White</option></select></div>
+<div class="form-row"><label>Color Palette</label><select id="ggColorPalette"><option>Set1</option><option>Set2</option><option>Set3</option><option>Paired</option><option>Dark2</option><option>Accent</option><option>Spectral</option><option>RdYlBu</option><option>PRGn</option></select></div>
+<div class="check"><input type="checkbox" id="ggShowLabels"><label style="margin:0">Show Marker Labels</label></div>
+<div class="form-row" style="margin-top:10px"><label>Label Size</label><div class="range-wrap"><input type="range" id="ggLabelSize" min="1.5" max="6" value="2.5" step=".5" oninput="updateRange('ggLabelSize','ggLabelSizeVal',1)"><span class="range-value" id="ggLabelSizeVal">2.5</span></div></div>
+<div class="form-row"><label>Chromosome Width</label><div class="range-wrap"><input type="range" id="ggChromWidth" min=".1" max="1.2" value=".4" step=".05" oninput="updateRange('ggChromWidth','ggChromWidthVal',2)"><span class="range-value" id="ggChromWidthVal">0.40</span></div></div>
+<div class="form-row"><label>Marker Point Size</label><div class="range-wrap"><input type="range" id="ggPointSize" min=".5" max="6" value="2.5" step=".25" oninput="updateRange('ggPointSize','ggPointSizeVal',2)"><span class="range-value" id="ggPointSizeVal">2.50</span></div></div>
+<div class="form-row"><label>LG Spacing</label><div class="range-wrap"><input type="range" id="ggChromSpacing" min="1" max="6" value="2.5" step=".25" oninput="updateRange('ggChromSpacing','ggChromSpacingVal',2)"><span class="range-value" id="ggChromSpacingVal">2.50</span></div></div>
+<div class="form-row"><label>Plot Height (px)</label><div class="range-wrap"><input type="range" id="ggPlotHeight" min="400" max="2000" value="700" step="50" oninput="updateRange('ggPlotHeight','ggPlotHeightVal',0)"><span class="range-value" id="ggPlotHeightVal">700</span></div></div>
+<button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="updateMapPlot()"><i class="fas fa-sync"></i> Update Plot</button>
+<button class="btn btn-success" style="width:100%;margin-top:8px" onclick="downloadResult('map_plot')"><i class="fas fa-image"></i> Download PNG (300 dpi)</button>
+</div>
+<div class="card" style="grid-column:span 2">
+<div class="card-title"><i class="fas fa-map"></i> Genetic Linkage Map</div>
+<div class="plot-container" id="mapPlotContainer"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-bar"></i></div><div>Run analysis first.</div></div></div></div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ DENSITY & RF ============================================================ -->
+<section id="density" class="tab">
+<div class="card">
+<div class="card-title"><i class="fas fa-chart-area"></i> Marker Density per Chromosome</div>
+<div class="grid2">
+<div><div class="section-label">Chromosomes</div><div class="chr-select" id="densityChrSelect"><span style="color:var(--muted);font-size:11px">Run analysis to populate.</span></div></div>
+<div><div class="form-row"><label>Bin Width (cM)</label><div class="range-wrap"><input type="range" id="densityBin" min="2" max="30" value="10" step="2" oninput="updateRange('densityBin','densityBinVal',0)"><span class="range-value" id="densityBinVal">10</span></div></div>
+<div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="updateDensityPlot()"><i class="fas fa-sync"></i> Update</button><button class="btn btn-info" onclick="downloadResult('density_plot')"><i class="fas fa-download"></i> Download</button></div></div>
+</div>
+<div class="plot-container" id="densityPlotContainer" style="margin-top:14px"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-area"></i></div><div>Run analysis first.</div></div></div></div>
+</div>
+<div class="card">
+<div class="card-title"><i class="fas fa-temperature-half"></i> Adjacent Marker Recombination Heatmap</div>
+<div class="grid2">
+<div><div class="section-label">Chromosomes</div><div class="chr-select" id="heatmapChrSelect"><span style="color:var(--muted);font-size:11px">Run analysis to populate.</span></div></div>
+<div><div class="form-row"><label>Max Pairs to Show</label><div class="range-wrap"><input type="range" id="heatmapTopN" min="10" max="200" value="60" step="10" oninput="updateRange('heatmapTopN','heatmapTopNVal',0)"><span class="range-value" id="heatmapTopNVal">60</span></div></div>
+<div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="updateHeatmapPlot()"><i class="fas fa-sync"></i> Update</button><button class="btn btn-warning" onclick="downloadResult('heatmap_plot')"><i class="fas fa-download"></i> Download</button></div></div>
+</div>
+<div class="plot-container" id="heatmapPlotContainer" style="margin-top:14px"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-table-cells"></i></div><div>Run analysis first.</div></div></div></div>
+</div>
+</section>
+
+<!-- ============================================================ CYTOGENETIC ============================================================ -->
+<section id="cyto" class="tab">
+<div class="card">
+<div class="card-title"><i class="fas fa-dna"></i> High-Resolution Cytogenetic Ideogram</div>
+<div class="grid2">
+<div><div class="section-label">Chromosomes</div><div class="chr-select" id="cytoChrSelect"><span style="color:var(--muted);font-size:11px">Run analysis to populate.</span></div>
+<button class="btn btn-primary" style="margin-top:10px" onclick="updateCytoChromosomes()"><i class="fas fa-sync"></i> Load Chromosomes</button></div>
+<div><div class="section-label">Zoom</div>
+<div class="cyto-controls"><input type="range" id="cytoZoom" min="0.5" max="3" value="1" step="0.1" oninput="updateCytoZoom(this.value)" style="flex:1"><span id="cytoZoomLabel" style="font-size:13px;min-width:44px;font-weight:600;color:var(--indigo)">1.0×</span></div>
+<button class="btn btn-secondary" onclick="saveCytoPng()"><i class="fas fa-camera"></i> Save as PNG</button></div>
+</div>
+<div id="cyto-scroll-wrapper"><canvas id="cytoCanvas" width="1200" height="600"></canvas></div>
+<div id="cyto-legend">
+<div class="legend-item"><div class="legend-swatch" id="sw-a"></div><span>Parent A (aa)</span></div>
+<div class="legend-item"><div class="legend-swatch" id="sw-b"></div><span>Parent B (bb)</span></div>
+<div class="legend-item"><div class="legend-swatch" id="sw-ab"></div><span>Heterozygous (ab)</span></div>
+<div class="legend-item"><div class="legend-swatch" style="background:rgba(148,163,184,.4);border:1px dashed #94A3B8"></div><span>Missing / unknown</span></div>
+</div>
+<div class="grid" style="margin-top:16px">
+<div class="form-row"><label>Chromosome Width</label><div class="range-wrap"><input type="range" id="cytoChromWidth" min="10" max="80" value="28" step="2" oninput="cytoSettingChanged()"><span class="range-value" id="cytoChromWidthVal">28</span></div></div>
+<div class="form-row"><label>Spacing</label><div class="range-wrap"><input type="range" id="cytoChromSpacing" min="20" max="150" value="60" step="5" oninput="cytoSettingChanged()"><span class="range-value" id="cytoChromSpacingVal">60</span></div></div>
+<div class="form-row"><label>px per cM</label><div class="range-wrap"><input type="range" id="cytoPxPerCm" min="1" max="25" value="5" step=".5" oninput="cytoSettingChanged()"><span class="range-value" id="cytoPxPerCmVal">5</span></div></div>
+<div class="form-row"><label>Font Size</label><div class="range-wrap"><input type="range" id="cytoFontSize" min="8" max="20" value="11" step="1" oninput="cytoSettingChanged()"><span class="range-value" id="cytoFontSizeVal">11</span></div></div>
+</div>
+<div class="grid">
+<div class="form-row"><label>Color Scheme</label><select id="cytoColorScheme" onchange="cytoSettingChanged()"><option value="classic" selected>Dark Ideogram</option><option value="blue_orange">Genomics Blue</option><option value="green_purple">Forest</option><option value="red_blue">Red/Blue</option><option value="pastel">Pastel</option></select></div>
+<div class="check" style="align-self:end"><input type="checkbox" id="cytoShowScale" checked onchange="cytoSettingChanged()"><label style="margin:0">Show cM scale bar</label></div>
+<div class="check" style="align-self:end"><input type="checkbox" id="cytoShowNames" onchange="cytoSettingChanged()"><label style="margin:0">Show marker names (≤200 markers)</label></div>
+</div>
+</div>
+</section>
+
+<!-- ============================================================ HELP ============================================================ -->
+<section id="help" class="tab">
+<div class="card">
+<div class="card-title"><i class="fas fa-book"></i> Application Guide</div>
+<div class="section-label">Required Input Format</div>
+<div class="info">
+<ul style="margin:0;padding-left:18px">
+<li>Excel (.xlsx): Column 1 = "Marker", Column 2 = "Chromosome"</li>
+<li>Genotype columns 3+: individual sample genotype calls</li>
+<li>Genotype codes are auto-converted to a / b / ab / − (missing)</li>
+<li>Marker order in the input file is preserved during map construction</li>
+</ul>
+</div>
+<div class="section-label">Workflow</div>
+<ol style="font-size:12px;line-height:1.8;padding-left:18px">
+<li>Upload a genotype Excel file and confirm the population type (F2 or RIL) in the Upload tab.</li>
+<li>Set thresholds and optional filters in the Parameters tab, then click Run Analysis.</li>
+<li>Review excluded markers in the QC Report tab.</li>
+<li>Browse tables and download Excel exports in the Results tab.</li>
+<li>Customize and export the linkage map figure in the Map Plot tab.</li>
+<li>Inspect marker density and adjacent-marker recombination in the Density &amp; RF tab.</li>
+<li>Explore the interactive cytogenetic ideogram in the Cytogenetic tab.</li>
+</ol>
+</div>
+</section>
+
+</main>
+<footer class="footer">TerraTools · Linkage Map Creator · Kosambi cM</footer>
+</div>
+
+<div id="cyto-tooltip"></div>
+
+<script>
+let linkageBridge=null;
+let lastResult=null;
+let cytoData=null;
+let cytoSettings=null;
+let cytoZoomVal=1.0;
+
+/* ---------------- Bridge init ---------------- */
+function initLinkageBridge(){
+    console.log("[LINKAGE] Initializing QWebChannel...");
+    if(typeof qt==="undefined" || !qt.webChannelTransport){
+        setConnection("Browser preview");
+        return;
+    }
+    try{
+        new QWebChannel(qt.webChannelTransport,function(channel){
+            linkageBridge=channel.objects.linkageBridge;
+            if(!linkageBridge){
+                console.error("[LINKAGE] linkageBridge not found on channel.objects.");
+                setConnection("Bridge not found");
+                return;
+            }
+            linkageBridge.resultReady.connect(function(jsonStr){
+                try{ showLinkageResult(JSON.parse(jsonStr)); }
+                catch(err){ console.error("[LINKAGE] showLinkageResult error:",err); setStatus("analysisStatus","Frontend error: "+err.message); }
+            });
+            linkageBridge.statusUpdate.connect(function(txt){ setStatus("analysisStatus",txt); });
+            linkageBridge.cytoDataReady.connect(function(jsonStr){
+                try{ onCytoDataReady(JSON.parse(jsonStr)); }
+                catch(err){ console.error("[LINKAGE] cyto data error:",err); }
+            });
+            setConnection("Connected");
+        });
+    }catch(err){ console.error("[LINKAGE] QWebChannel setup error:",err); }
+}
+window.addEventListener("error",function(e){ console.error("[LINKAGE] Uncaught JS error:",e.message,"at",e.filename,":",e.lineno); });
+(function(){
+    if(typeof qt!=="undefined"){
+        const script=document.createElement("script");
+        script.src="qrc:///qtwebchannel/qwebchannel.js";
+        script.onload=initLinkageBridge;
+        document.head.appendChild(script);
+    }else{ initLinkageBridge(); }
+})();
+
+function setConnection(text){ document.getElementById("connectionStatus").textContent=text; }
+function setStatus(id,text){ const el=document.getElementById(id); if(el) el.textContent=text; }
+function updateRange(id,valueId,decimals){
+    const v=Number(document.getElementById(id).value);
+    document.getElementById(valueId).textContent = decimals>0 ? v.toFixed(decimals) : String(v);
+}
+
+/* ---------------- Tabs ---------------- */
+document.querySelectorAll(".nav button").forEach(button=>{
+    button.addEventListener("click",()=>{
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+    });
+});
+function toggleChiPanel(){
+    const on=document.getElementById("enableChiSquare").checked;
+    document.getElementById("chiPanel").style.display=on?"block":"none";
+    document.getElementById("chiDisabledNote").style.display=on?"none":"block";
+}
+
+/* ---------------- Upload ---------------- */
+function browseGenotype(){
+    if(!linkageBridge || !linkageBridge.browse_genotype){
+        setStatus("analysisStatus","Qt bridge not connected. Run this page through TerraTools.");
+        return;
+    }
+    linkageBridge.browse_genotype(function(path){
+        if(!path) return;
+        document.getElementById("genoPath").value=path;
+        setStatus("uploadStatus","Loading file...");
+        linkageBridge.get_upload_preview(path,function(jsonStr){
+            const preview=JSON.parse(jsonStr);
+            if(preview.status!=="success"){
+                document.getElementById("uploadStatus").textContent="Error: "+(preview.message||"Could not read file.");
+                return;
+            }
+            document.getElementById("uploadStatus").textContent=preview.log || "File loaded.";
+            populateTable("previewTable",preview.preview_rows,preview.preview_columns);
+            populateTable("chrSummaryTable",preview.chr_summary,["Chromosome","N_Markers"]);
+            document.getElementById("runAnalysisBtn").disabled=false;
+            setStatus("analysisStatus","Ready. Configure parameters and click Run Analysis.");
+        });
+    });
+}
+
+/* ---------------- Chromosome chip selectors ---------------- */
+function buildChrChips(containerId, chromosomes){
+    const el=document.getElementById(containerId);
+    el.innerHTML="";
+    chromosomes.forEach(chr=>{
+        const chip=document.createElement("span");
+        chip.className="chr-chip sel";
+        chip.textContent=chr;
+        chip.dataset.chr=chr;
+        chip.onclick=()=>chip.classList.toggle("sel");
+        el.appendChild(chip);
+    });
+}
+function selectedChrs(containerId){
+    return Array.from(document.querySelectorAll("#"+containerId+" .chr-chip.sel")).map(c=>c.dataset.chr);
+}
+
+/* ---------------- Run analysis ---------------- */
+function collectConfig(){
+    return {
+        population_type:document.getElementById("populationType").value,
+        missing_threshold:Number(document.getElementById("missingThreshold").value),
+        recombination_threshold:Number(document.getElementById("recombinationThreshold").value),
+        enable_chi_square:document.getElementById("enableChiSquare").checked,
+        chi_square_alpha:Number(document.getElementById("chiSquareAlpha").value),
+        use_bonferroni:document.getElementById("useBonferroni").checked,
+        max_total_cm:Number(document.getElementById("maxTotalCm").value),
+        scaling_method:document.getElementById("scalingMethod").value
+    };
+}
+function runAnalysis(){
+    if(!linkageBridge || !linkageBridge.run_linkage){
+        setStatus("analysisStatus","Qt bridge not connected.");
+        return;
+    }
+    setStatus("analysisStatus","Building linkage map...");
+    linkageBridge.run_linkage(JSON.stringify(collectConfig()));
+}
+
+function showLinkageResult(result){
+    if(!result) return;
+    if(result.status==="error"){
+        setStatus("analysisStatus","Error: "+(result.message||"Linkage analysis failed."));
+        return;
+    }
+    lastResult=result;
+    setStatus("analysisStatus","Linkage map analysis completed successfully.");
+
+    // QC report
+    document.getElementById("qcReportOutput").textContent=result.qc_report || "—";
+    populateTable("removalLogTable",result.removal_log,["Marker","Chromosome","Reason","Detail"]);
+
+    // Scaling
+    document.getElementById("scalingSummary").textContent=result.scaling_summary || "—";
+    document.getElementById("beforeScalingStats").textContent=result.before_scaling_stats || "—";
+    document.getElementById("afterScalingStats").textContent=result.after_scaling_stats || "—";
+
+    // Results tables
+    document.getElementById("resultsEmpty").style.display="none";
+    document.getElementById("resultsContent").style.display="block";
+    populateTable("retainedMarkersTable",result.retained_markers,result.retained_markers_columns);
+    populateTable("allMarkersTable",result.all_markers,result.all_markers_columns);
+    populateTable("resultTable",result.linkage_map,result.linkage_map_columns);
+    document.getElementById("summaryStats").textContent=result.summary_stats || "—";
+
+    // Chromosome chip lists
+    const chrs=result.chromosomes || [];
+    buildChrChips("mapChrSelect",chrs);
+    buildChrChips("densityChrSelect",chrs);
+    buildChrChips("heatmapChrSelect",chrs);
+    buildChrChips("cytoChrSelect",chrs);
+
+    // Initial plots
+    if(result.map_plot) showMapPlot({status:"success",map_plot:result.map_plot});
+    if(result.density_plot) showDensityPlot({status:"success",density_plot:result.density_plot});
+    if(result.heatmap_plot) showHeatmapPlot({status:"success",heatmap_plot:result.heatmap_plot});
+
+    document.querySelector('[data-tab="results"]').click();
+}
+
+/* ---------------- Map / Density / Heatmap plots ---------------- */
+function collectMapPlotConfig(){
+    return {
+        chromosomes:selectedChrs("mapChrSelect"),
+        theme:document.getElementById("ggTheme").value,
+        color_palette:document.getElementById("ggColorPalette").value,
+        show_labels:document.getElementById("ggShowLabels").checked,
+        label_size:Number(document.getElementById("ggLabelSize").value),
+        chrom_width:Number(document.getElementById("ggChromWidth").value),
+        point_size:Number(document.getElementById("ggPointSize").value),
+        chrom_spacing:Number(document.getElementById("ggChromSpacing").value),
+        plot_height:Number(document.getElementById("ggPlotHeight").value)
+    };
+}
+function updateMapPlot(){
+    if(!linkageBridge || !linkageBridge.render_map_plot){ setStatus("analysisStatus","Qt bridge not connected."); return; }
+    linkageBridge.render_map_plot(JSON.stringify(collectMapPlotConfig()));
+}
+function showMapPlot(result){
+    const el=document.getElementById("mapPlotContainer");
+    if(!result) return;
+    if(result.status==="error"){ el.innerHTML='<div class="result-placeholder">Error: '+(result.message||"could not render plot.")+'</div>'; return; }
+    if(result.map_plot) el.innerHTML='<img src="'+result.map_plot+'" alt="Genetic Linkage Map">';
+}
+
+function collectDensityConfig(){
+    return { chromosomes:selectedChrs("densityChrSelect"), bin_width:Number(document.getElementById("densityBin").value) };
+}
+function updateDensityPlot(){
+    if(!linkageBridge || !linkageBridge.render_density_plot){ setStatus("analysisStatus","Qt bridge not connected."); return; }
+    linkageBridge.render_density_plot(JSON.stringify(collectDensityConfig()));
+}
+function showDensityPlot(result){
+    const el=document.getElementById("densityPlotContainer");
+    if(!result) return;
+    if(result.status==="error"){ el.innerHTML='<div class="result-placeholder">Error: '+(result.message||"could not render plot.")+'</div>'; return; }
+    if(result.density_plot) el.innerHTML='<img src="'+result.density_plot+'" alt="Marker Density">';
+}
+
+function collectHeatmapConfig(){
+    return { chromosomes:selectedChrs("heatmapChrSelect"), top_n:Number(document.getElementById("heatmapTopN").value) };
+}
+function updateHeatmapPlot(){
+    if(!linkageBridge || !linkageBridge.render_heatmap_plot){ setStatus("analysisStatus","Qt bridge not connected."); return; }
+    linkageBridge.render_heatmap_plot(JSON.stringify(collectHeatmapConfig()));
+}
+function showHeatmapPlot(result){
+    const el=document.getElementById("heatmapPlotContainer");
+    if(!result) return;
+    if(result.status==="error"){ el.innerHTML='<div class="result-placeholder">Error: '+(result.message||"could not render plot.")+'</div>'; return; }
+    if(result.heatmap_plot) el.innerHTML='<img src="'+result.heatmap_plot+'" alt="Recombination Heatmap">';
+}
+
+/* ---------------- Downloads ---------------- */
+function downloadResult(type){
+    if(!linkageBridge || !linkageBridge.download_result){ setStatus("analysisStatus","Qt bridge not connected."); return; }
+    linkageBridge.download_result(type);
+}
+
+/* ---------------- Tables ---------------- */
+function populateTable(tableId, rows, columns){
+    const table = document.getElementById(tableId);
+    if(!table) return;
+
+    const thead = table.querySelector("thead tr");
+    const tbody = table.querySelector("tbody");
+    if(!thead || !tbody) return;
+
+    // Always normalize column names to strings.
+    const cols = Array.isArray(columns)
+        ? columns.map(c => String(c))
+        : (thead.children.length
+            ? Array.from(thead.children).map(th => th.textContent)
+            : []);
+
+    // Rebuild the header from the backend column list.
+    if(cols.length){
+        thead.innerHTML = "";
+        cols.forEach(c => {
+            const th = document.createElement("th");
+            th.textContent = c;
+            thead.appendChild(th);
+        });
+    }
+
+    tbody.innerHTML = "";
+
+    if(rows === null || rows === undefined){
+        tbody.innerHTML =
+            '<tr><td colspan="'+Math.max(cols.length,1)+'" class="empty-table">No results.</td></tr>';
+        return;
+    }
+
+    /*
+     * jsonlite/data.frame payloads can arrive in several shapes depending
+     * on serialization:
+     *
+     *   1. [{Marker:"m1", Chromosome:"1"}, ...]
+     *   2. [["m1","1"], ...]
+     *   3. {Marker:["m1","m2"], Chromosome:["1","2"]}
+     *
+     * Normalize all three into row objects before rendering.
+     */
+    let normalizedRows = [];
+
+    if(Array.isArray(rows)){
+        normalizedRows = rows;
+    }else if(typeof rows === "object"){
+        const keys = Object.keys(rows);
+
+        // Column-oriented object: every column is an array.
+        const hasArrayColumns = keys.length > 0 &&
+            keys.some(k => Array.isArray(rows[k]));
+
+        if(hasArrayColumns){
+            let n = 0;
+            keys.forEach(k => {
+                if(Array.isArray(rows[k])) n = Math.max(n, rows[k].length);
+            });
+
+            for(let i=0; i<n; i++){
+                const obj = {};
+                keys.forEach(k => {
+                    obj[k] = Array.isArray(rows[k]) ? rows[k][i] : rows[k];
+                });
+                normalizedRows.push(obj);
+            }
+        }else{
+            normalizedRows = [rows];
+        }
+    }
+
+    if(normalizedRows.length === 0){
+        tbody.innerHTML =
+            '<tr><td colspan="'+Math.max(cols.length,1)+'" class="empty-table">No results.</td></tr>';
+        return;
+    }
+
+    normalizedRows.forEach(row => {
+        const tr = document.createElement("tr");
+
+        cols.forEach((c, idx) => {
+            const td = document.createElement("td");
+            let v;
+
+            if(Array.isArray(row)){
+                v = row[idx];
+            }else if(row && typeof row === "object"){
+                // Exact column name first.
+                v = row[c];
+
+                // Then tolerate case differences.
+                if(v === undefined){
+                    const key = Object.keys(row).find(
+                        k => String(k).toLowerCase() === c.toLowerCase()
+                    );
+                    if(key !== undefined) v = row[key];
+                }
+            }
+
+            td.textContent =
+                (v === null || v === undefined || v === "")
+                    ? "—"
+                    : String(v);
+
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+}
+
+/* ---------------- Cytogenetic canvas ---------------- */
+const CYTO_SCHEMES={
+    classic:{a:"#3B82F6",b:"#EF4444",ab:"#F59E0B",miss:"rgba(148,163,184,0.4)",bg:"#0F172A"},
+    blue_orange:{a:"#2563EB",b:"#EA580C",ab:"#FACC15",miss:"rgba(148,163,184,0.4)",bg:"#0F172A"},
+    green_purple:{a:"#16A34A",b:"#9333EA",ab:"#EAB308",miss:"rgba(148,163,184,0.4)",bg:"#0F172A"},
+    red_blue:{a:"#DC2626",b:"#2563EB",ab:"#D97706",miss:"rgba(148,163,184,0.4)",bg:"#0F172A"},
+    pastel:{a:"#93C5FD",b:"#FCA5A5",ab:"#FDE68A",miss:"rgba(203,213,225,0.5)",bg:"#1E293B"}
+};
+
+function updateCytoChromosomes(){
+    if(!linkageBridge || !linkageBridge.get_cyto_data){ setStatus("analysisStatus","Qt bridge not connected."); return; }
+    linkageBridge.get_cyto_data(JSON.stringify({chromosomes:selectedChrs("cytoChrSelect")}));
+}
+function onCytoDataReady(data){
+    if(!data || data.status==="error"){ console.error("[LINKAGE] cyto data error:",data&&data.message); return; }
+    cytoData=data;
+    cytoZoomVal=1.0;
+    document.getElementById("cytoZoom").value="1";
+    document.getElementById("cytoZoomLabel").textContent="1.0×";
+    updateLegendSwatches(document.getElementById("cytoColorScheme").value);
+    renderCytogeneticMap();
+}
+function cytoSettingChanged(){
+    ["cytoChromWidth","cytoChromSpacing","cytoPxPerCm","cytoFontSize"].forEach(id=>{
+        const valEl=document.getElementById(id+"Val");
+        if(valEl) valEl.textContent=document.getElementById(id).value;
+    });
+    updateLegendSwatches(document.getElementById("cytoColorScheme").value);
+    if(cytoData) renderCytogeneticMap();
+}
+function updateCytoZoom(v){
+    cytoZoomVal=Number(v);
+    document.getElementById("cytoZoomLabel").textContent=cytoZoomVal.toFixed(1)+"×";
+    if(cytoData) renderCytogeneticMap();
+}
+function updateLegendSwatches(scheme){
+    const s=CYTO_SCHEMES[scheme]||CYTO_SCHEMES.classic;
+    document.getElementById("sw-a").style.background=s.a;
+    document.getElementById("sw-b").style.background=s.b;
+    document.getElementById("sw-ab").style.background=s.ab;
+}
+function saveCytoPng(){
+    const canvas=document.getElementById("cytoCanvas");
+    if(!canvas) return;
+    const link=document.createElement("a");
+    link.download="cytogenetic_map_"+new Date().toISOString().slice(0,10)+".png";
+    link.href=canvas.toDataURL("image/png",1.0);
+    link.click();
+}
+
+function renderCytogeneticMap(){
+    const canvas=document.getElementById("cytoCanvas");
+    if(!canvas || !cytoData || !cytoData.chromosomes) return;
+    const ctx=canvas.getContext("2d");
+    canvas._hitRegions=[];
+
+    const chromWidth=Number(document.getElementById("cytoChromWidth").value)*cytoZoomVal;
+    const chromSpacing=Number(document.getElementById("cytoChromSpacing").value)*cytoZoomVal;
+    const pxPerCm=Number(document.getElementById("cytoPxPerCm").value)*cytoZoomVal;
+    const fontSize=Number(document.getElementById("cytoFontSize").value);
+    const showScale=document.getElementById("cytoShowScale").checked;
+    const showNames=document.getElementById("cytoShowNames").checked;
+    const scheme=CYTO_SCHEMES[document.getElementById("cytoColorScheme").value]||CYTO_SCHEMES.classic;
+
+    const chromosomes=cytoData.chromosomes;
+    const leftPad=showScale?70:30, topPad=50, bottomPad=60;
+    let maxPos=0;
+    chromosomes.forEach(c=>{ if(c.max_pos>maxPos) maxPos=c.max_pos; });
+    const mapHeight=Math.max(200,Math.round(maxPos*pxPerCm));
+
+    const width=leftPad + chromosomes.length*(chromWidth+chromSpacing) + 40;
+    const height=topPad + mapHeight + bottomPad;
+    canvas.width=Math.max(width,400);
+    canvas.height=Math.max(height,300);
+
+    ctx.fillStyle=scheme.bg;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    chromosomes.forEach((chr,ci)=>{
+        const x0=leftPad + ci*(chromWidth+chromSpacing);
+        const y0=topPad;
+        const chrH=Math.round(chr.max_pos*pxPerCm);
+        const markers=chr.markers||[];
+        const nMk=markers.length;
+
+        ctx.save();
+        ctx.fillStyle=scheme.miss;
+        ctx.fillRect(x0,y0,chromWidth,chrH);
+
+        for(let mi=0; mi<nMk; mi++){
+            const mk=markers[mi];
+            const yTop=y0+Math.round(mk.position*pxPerCm);
+            const yBot=(mi<nMk-1)? y0+Math.round(markers[mi+1].position*pxPerCm) : y0+chrH;
+            const bandH=Math.max(yBot-yTop,1);
+            let dom="miss", maxFrac=0;
+            if(mk.allele_a>maxFrac){maxFrac=mk.allele_a;dom="a";}
+            if(mk.allele_b>maxFrac){maxFrac=mk.allele_b;dom="b";}
+            if(mk.allele_ab>maxFrac){maxFrac=mk.allele_ab;dom="ab";}
+            ctx.fillStyle=scheme[dom]||scheme.miss;
+            ctx.fillRect(x0,yTop,chromWidth,bandH);
+
+            if(showNames && bandH>=fontSize+3){
+                ctx.save();
+                ctx.fillStyle=(dom==="a")?"#FFFFFF":"#0F172A";
+                ctx.font="bold "+(fontSize-1)+"px monospace";
+                ctx.textAlign="left";
+                ctx.fillText(String(mk.marker).substring(0,14), x0+4, yTop+bandH/2+(fontSize-1)/3);
+                ctx.restore();
+            }
+            canvas._hitRegions.push({x:x0,y:yTop,w:chromWidth,h:bandH,marker:mk.marker,position:mk.position,
+                chromosome:chr.chromosome,a:mk.allele_a,b:mk.allele_b,ab:mk.allele_ab,miss:mk.allele_miss});
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.strokeStyle="rgba(99,102,241,0.8)";
+        ctx.lineWidth=Math.max(1.2,cytoZoomVal*1.2);
+        ctx.strokeRect(x0,y0,chromWidth,chrH);
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle="#93C5FD";
+        ctx.font="bold "+fontSize+"px sans-serif";
+        ctx.textAlign="center";
+        ctx.fillText("Chr "+chr.chromosome, x0+chromWidth/2, y0+chrH+fontSize+10);
+        ctx.font=(fontSize-1)+"px sans-serif";
+        ctx.fillStyle="#818CF8";
+        ctx.fillText("n="+chr.n_markers, x0+chromWidth/2, y0+chrH+fontSize*2+14);
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle="#CBD5E1";
+        ctx.font=(fontSize-1)+"px sans-serif";
+        ctx.textAlign="center";
+        ctx.fillText(chr.max_pos.toFixed(1)+" cM", x0+chromWidth/2, y0-10);
+        ctx.restore();
+    });
+
+    if(showScale && maxPos>0){
+        const steps=[5,10,20,25,50,100,150,200];
+        let step=10;
+        for(const s of steps){ if(mapHeight/(maxPos/s)>=22){ step=s; break; } }
+        ctx.save();
+        ctx.strokeStyle="#6366F1";
+        ctx.lineWidth=1.5;
+        ctx.fillStyle="#CBD5E1";
+        ctx.font=(fontSize-1)+"px monospace";
+        ctx.textAlign="right";
+        const scaleX=leftPad-14;
+        ctx.beginPath(); ctx.moveTo(scaleX,topPad); ctx.lineTo(scaleX,topPad+mapHeight); ctx.stroke();
+        for(let pos=0; pos<=maxPos; pos+=step){
+            const ty=topPad+Math.round(pos*pxPerCm);
+            ctx.beginPath(); ctx.moveTo(scaleX-5,ty); ctx.lineTo(scaleX,ty); ctx.stroke();
+            ctx.fillText(String(pos), scaleX-7, ty+4);
+        }
+        ctx.restore();
+    }
+}
+
+document.addEventListener("mousemove", function(e){
+    const canvas=document.getElementById("cytoCanvas");
+    if(!canvas || !canvas._hitRegions) return;
+    const rect=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height;
+    const cx=(e.clientX-rect.left)*scaleX, cy=(e.clientY-rect.top)*scaleY;
+    const tip=document.getElementById("cyto-tooltip");
+    let found=null;
+    for(const r of canvas._hitRegions){
+        if(cx>=r.x && cx<=r.x+r.w && cy>=r.y && cy<=r.y+r.h){ found=r; break; }
+    }
+    if(found){
+        tip.style.display="block";
+        tip.style.left=(e.clientX+16)+"px";
+        tip.style.top=(e.clientY-12)+"px";
+        tip.innerHTML='<b style="color:#818CF8">'+found.marker+'</b><br>'+
+            'Chr '+found.chromosome+' &nbsp;|&nbsp; '+found.position.toFixed(3)+' cM<br>'+
+            '<span style="color:#86EFAC">Parent A:</span> '+(found.a*100).toFixed(1)+'%<br>'+
+            '<span style="color:#FDA4AF">Parent B:</span> '+(found.b*100).toFixed(1)+'%<br>'+
+            '<span style="color:#FCD34D">Het (ab): </span>'+(found.ab*100).toFixed(1)+'%<br>'+
+            '<span style="color:#94A3B8">Missing:  </span>'+(found.miss*100).toFixed(1)+'%';
+    }else{
+        tip.style.display="none";
+    }
+});
+
+window.showMapPlot=showMapPlot;
+window.showDensityPlot=showDensityPlot;
+window.showHeatmapPlot=showHeatmapPlot;
+</script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+---
+title: "dfba_median_test"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_median_test}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction
+
+The two-sample $t$-test is the standard frequentist parametric procedure when the variate in each condition is continuous and when the data are normally distributed with the same population variance in each condition. It is not likely that the assumptions of the parametric analysis are strictly valid, so it is prudent to have some nonparametric procedures as alternatives. The median test and the Mann-Whitney $U$-test are two frequentist nonparametric procedures that are the conventional alternatives to the two-sample-$t$ test. 
+ 
+The essential idea underlying the median test is to categorize all the scores so as to form a $2 \times 2$ table of frequencies. One classification (*e.g.*, the *rows*) is based on the observation being *above the combined median* versus being *at or below the median*. The other classification (*e.g.* the columns) is based on the observation being from the *experimental* group (denoted as the $E$ group) or being from the *control* group (denoted as the $C$ group). In contrast to the median test, the Mann-Whitney test is based on $U$-statistics. The $U_E$ statistic is the number of times an $E$-labelled score is larger than a $C$-labelled score, whereas the $U_C$ statistic is the number of times the $C$ variate is larger than the $E$ variate. Because the $U$ statistics are based on more fine-grained information than the median test, the median test is generally less powerful relative to the Mann-Whitney procedure. Yet, for precisely that reason, the median test has an appeal for some investigators: if a median test can detect differences between the two conditions, then it is convincing that those conditions are different.
+ 
+In the `DFBA` package, the Bayesian counterpart to the median test is given by the `dfba_median_test()` function. This vignette on the `dfba_median_test()` contains discussion of the beta distribution, the binomial model, and Bayes factors; for more on those topics see the `dfba_binomial()` and `dfba_beta_bayes_factor()` vignettes.
+ 
+# Theoretical Framework for the Bayesian Median Test
+
+Given $n_E$ continuous scores from group $E$ and $n_C$ scores from group $C$, the display below helps to define the frequencies associated with the median test where the rows of the $2 \times 2$ table are organized in relation to the combined median.
+
+\[
+   \begin{array}{c|cc|c}
+   & E \hskip 1mm &  C\hskip 1mm &  \\
+   \hline
+   above\,\,median & n_E^{above} & n_C^{above} & n_E^{above} + n_C^{above}\\
+   & & &\\
+   at\,\,or\,\,below\,\,median & n_E^{below} & n_C^{below} & n_E^{below} + n_C^{below}\\
+    \hline
+    & & &\\
+   & n_E & n_C & n_E+n_C
+   \end{array}
+ \] 
+
+The frequentist median test examines, with a $\chi^2$ statistic, the sharp null hypothesis that the proportion of responses above the combined median is the same for both the $E$ and $C$ groups (Siegel & Castellan, 1988). Chechile (2020) provided an alternative Bayesian analysis for this procedure. Rather than focusing the median test on an assessment of a point-null hypothesis, the Bayesian approach involves estimating a population parameter associated with an above-median response being from the $E$ group. The frequencies in row 1 (*above-median* frequencies) are binomial frequencies in terms of the group origin (*i.e.*, $E$ versus $C$). From a Bayesian perspective, a population-level $\phi$ parameter can be defined for the proportion of $E$ values that are above the combined sample median. Similarly, the frequencies for the scores at or below the combined sample median can also be examined; in that case, the corresponding population proportion in the $E$ condition must be $1-\phi$. Thus, it is sufficient only to examine the *above-median* frequencies to make an inference about the $\phi$ parameter. Thus the Bayesian form of the median test reduces to the binomial model, so the prior and posterior distributions for the population $\phi$ parameter belong to the beta family of distributions. The default prior for the `dfba_median_test()` function is the uniform distribution, i.e, $a_0 = b_0 = 1$. The posterior shape parameters for $\phi$ are $a = a_0 + n_E^{above}$ and $b = b_0 + n_C^{above}$.^[To prevent confusion between the prior and posterior shape parameters, the `dfba_median_test()` function uses the variable names `a0` and `b0` to refer to $a_0$ and $b_0$ and `a_post` and `b_post` to refer to the posterior $a$ and $b$, respectively]
+
+Because the number of scores in groups $E$ and $C$ might be very different, it is important to examine the $\phi$ parameter relative to an expected base-rate value. For example, suppose that there are $n_E = 90$ observed values from the $E$ condition and  $n_C = 10$ observed values for the $C$ condition. Given that there are nine times more $E$ scores than $C$ scores in the sample, the assessment of the $\phi$ parameter should be to see if it is greater than $.9$. If there were no difference whatsoever between the $E$ and $C$ conditions in this hypothetical example, then about $90$ percent or less of the above-median values would be expected from the $E$ condition. If the posterior $\phi$ parameter were substantially greater than the group $E$ sample base rate, then that would provide support for the hypothesis that group $E$ has larger representation of the above-median responses in the population than does the $C$ group.
+
+
+# Using the `dfba_median_test()` Function 
+
+There are four arguments for the `dfba_median_test()` function: `E`, `C`, `a0`, and `b0`. The `E` and `C` arguments are required vectors of continuous values for the data in the two independent conditions. The `a0` and `b0` arguments are the shape parameters for the prior beta distribution; each have default values of `1`. Note: the default values `a0 = 1` and `b0 = 1` -- resulting in a beta distribution with $\alpha = \beta = 1$ -- represent the uniform distribution. 
+
+## Example
+
+Given two groups of data:
+
+| Group 1 | Group 2 |
+|:-------:|:-------:|
+|12.90, 10.84, 22.67, 10.64, 10.67, 10.79, 13.55, 10.95, 12.19, 12.76, 10.89, 11.02, 14.27, 13.98, 11.52, 13.49, 11.22, 15.07, 15.74, 19.00| 4.63, 58.64, 5.07, 4.66, 4.13, 3.92, 3.39, 3.57, 3.56, 3.39|
+
+```{r}
+group1 <- c(12.90, 10.84, 22.67, 10.64, 10.67, 10.79, 13.55, 10.95, 12.19, 12.76, 10.89, 11.02, 14.27, 13.98, 11.52, 13.49, 11.22, 15.07, 15.74, 19.00)
+
+group2 <- c(4.63, 58.64, 5.07, 4.66, 4.13, 3.92, 3.39, 3.57, 3.56, 3.39)
+
+dfba_median_test(E = group1, 
+                 C = group2)
+
+```
+
+
+The function computes the combined median of the scores, and it forms the $2 \times 2$ median-test table. The function also shows the base rates for $E$ and $C$ responses, which in this example are $\frac{2}{3}$ for $E$ and $\frac{1}{3}$ for $C$ because there are twice as many observations for the $E$ group. The function also computes the Bayes factor for the interval alternative hypothesis $H_1: \phi > \frac{2}{3}$ where $\phi$ is the population proportion of the above median scores that are from the $E$ group. Since this value is large (*i.e.*, $143.9646$), the data have increased the belief in the hypothesis that the group $E$ group has a greater representation of the above-median scores than would be expected from its base rate of $\frac{2}{3}$. The function also provides a corresponding Bayes factor for the hypothesis that $1-\phi$ exceeds the $C$ group base rate of $\frac{1}{3}$. This value is the reciprocal of the other Bayes factor (*i.e.*, $\frac{1}{143.9646}=.006946$), so the data have *decreased* the belief that the above-median scores are above the $C$ group base rate.  
+
+The `dfba_median_test()` function does not compute a point Bayes factor, and it does not have a specialized plotting function. However, if the user desires that type of information, there are simple `DFBA` commands that can be used instead. For example, entering `nEabove` and `nCabove` from the `dfba_median_test()` results as arguments in the `dfba_binomial()` function can produce estimates of the posterior mean, median, and mode for the $\phi$ parameter...
+
+
+
+```{r}
+median_test_results<-dfba_median_test(E = group1, 
+                                      C = group2)
+
+dfba_binomial(median_test_results$nEabove, 
+              median_test_results$nCabove)
+```
+
+...and can produce a display of the prior and posterior distributions using the `plot()` method:
+
+```{r fig.width = 7}
+plot(dfba_binomial(median_test_results$nEabove, 
+                   median_test_results$nCabove))
+```
+
+Given that the modal estimate for the example data is $\frac{14}{15}$, suppose an analyst wants to see the point Bayes factor for the point $\phi=\frac{14}{15}$. Using the `a.post`, and `b.post` outputs from `dfba_median_test()` output as arguments in the `dfba_beta_bayes_factor()` function:
+
+```{r}
+dfba_beta_bayes_factor(a_post = median_test_results$a_post, 
+                       b_post = median_test_results$b_post, 
+                       method = "point", 
+                       H0 = 14/15)
+```
+
+This command results in finding the point Bayes factor of $6.090246$. Thus, the posterior probability density at the null point has increased by more than a factor of $6$ from prior probability density. Yet the probability for any point is still zero. See the vignette on the `dfba_beta_bayes_factor()` for more theoretical information about the interpretation of point Bayes factors. 
+
+Finally, suppose one performed a parametric two-sample $t$-test for the above data (*i.e.*, `t.test(group1, group2, paired=FALSE)`). The resulting $t$-test would not be significant ($p = .5167$). Why does the $t$-test fail to detect an effect whereas the Bayesian distribution-free median test finds a reliable difference between the two conditions? The answer to this question is that the data contains an outlier. The second value for the $C$ group is unusually large. This single score decreases the difference between the means of the groups, and it increases the standard error. Thus this single score has an enormous influence on the parametric $t$-test. The Bayesian median test is simple, but it is not influenced by outlier scores (*i.e.*, it is *robust*). The example thus illustrates the utility for a simple distribution-free Bayesian alternative to the two-sample $t$-test. Had the `dfba_mann_whitney()` function been employed for the above data, it too would have detected a difference between the conditions with a large Bayes factor value.  
+  
+
+# References 
+
+Chechile, R. A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge, MA: MIT Press.
+
+Siegel, S., and Castellan N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+

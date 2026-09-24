@@ -1,0 +1,65 @@
+apples                  Apple production
+binomreg                Binomial regression
+birthwt                 Cigarette smoking and birth weight
+bivprobit               Bivariate probit
+charitable              Intergenerational transmission of charitable
+                        giving
+cigmales                Cigarette smoking behaviour
+clm                     Constrained least squares
+cmtest                  Conditional moments test
+drinks                  Physician advice on alcohol consumption
+dummy                   Transform a factor in a set of dummy variables
+escount                 Endogenous switching and sample selection
+                        models for count data
+expreg                  Instrumental variable estimation for
+                        exponential conditional mean models
+federiv                 Foreign exchange derivatives use by large US
+                        bank holding companies
+fin_reform              Political economy of financial reforms
+ftest                   F statistic
+gauss_laguerre          Gauss-Laguerre quadrature
+gaussian_quad           Gauss-Hermitte quadrature
+gaze                    Short print of the summary of an object
+hausman                 Hausman test
+housprod                Household Production
+ivldv                   Instrumental variable estimators for limited
+                        dependent variable
+loglm                   Log-linear model
+maximize                Maximization of a function
+micsr                   'micsr' class
+mills                   Compute the inverse Mills ratio and its first
+                        two derivatives
+mode_choice             Choice between car and transit
+ndvuong                 Non-degenerate Vuong test
+newton                  Newton-Raphson method for numerical
+                        optimization
+npar                    Number of parameters of a fitted model
+ordreg                  Ordered regression
+pbnorm                  Compute the probability for the bivariate
+                        normal function
+poisreg                 Poisson regression
+pscore                  Propensity scores
+ptnorm                  Compute the probability for the trivariate
+                        normal function
+punorm                  Compute the probability for the univariate
+                        normal function
+quad_form               Compute quadratic form
+random_group            Random control group
+recall                  recall
+rsq                     Coefficient of determination
+sargan                  Sargan test for GMM models
+scoretest               Score test
+select_coef             select a subset of coefficients
+stder                   Extract the standard errors of estimated
+                        coefficients
+tobit1                  Truncated response model
+trade_protection        Lobying from Capitalists and Unions and Trade
+                        Protection
+trips                   Determinants of household trip taking
+turnout                 Turnout
+twa                     Temporary help jobs and permanent employment
+unemp_duration          Unemployment Duration in Germany
+vuong_sim               Simulated pdfs for the Vuong statistics using
+                        linear models
+weibreg                 Weibull regression model for duration data
+zellner_revankar        Generalized production function

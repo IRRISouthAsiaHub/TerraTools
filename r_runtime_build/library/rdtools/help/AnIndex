@@ -1,0 +1,16 @@
+rdtools-package	rdtools-package
+pkg_cache_reset	pkg_cache_reset
+pkg_macros	pkg_macros
+pkg_search_attached	pkg_search_attached
+pkg_search_base	pkg_search_attached
+pkg_search_deps	pkg_search_deps
+pkg_topics	pkg_topics
+rdtools	rdtools-package
+topic_exists	topic_exists
+topic_find	topic_find
+topic_find_all	topic_find
+topic_origin	topic_origin
+topic_qualifier	topic_qualifier
+topic_rd	topic_rd
+topic_rd_path	topic_rd_path
+topic_split	topic_split

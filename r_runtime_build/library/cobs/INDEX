@@ -1,0 +1,17 @@
+DublinWind              Daily Wind Speeds in Dublin
+USArmyRoofs             Roof Quality in US Army Bases
+cobs                    COnstrained B-Splines Nonparametric Regression
+                        Quantiles
+coef.cobs               Methods for COBS Objects
+conreg                  Convex / Concave Regression
+drqssbc2                Regression Quantile Smoothing Spline with
+                        Constraints
+exHe                    Small Dataset Example of He
+fitted.conreg           Summary Methods for 'conreg' Objects
+globtemp                Annual Average Global Surface Temperature
+interpSplineCon         (Cubic) Interpolation Spline from "conreg"
+mk.pt.constr            COBS auxiliary for constructing pointwise
+                        constraint specifications
+plot.cobs               Plot Method for COBS Objects
+predict.cobs            Predict method for COBS Fits
+qbsks2                  Quantile B-Spline with Fixed Knots

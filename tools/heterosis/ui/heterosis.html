@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Heterosis Prediction</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+:root{--green:#1A4A1F;--green2:#2E6B35;--green3:#3A7D44;--light:#F7F7F5;--card:#FFF;--border:#DDE5DC;--text:#1A1A1A;--muted:#6B746B;--blue:#4A8FA0;--orange:#C8760A;--red:#990000;--purple:#7c5cbf;--shadow:0 3px 14px rgba(25,60,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:var(--text);font-family:"DM Sans",Arial,sans-serif}button,input,select{font:inherit}
+.header{background:linear-gradient(135deg,#173f1b,#2E6B35);color:#fff;padding:22px 34px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.brand-icon{width:46px;height:46px;border-radius:12px;background:#ffffff22;display:flex;align-items:center;justify-content:center;font-size:25px}
+.brand h1{margin:0;font-family:"Playfair Display",serif;font-size:25px}.brand p{margin:3px 0 0;color:#D5E8D5;font-size:12px}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#D9ECD9}.status-dot{width:9px;height:9px;background:#7DCE88;border-radius:50%}
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 30px;display:flex;gap:4px;overflow-x:auto}.nav button{border:0;background:transparent;padding:14px 18px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--green2)}.nav button.active{color:var(--green);font-weight:600;border-bottom-color:var(--green2)}
+.main{padding:28px 34px 42px;max-width:1500px;margin:auto}.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.card-title{font-weight:700;color:var(--green);font-size:15px;margin-bottom:15px;display:flex;align-items:center;gap:8px}.section-label{font-size:12px;font-weight:600;color:var(--green2);border-bottom:1px solid #D9E7D9;padding-bottom:7px;margin:17px 0 12px}
+.info{background:#EAF4EA;border:1px solid #B9D9B9;border-left:4px solid var(--green2);padding:11px 13px;border-radius:7px;font-size:12px;color:var(--green);margin-top:10px}
+.form-row{margin-bottom:14px}label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;border:1px solid #C9D4C8;border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--green2);box-shadow:0 0 0 3px #2e6b3517}.file-row{display:flex;gap:8px}.file-row input{flex:1}
+.btn{border:0;border-radius:7px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:12px}.btn-primary{background:var(--green2);color:#fff}.btn-primary:hover{background:var(--green)}.btn-secondary{background:#EDF2ED;color:var(--green)}.btn-info{background:#E8F2F5;color:#347284}.btn-success{background:#E8F3E9;color:#27652F}.btn-purple{background:#EFE9FA;color:#5B3E96}.btn:disabled{opacity:.5;cursor:not-allowed}
+.run{width:100%;margin-top:8px;padding:13px;font-size:14px}
+.range-wrap{display:flex;align-items:center;gap:10px}.range-wrap input[type=range]{flex:1}.range-value{min-width:50px;text-align:right;font-weight:600;color:var(--green)}input[type=range]{accent-color:var(--green2)}
+.file-preview{font-size:11px;color:var(--muted);margin-top:5px}
+.stat{background:#F5F8F4;border:1px solid #DCE7DA;border-radius:9px;padding:14px;text-align:center}.stat-number{font-size:21px;font-weight:700;color:var(--green)}.stat-label{font-size:10px;color:var(--muted);margin-top:3px}
+.result-placeholder{min-height:220px;border:1px dashed #B9CDB8;border-radius:10px;background:#FBFCFA;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px}.result-placeholder .icon{font-size:36px;margin-bottom:10px}
+.plot-container{width:100%;min-height:320px;border:1px solid var(--border);border-radius:10px;background:#0f1117;overflow:auto;display:flex;align-items:center;justify-content:center}.plot-container img{max-width:100%;display:block;margin:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;background:#EFF5EE;color:var(--green);padding:10px;border-bottom:1px solid #D3E1D1;position:sticky;top:0}td{padding:9px 10px;border-bottom:1px solid #E9EEE8}.empty-table{text-align:center;color:var(--muted);padding:35px}.table-scroll{max-height:380px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+pre.report{background:#0F1B10;color:#D9ECD9;border-radius:9px;padding:16px;font-size:11px;line-height:1.55;overflow-x:auto;white-space:pre-wrap;max-height:340px;overflow-y:auto}
+.footer{text-align:center;color:#899289;font-size:11px;padding:20px}
+.progress-track{width:100%;height:10px;border-radius:6px;background:#E3ECE2;overflow:hidden;margin-bottom:12px}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--green2),var(--purple));transition:width .3s}
+@media(max-width:1100px){.grid,.grid3{grid-template-columns:1fr 1fr}}@media(max-width:750px){.grid,.grid3{grid-template-columns:1fr}.main{padding:18px}.header{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="brand"><div class="brand-icon"><i class="fas fa-seedling"></i></div><div><h1>TerraTools — Heterosis Prediction</h1><p>Deep learning GEBV prediction &amp; hybrid screening</p></div></div>
+<div class="status"><span class="status-dot"></span><span id="connectionStatus">Ready</span></div>
+</header>
+
+<nav class="nav">
+<button class="active" data-tab="setup"><i class="fas fa-sliders-h"></i> Setup &amp; Run</button>
+<button data-tab="results"><i class="fas fa-table"></i> Results</button>
+<button data-tab="plots"><i class="fas fa-chart-bar"></i> Plots</button>
+<button data-tab="help"><i class="fas fa-question-circle"></i> Help</button>
+</nav>
+
+<main class="main">
+
+<!-- ============================================================ SETUP & RUN ============================================================ -->
+<section id="setup" class="tab active">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-folder-open"></i> Input Files</div>
+
+<div class="form-row"><label>Training Phenotype CSV (col 0 = ID, col 1 = trait value)</label>
+<div class="file-row"><input type="text" id="trainPhenoPath" placeholder="Select file..." readonly><button class="btn btn-secondary" onclick="browseFile('train_pheno_file','trainPhenoPath')">Browse</button></div>
+<div class="file-preview" id="trainPhenoPreview"></div></div>
+
+<div class="form-row"><label>Training Genotype CSV (row index = sample ID)</label>
+<div class="file-row"><input type="text" id="trainGenoPath" placeholder="Select file..." readonly><button class="btn btn-secondary" onclick="browseFile('train_geno_file','trainGenoPath')">Browse</button></div>
+<div class="file-preview" id="trainGenoPreview"></div></div>
+
+<div class="form-row"><label>Parent Genotype CSV (row index = parent ID)</label>
+<div class="file-row"><input type="text" id="parentGenoPath" placeholder="Select file..." readonly><button class="btn btn-secondary" onclick="browseFile('parent_geno_file','parentGenoPath')">Browse</button></div>
+<div class="file-preview" id="parentGenoPreview"></div></div>
+
+<div class="form-row"><label>Test Genotype CSV (optional)</label>
+<div class="file-row"><input type="text" id="testGenoPath" placeholder="Select file..." readonly><button class="btn btn-secondary" onclick="browseFile('test_geno_file','testGenoPath')">Browse</button></div>
+<div class="file-preview" id="testGenoPreview"></div></div>
+
+<div class="info">Genotype files are numeric marker matrices (samples × markers). Parent and training genotype files must share the same marker columns.</div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-cogs"></i> Parameters</div>
+<div class="form-row"><label>Top F1 hybrids to report</label><div class="range-wrap"><input type="range" id="numF1" min="1" max="50" value="5" step="1" oninput="updateRange('numF1','numF1Val',0)"><span class="range-value" id="numF1Val">5</span></div></div>
+<div class="form-row"><label>Top parents to report</label><div class="range-wrap"><input type="range" id="numP" min="1" max="30" value="5" step="1" oninput="updateRange('numP','numPVal',0)"><span class="range-value" id="numPVal">5</span></div></div>
+<div class="form-row"><label>K-Fold CV splits</label><div class="range-wrap"><input type="range" id="kFolds" min="2" max="10" value="5" step="1" oninput="updateRange('kFolds','kFoldsVal',0)"><span class="range-value" id="kFoldsVal">5</span></div></div>
+<div class="form-row"><label>Epochs</label><div class="range-wrap"><input type="range" id="epochs" min="10" max="500" value="100" step="10" oninput="updateRange('epochs','epochsVal',0)"><span class="range-value" id="epochsVal">100</span></div></div>
+<div class="form-row"><label>Batch size</label><div class="range-wrap"><input type="range" id="batchSize" min="8" max="128" value="16" step="8" oninput="updateRange('batchSize','batchSizeVal',0)"><span class="range-value" id="batchSizeVal">16</span></div></div>
+<div class="form-row"><label>Dropout rate</label><div class="range-wrap"><input type="range" id="dropoutRate" min="0" max="0.5" value="0.2" step="0.05" oninput="updateRange('dropoutRate','dropoutRateVal',2)"><span class="range-value" id="dropoutRateVal">0.20</span></div></div>
+<div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+<div class="form-row"><label>L1 regularization</label><input type="number" id="l1Reg" value="0.001" step="0.0001"></div>
+<div class="form-row"><label>L2 regularization</label><input type="number" id="l2Reg" value="0.001" step="0.0001"></div>
+</div>
+<button class="btn btn-primary run" id="runBtn" onclick="runHeterosis()" disabled><i class="fas fa-rocket"></i> Run Prediction</button>
+<div class="info" id="runStatus">Upload the three required files first.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-terminal"></i> Training Log</div>
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+<pre class="report" id="trainingLog">Logs will appear here after training...</pre>
+</div>
+</section>
+
+<!-- ============================================================ RESULTS ============================================================ -->
+<section id="results" class="tab">
+<div class="card" id="resultsEmpty"><p style="color:var(--muted);font-style:italic;text-align:center;padding:50px">Run a prediction to see results.</p></div>
+<div id="resultsContent" style="display:none">
+
+<div class="card"><div class="card-title"><i class="fas fa-download"></i> Downloads</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-success" onclick="downloadResult('f1_hybrids')"><i class="fas fa-file-csv"></i> Top F1 Hybrids</button>
+<button class="btn btn-info" onclick="downloadResult('top_parents')"><i class="fas fa-file-csv"></i> Top Parents</button>
+<button class="btn btn-info" onclick="downloadResult('all_hybrids')"><i class="fas fa-file-csv"></i> All Hybrid Results</button>
+<button class="btn btn-purple" id="testDownloadBtn" onclick="downloadResult('test_predictions')" disabled><i class="fas fa-file-csv"></i> Test Predictions</button>
+</div></div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-chart-line"></i> Cross-Validation Summary</div>
+<div class="grid3">
+<div class="stat"><div class="stat-number" id="statMse">—</div><div class="stat-label">MSE</div></div>
+<div class="stat"><div class="stat-number" id="statRmse">—</div><div class="stat-label">RMSE</div></div>
+<div class="stat"><div class="stat-number" id="statR2">—</div><div class="stat-label">R²</div></div>
+<div class="stat"><div class="stat-number" id="statPearson">—</div><div class="stat-label">Pearson r</div></div>
+</div>
+<div class="section-label">Per-Fold Metrics</div>
+<div class="table-scroll"><table id="foldTable"><thead><tr><th>Fold</th><th>MSE</th><th>RMSE</th><th>R²</th><th>Pearson r</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<div class="card"><div class="card-title"><i class="fas fa-trophy"></i> Top F1 Hybrid Combinations</div><div class="table-scroll"><table id="f1Table"><thead><tr></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-star"></i> Top Parent Lines by Mean GEBV</div><div class="table-scroll"><table id="parentsTable"><thead><tr></tr></thead><tbody></tbody></table></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-vial"></i> Test Genotype Predictions</div><div class="table-scroll"><table id="testTable"><thead><tr></tr></thead><tbody><tr><td class="empty-table">No test genotype file was provided.</td></tr></tbody></table></div></div>
+</div>
+</section>
+
+<!-- ============================================================ PLOTS ============================================================ -->
+<section id="plots" class="tab">
+<div class="card">
+<div class="card-title"><i class="fas fa-chart-bar"></i> Hybrid Performance Visualization</div>
+<div class="plot-container" id="plotContainer"><div class="result-placeholder" style="color:#8892b0"><div><div class="icon"><i class="fas fa-chart-bar"></i></div><div>Run a prediction first.</div></div></div></div>
+<button class="btn btn-success" style="margin-top:12px" onclick="downloadResult('plot')"><i class="fas fa-image"></i> Download Plot PNG</button>
+</div>
+</section>
+
+<!-- ============================================================ HELP ============================================================ -->
+<section id="help" class="tab">
+<div class="card">
+<div class="card-title"><i class="fas fa-book"></i> Application Guide</div>
+<div class="section-label">Required Input Format</div>
+<div class="info">
+<ul style="margin:0;padding-left:18px">
+<li>Training Phenotype CSV — column 0: sample ID, column 1: numeric trait value</li>
+<li>Training Genotype CSV — row index: sample ID, columns: numeric marker calls</li>
+<li>Parent Genotype CSV — row index: parent ID, columns: same markers as training genotype</li>
+<li>Test Genotype CSV (optional) — same marker columns, for out-of-sample GEBV prediction</li>
+</ul>
+</div>
+<div class="section-label">Workflow</div>
+<ol style="font-size:12px;line-height:1.8;padding-left:18px">
+<li>Upload the three required CSV files (and an optional test genotype file) in Setup &amp; Run.</li>
+<li>Adjust cross-validation and network hyperparameters as needed.</li>
+<li>Click Run Prediction — this trains K models for cross-validation, then a final model on the full dataset.</li>
+<li>All pairwise parent combinations are scored to identify the top-performing F1 hybrids.</li>
+<li>Review CV metrics, hybrid/parent rankings, and predictions in Results; export CSVs as needed.</li>
+<li>Inspect the hybrid ranking and GEBV distribution charts in Plots.</li>
+</ol>
+<div class="section-label">Model &amp; Metrics</div>
+<div class="info">
+<b>Model architecture:</b> 8-layer DNN (512→512→256→128→64→32→16→8) with batch normalization, LeakyReLU, dropout, and L1/L2 regularization.<br>
+<b>Metrics:</b> MSE · RMSE · R² · Pearson r, evaluated via K-fold cross-validation.<br>
+<b>Heterosis indices:</b> Mid-Parent Heterosis (MPH) and Better-Parent Heterosis (BPH), both computed relative to the training population.
+</div>
+</div>
+</section>
+
+</main>
+<footer class="footer">TerraTools · Heterosis Prediction · DNN-based GEBV screening</footer>
+</div>
+
+<script>
+let heterosisBridge=null;
+let filePaths={train_pheno_file:null,train_geno_file:null,parent_geno_file:null,test_geno_file:null};
+let lastResult=null;
+
+/* ---------------- Bridge init ---------------- */
+function initHeterosisBridge(){
+    console.log("[HETEROSIS] Initializing QWebChannel...");
+    if(typeof qt==="undefined" || !qt.webChannelTransport){
+        setConnection("Browser preview");
+        return;
+    }
+    try{
+        new QWebChannel(qt.webChannelTransport,function(channel){
+            heterosisBridge=channel.objects.heterosisBridge;
+            if(!heterosisBridge){
+                console.error("[HETEROSIS] heterosisBridge not found on channel.objects.");
+                setConnection("Bridge not found");
+                return;
+            }
+            heterosisBridge.resultReady.connect(function(jsonStr){
+                try{ showHeterosisResult(JSON.parse(jsonStr)); }
+                catch(err){ console.error("[HETEROSIS] showHeterosisResult error:",err); setStatus("runStatus","Frontend error: "+err.message); }
+            });
+            heterosisBridge.statusUpdate.connect(function(txt){ setStatus("runStatus",txt); });
+            heterosisBridge.progressUpdate.connect(function(fraction,message){ onProgress(fraction,message); });
+            setConnection("Connected");
+        });
+    }catch(err){ console.error("[HETEROSIS] QWebChannel setup error:",err); }
+}
+window.addEventListener("error",function(e){ console.error("[HETEROSIS] Uncaught JS error:",e.message,"at",e.filename,":",e.lineno); });
+(function(){
+    if(typeof qt!=="undefined"){
+        const script=document.createElement("script");
+        script.src="qrc:///qtwebchannel/qwebchannel.js";
+        script.onload=initHeterosisBridge;
+        document.head.appendChild(script);
+    }else{ initHeterosisBridge(); }
+})();
+
+function setConnection(text){ document.getElementById("connectionStatus").textContent=text; }
+function setStatus(id,text){ const el=document.getElementById(id); if(el) el.textContent=text; }
+function updateRange(id,valueId,decimals){
+    const v=Number(document.getElementById(id).value);
+    document.getElementById(valueId).textContent = decimals>0 ? v.toFixed(decimals) : String(v);
+}
+
+/* ---------------- Tabs ---------------- */
+document.querySelectorAll(".nav button").forEach(button=>{
+    button.addEventListener("click",()=>{
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+    });
+});
+
+/* ---------------- File upload ---------------- */
+function browseFile(key,inputId){
+    if(!heterosisBridge || !heterosisBridge.browse_file){
+        setStatus("runStatus","Qt bridge not connected. Run this page through TerraTools.");
+        return;
+    }
+    heterosisBridge.browse_file(key,function(path){
+        if(!path) return;
+        filePaths[key]=path;
+        document.getElementById(inputId).value=path;
+        const previewId=inputId.replace("Path","Preview");
+        const previewEl=document.getElementById(previewId);
+        if(previewEl) previewEl.textContent="Loading preview...";
+        heterosisBridge.get_file_preview(path,function(jsonStr){
+            const preview=JSON.parse(jsonStr);
+            if(previewEl){
+                previewEl.textContent = preview.status==="success"
+                    ? preview.n_rows+" rows × "+preview.n_cols+" columns"
+                    : "Could not preview file: "+(preview.message||"");
+            }
+        });
+        checkReadyToRun();
+    });
+}
+function checkReadyToRun(){
+    const ready = filePaths.train_pheno_file && filePaths.train_geno_file && filePaths.parent_geno_file;
+    document.getElementById("runBtn").disabled=!ready;
+    document.getElementById("testDownloadBtn").disabled = !filePaths.test_geno_file;
+    if(ready) setStatus("runStatus","Ready. Adjust parameters and click Run Prediction.");
+}
+
+/* ---------------- Run ---------------- */
+function collectConfig(){
+    return {
+        num_F1:Number(document.getElementById("numF1").value),
+        num_P:Number(document.getElementById("numP").value),
+        k_folds:Number(document.getElementById("kFolds").value),
+        epochs:Number(document.getElementById("epochs").value),
+        batch_size:Number(document.getElementById("batchSize").value),
+        dropout_rate:Number(document.getElementById("dropoutRate").value),
+        l1_reg:Number(document.getElementById("l1Reg").value),
+        l2_reg:Number(document.getElementById("l2Reg").value)
+    };
+}
+function runHeterosis(){
+    if(!heterosisBridge || !heterosisBridge.run_heterosis){
+        setStatus("runStatus","Qt bridge not connected.");
+        return;
+    }
+    document.getElementById("trainingLog").textContent="";
+    document.getElementById("progressFill").style.width="0%";
+    setStatus("runStatus","Starting cross-validation...");
+    heterosisBridge.run_heterosis(JSON.stringify(collectConfig()));
+}
+function onProgress(fraction,message){
+    if(fraction!==null && fraction>=0){
+        document.getElementById("progressFill").style.width=(fraction*100).toFixed(0)+"%";
+    }
+    if(message){
+        const log=document.getElementById("trainingLog");
+        log.textContent += (log.textContent?"\n":"")+message;
+        log.scrollTop=log.scrollHeight;
+    }
+}
+
+function showHeterosisResult(result){
+    if(!result) return;
+    if(result.status==="error"){
+        setStatus("runStatus","Error: "+(result.message||"Heterosis prediction failed."));
+        return;
+    }
+    lastResult=result;
+    document.getElementById("progressFill").style.width="100%";
+    if(result.logs) document.getElementById("trainingLog").textContent=result.logs;
+
+    document.getElementById("resultsEmpty").style.display="none";
+    document.getElementById("resultsContent").style.display="block";
+
+    const cv=result.cv_summary||{};
+    document.getElementById("statMse").textContent = cv.mse!==undefined ? cv.mse : "—";
+    document.getElementById("statRmse").textContent = cv.rmse!==undefined ? cv.rmse : "—";
+    document.getElementById("statR2").textContent = cv.r2!==undefined ? cv.r2 : "—";
+    document.getElementById("statPearson").textContent = cv.pearson_r!==undefined ? cv.pearson_r : "—";
+
+    populateTable("foldTable",result.fold_metrics,["Fold","MSE","RMSE","R2","Pearson_r"]);
+    populateTable("f1Table",result.f1_hybrids,result.f1_hybrids_columns);
+    populateTable("parentsTable",result.top_parents,result.top_parents_columns);
+
+    if(result.test_predictions && result.test_predictions.length){
+        populateTable("testTable",result.test_predictions,result.test_predictions_columns);
+        document.getElementById("testDownloadBtn").disabled=false;
+    }
+
+    if(result.plot_path){
+        document.getElementById("plotContainer").innerHTML='<img src="'+result.plot_path+'" alt="Hybrid Performance">';
+    }
+
+    setStatus("runStatus","Heterosis prediction completed successfully.");
+    document.querySelector('[data-tab="results"]').click();
+}
+
+/* ---------------- Downloads ---------------- */
+function downloadResult(type){
+    if(!heterosisBridge || !heterosisBridge.download_result){ setStatus("runStatus","Qt bridge not connected."); return; }
+    heterosisBridge.download_result(type);
+}
+
+/* ---------------- Tables ---------------- */
+function populateTable(tableId,rows,columns){
+    const table=document.getElementById(tableId);
+    const thead=table.querySelector("thead tr");
+    const tbody=table.querySelector("tbody");
+    if(columns && columns.length){
+        thead.innerHTML="";
+        columns.forEach(c=>{ const th=document.createElement("th"); th.textContent=c; thead.appendChild(th); });
+    }
+    tbody.innerHTML="";
+    const cols = columns || (thead.children.length ? Array.from(thead.children).map(th=>th.textContent) : []);
+    if(!rows || rows.length===0){
+        tbody.innerHTML='<tr><td colspan="'+Math.max(cols.length,1)+'" class="empty-table">No results.</td></tr>';
+        return;
+    }
+    rows.forEach(row=>{
+        const tr=document.createElement("tr");
+        cols.forEach(c=>{
+            const td=document.createElement("td");
+            const v=row[c];
+            td.textContent=(v===null||v===undefined)?"—":v;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+</script>
+</body>
+</html>

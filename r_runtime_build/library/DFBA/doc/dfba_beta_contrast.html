@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>dfba_beta_contrast</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dfba_beta_contrast</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="overview" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Overview</h1>
+<p>The frequentist <span class="math inline">\(\chi^{2}\)</span> test is the standard nonparametric procedure when there are <span class="math inline">\(K\)</span> independent groups and where the dependent measure is a binary random variable (Siegel &amp; Castellan, 1988). This frequentist test assesses the unlikely hypothesis that there are no differences whatsoever among the <span class="math inline">\(K\)</span> different population binomial rate parameters. This sharp null hypothesis is usually only retained for small-sample studies. From the Bayesian framework, the point null hypothesis is a trivial hypothesis. In the limit of larger samples, the sharp null hypothesis is expected to be falsified with near certainty. Chechile (2020) argued that it is not a valuable use of scientific effort to assess a sharp null hypothesis as is done with the frequentist <span class="math inline">\(\chi^{2}\)</span> test. Instead it would be more useful to compare the different rate parameters with a contrast. The <code>dfba_beta_contrast</code> function is designed to assess a general linear comparison of <span class="math inline">\(K\)</span> independent conditions where the measurements in each condition are binary outcomes. In the Bayesian analysis, the prior and posterior for each group are beta distributions (<em>see</em> <code>dfba_beta_descriptive</code>, <code>dfba_binomial</code>, and <code>dfba_beta_bayes_factor</code> for more information about the beta distribution and its role in the analyses in the <code>DFBA</code> package).</p>
+</div>
+<div id="k-independent-groups-with-binary-categorical-data" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> <span class="math inline">\(K\)</span> Independent Groups with Binary Categorical Data</h1>
+<p>Given <span class="math inline">\(K\)</span> independent binomial conditions, there are <span class="math inline">\(K\)</span> separate binomial parameters <span class="math inline">\(\phi_i\)</span> for <span class="math inline">\(i=1,\ldots, K\)</span> where each <span class="math inline">\(\phi_i\)</span> has a beta posterior distribution. Condition differences can be assessed by <em>contrasts</em> of these variates. A contrast is a linear combination of the independent variates. It is well known how to compute the mean of a linear combination of independent random variates regardless of their distributional form, but <em>the distributional form</em> for the contrast of beta variates is not analytically known. However, the quantiles, interval estimates, and other statistical properties of the contrast – which are functions of the distributional form – can be approximated by way of Monte Carlo sampling. The <code>dfba_beta_contrast</code> function is a tool for doing a Bayesian analysis of a general, user-defined contrast of beta variates.</p>
+<p>Because Monte Carlo sampling is employed in the <code>dfba_beta_contrast</code> function, it is important to stress that this stochastic process is conventional random sampling and it is not <em>Markov Chain</em> Monte Carlo (MCMC), which is often used with other Bayesian <em>parametric</em> procedures. The Monte Carlo sampling used for any of the <code>DFBA</code> functions, including the <code>dfba_beta_contrast</code> function, are from a known probability distribution and employ conventional Monte Carlo procedures. Some mistakenly assume that a Bayesian procedure that employs Monte Carlo sampling is using a Markov chain Monte Carlo method because a MCMC algorithm is frequently used in <em>parametric</em> Bayesian models and with other Bayesian software packages. MCMC procedures, such as the Metropolis <em>et al</em>. (1953) algorithm and the Gibbs sampler (Geman &amp; Geman, 1984), are approximate methods that are based on ergodicity theory (Birkhoff, 1931), and these procedures enable random sampling from distributions that do not have a known conventional Monte Carlo sampling procedure. MCMC sampling is an approximate procedure that asymptotically converges to the proper distribution. <em>But Bayesian inference does not require MCMC procedures.</em> Since all the sampling done in the <code>DFBA</code> package are from proper target distributions, these Monte Carlo samples do not require convergence of a Markov chain. This feature is not unusual because there are already many conventional Monte Carlo functions in base R. For example, the <code>stats</code> function <code>rbeta(10000, shape1=30, shape2=40)</code> generates <span class="math inline">\(10,000\)</span> random values from a beta distribution where the two shape parameters are <span class="math inline">\(30\)</span> and <span class="math inline">\(40\)</span>. Unlike with MCMC sampling, no burn-in period is needed, and there are no autocorrelations among the values. All the samples are independent and valid.</p>
+<p>A contrast is defined by a vector of condition weights. The weights are real-value proportions where the sum of all the positive weights is <span class="math inline">\(1\)</span> and the sum of all the negative weights is <span class="math inline">\(-1\)</span>; thus the sum of all the weights is <span class="math inline">\(0\)</span>. The contrast used here is similar to the same idea commonly employed with <em>post hoc</em> tests of the frequentist Analysis of Variance (ANOVA) (Kirk, 2013). Each contrast in the ANOVA is a one degree-of-freedom effect from the large <span class="math inline">\(K-1\)</span> degrees of freedom for treatment variability. As an example of a contrast, consider the case where there are five conditions and the investigator is interested in the difference in performance for the first three conditions versus the last two conditions; this contrast would have the following vector of weight values: <span class="math inline">\((\frac{1}{3}, ~\frac{1}{3},~\frac{1}{3},-\frac{1}{2},-\frac{1}{2})\)</span>. Alternatively, the researcher might be interested in the comparison between conditions 1 and 4, and therefore use the following contrast weights: <span class="math inline">\((1,~0,~0,-1,~0)\)</span>. If we denote <span class="math inline">\(\psi_i\)</span> as the contrast weight for the <span class="math inline">\(i\)</span>th condition, then there is a population parameter <span class="math inline">\(\Delta\)</span> for the contrast, which is <span class="math inline">\(\Delta = \sum_{i=1}^{K} \psi_i \phi_i\)</span>. By restricting the contrast coefficients so that (1) they all add to <span class="math inline">\(0\)</span>, (2) the sum of the positive coefficients is <span class="math inline">\(1\)</span>, and (3) the sum of the negative coefficients is <span class="math inline">\(-1\)</span>, restricts <span class="math inline">\(\Delta\)</span> to be a number on the <span class="math inline">\([-1,~1]\)</span> interval. The posterior centrality and interval estimates of <span class="math inline">\(\Delta\)</span> are informative about the difference among the <span class="math inline">\(K\)</span> conditions. The <code>dfba_beta_contrast</code> function provides centrality and interval estimates for any suitably constructed user-defined contrast, and it also computes the posterior probability for <span class="math inline">\(\Delta&gt;0\)</span> along with a Bayes factor value.</p>
+<p>The posterior interval estimate and the Bayes factor for the contrast <span class="math inline">\(\Delta\)</span> are obtained from Monte Carlo sampling. The random <span class="math inline">\(\Delta\)</span> values are obtained by first drawing random values for each posterior <span class="math inline">\(\phi_i\)</span> for <span class="math inline">\(i=1,~\cdots,~K\)</span>. As discussed in the <code>dfba_binomial</code> vignette, each of the <span class="math inline">\(K\)</span> conditions is simply a case of a binomial. Thus the posterior distribution for each <span class="math inline">\(\phi_i\)</span>, for <span class="math inline">\(i=1~,\ldots,\,K\)</span>, is a beta distribution with shape parameters <span class="math inline">\(n_{1_i}+a_{0_i}\)</span> and <span class="math inline">\(n_{2_i}+b_{0_i}\)</span> where <span class="math inline">\(a_{0_i}\)</span> and <span class="math inline">\(b_{0_i}\)</span> are the shape parameters for the prior in the <span class="math inline">\(i\)</span>th condition and where <span class="math inline">\(n_{1_i}\)</span> and <span class="math inline">\(n_{2_i}\)</span> are the observed frequencies for the condition. The <code>dfba_beta_contrast()</code> function draws <span class="math inline">\(N\)</span> random values for each separate <span class="math inline">\(\phi_i\)</span>. Let us denote the <span class="math inline">\(j\)</span>th random value from the <span class="math inline">\(i\)</span>th condition as <span class="math inline">\(\phi_{ij}\)</span>. The <span class="math inline">\(j\)</span>th random sample of <span class="math inline">\(\Delta\)</span> is denoted as <span class="math inline">\(\Delta_j\)</span>. It follows that</p>
+<p><span class="math display" id="eq:DeltaJ">\[\begin{equation}
+  \Delta_j = \psi_1 \phi_{1j}+\psi_2 \phi_{2j} +\cdots +\psi_K \phi_{Kj}
+  \tag{2.1}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(j= 1, \ldots, N\)</span>. The posterior probability that <span class="math inline">\(\Delta&gt;0\)</span> is estimated by the proportion of the <span class="math inline">\(N\)</span> random <span class="math inline">\(\Delta_j\)</span> values that are positive. Similarly the quantiles for the contrast are estimated from the quantiles of the <span class="math inline">\(\Delta_j\)</span> values.</p>
+</div>
+<div id="using-the-dfba_beta_contrast-function" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Using the <code>dfba_beta_contrast</code> Function</h1>
+<p>The <code>dfba_beta_contrast</code> function has seven arguments where the first three are required and the last four have defaults, so those four arguments are optional. The three required arguments are: <code>n1_vec</code>, <code>n2_vec</code> and <code>contrast_vec</code>.</p>
+<p>Each of these arguments are vectors of <span class="math inline">\(K\)</span> elements. The <code>n1_vec</code> argument is a vector of the <span class="math inline">\(n1\)</span> values for the <span class="math inline">\(K\)</span> separate binomial groups. The <code>n2_vec</code> argument is a vector of the corresponding <span class="math inline">\(n2\)</span> values for the <span class="math inline">\(K\)</span>. The <span class="math inline">\(n_1\)</span> and <span class="math inline">\(n_2\)</span> values for each binomial are defined in the same way as for the <code>dfba_binomial</code> function.</p>
+<p>In addition to the three required arguments, the <code>dfba_beta_contrast</code> function has the following four optional arguments:</p>
+<ul>
+<li><p><code>a0_vec</code></p></li>
+<li><p><code>b0_vec</code></p></li>
+<li><p><code>prob_interval</code></p></li>
+<li><p><code>samples</code></p></li>
+</ul>
+<p>The <code>a0_vec</code> and <code>b0_vec</code> arguments are vectors of, respectively, the <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span> shape parameters of the <span class="math inline">\(K\)</span> prior distributions for the separate beta distributions. The default for both of these inputs is a vector of <span class="math inline">\(1\)</span>’s for both prior shape parameters, which corresponds to a uniform prior for each condition. The <code>prob_interval</code> argument is the value for the interval estimate; the default value for <code>prob_interval</code> is <span class="math inline">\(.95\)</span>. Finally, the <code>samples</code> argument is the number of Monte Carlo sampled values for the contrast. The default for this input is set to <span class="math inline">\(10000\)</span>. Please note that is not recommended to use fewer than <span class="math inline">\(10000\)</span> samples and thus argument values less than <span class="math inline">\(10000\)</span> are not allowed.</p>
+<div id="example" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Example</h2>
+<p>As an example, for four separate groups of data where the binomial frequencies <span class="math inline">\((n_1,~n_2)\)</span> are: <span class="math inline">\(G_1:(22,~18)\)</span>, <span class="math inline">\(G_2:(15,~25)\)</span>, <span class="math inline">\(G_3:(13,~27)\)</span>, and <span class="math inline">\(G_4:(21,~19)\)</span>, respectively, the corresponding contrast vectors arguments would be:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>n1_responses <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">22</span>, <span class="dv">15</span>, <span class="dv">13</span>, <span class="dv">21</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>n2_responses <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">18</span>, <span class="dv">25</span>, <span class="dv">27</span>, <span class="dv">19</span>)</span></code></pre></div>
+<p>A contrast vector argument (<code>contrast_vec</code>) to compare groups <span class="math inline">\(G1\)</span> and <span class="math inline">\(G3\)</span> versus groups <span class="math inline">\(G2\)</span> and <span class="math inline">\(G4\)</span> can be defined as:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>G13_vs_G24 <span class="ot">&lt;-</span> <span class="fu">c</span>(.<span class="dv">5</span>, <span class="sc">-</span>.<span class="dv">5</span>, .<span class="dv">5</span>, <span class="sc">-</span>.<span class="dv">5</span>)</span></code></pre></div>
+<p>Using the defaults for the optional arguments (<code>a0_vec</code>, <code>b0_vec</code>, <code>prob_interval</code>, and <code>samples</code>), the Bayesian analysis of the contrast is given by:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>contrast_example <span class="ot">&lt;-</span> <span class="fu">dfba_beta_contrast</span>(<span class="at">n1_vec =</span> n1_responses,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                                       <span class="at">n2_vec =</span> n2_responses,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>                                       <span class="at">contrast_vec =</span> G13_vs_G24)</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>contrast_example</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; Bayesian Contrasts </span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   Contrast Weights </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;   0.5 -0.5 0.5 -0.5 </span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;   Exact posterior contrast mean </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;   -0.01190476 </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;   Monte Carlo sampling results </span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;   Number of Monte Carlo Samples </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;   10000 </span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   Equal-tail 95% Probability Interval </span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;   -0.158797       0.1364627 </span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability that Contrast is Positive </span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;   0.4299 </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;   Prior Probability that Contrast is Positive </span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;   0.5016 </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate that Contrast is Positive </span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt;   0.7492675</span></span></code></pre></div>
+<p>The <code>plot()</code> method produces a visualization of the prior and posterior distributions for the <span class="math inline">\(\phi\)</span> parameter. Note: a plot of the posterior distribution without the prior distribution is given by including the argument <code>plot.prior = FALSE</code> (the default is <code>plot.prior = TRUE</code>).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">plot</span>(contrast_example)</span></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqAAAAEgCAYAAABrZMGAAAAEDmlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPpu5syskzoPUpqaSDv41lLRsUtGE2uj+ZbNt3CyTbLRBkMns3Z1pJjPj/KRpKT4UQRDBqOCT4P9bwSchaqvtiy2itFCiBIMo+ND6R6HSFwnruTOzu5O4a73L3PnmnO9+595z7t4LkLgsW5beJQIsGq4t5dPis8fmxMQ6dMF90A190C0rjpUqlSYBG+PCv9rt7yDG3tf2t/f/Z+uuUEcBiN2F2Kw4yiLiZQD+FcWyXYAEQfvICddi+AnEO2ycIOISw7UAVxieD/Cyz5mRMohfRSwoqoz+xNuIB+cj9loEB3Pw2448NaitKSLLRck2q5pOI9O9g/t/tkXda8Tbg0+PszB9FN8DuPaXKnKW4YcQn1Xk3HSIry5ps8UQ/2W5aQnxIwBdu7yFcgrxPsRjVXu8HOh0qao30cArp9SZZxDfg3h1wTzKxu5E/LUxX5wKdX5SnAzmDx4A4OIqLbB69yMesE1pKojLjVdoNsfyiPi45hZmAn3uLWdpOtfQOaVmikEs7ovj8hFWpz7EV6mel0L9Xy23FMYlPYZenAx0yDB1/PX6dledmQjikjkXCxqMJS9WtfFCyH9XtSekEF+2dH+P4tzITduTygGfv58a5VCTH5PtXD7EFZiNyUDBhHnsFTBgE0SQIA9pfFtgo6cKGuhooeilaKH41eDs38Ip+f4At1Rq/sjr6NEwQqb/I/DQqsLvaFUjvAx+eWirddAJZnAj1DFJL0mSg/gcIpPkMBkhoyCSJ8lTZIxk0TpKDjXHliJzZPO50dR5ASNSnzeLvIvod0HG/mdkmOC0z8VKnzcQ2M/Yz2vKldduXjp9bleLu0ZWn7vWc+l0JGcaai10yNrUnXLP/8Jf59ewX+c3Wgz+B34Df+vbVrc16zTMVgp9um9bxEfzPU5kPqUtVWxhs6OiWTVW+gIfywB9uXi7CGcGW/zk98k/kmvJ95IfJn/j3uQ+4c5zn3Kfcd+AyF3gLnJfcl9xH3OfR2rUee80a+6vo7EK5mmXUdyfQlrYLTwoZIU9wsPCZEtP6BWGhAlhL3p2N6sTjRdduwbHsG9kq32sgBepc+xurLPW4T9URpYGJ3ym4+8zA05u44QjST8ZIoVtu3qE7fWmdn5LPdqvgcZz8Ww8BWJ8X3w0PhQ/wnCDGd+LvlHs8dRy6bLLDuKMaZ20tZrqisPJ5ONiCq8yKhYM5cCgKOu66Lsc0aYOtZdo5QCwezI4wm9J/v0X23mlZXOfBjj8Jzv3WrY5D+CsA9D7aMs2gGfjve8ArD6mePZSeCfEYt8CONWDw8FXTxrPqx/r9Vt4biXeANh8vV7/+/16ffMD1N8AuKD/A/8leAvFY9bLAAAAOGVYSWZNTQAqAAAACAABh2kABAAAAAEAAAAaAAAAAAACoAIABAAAAAEAAAKgoAMABAAAAAEAAAEgAAAAAPtKMwcAAEAASURBVHgB7Z0JvE3V+/8fU2YyTxUZC4VMKaFQhsqQ1DdCRZpEMlT6Js0phaJJEomkNIjMUmQeG8xSCpGQDKH9X5/n+1/7t8+559597nXPdO9nvV7n7GntNbz3Pmc/e61nyOKYJEwkQAIkQAIkQAIkQAIkECUCWaNUD6shARIgARIgARIgARIgASVAAZQ3AgmQAAmQAAmQAAmQQFQJUACNKm5WRgIkQAIkQAIkQAIkQAGU9wAJkAAJkAAJkAAJkEBUCVAAjSpuVkYCJEACJEACJEACJEABlPcACZAACZAACZAACZBAVAlQAI0qblZGAiRAAiRAAiRAAiRAAZT3AAmQAAmQAAmQAAmQQFQJUACNKm5WRgIkQAIkQAIkQAIkQAGU9wAJkAAJkAAJkAAJkEBUCVAAjSpuVkYCJEACJEACJEACJEABlPcACZAACZAACZAACZBAVAlQAI0qblZGAiRAAiRAAiRAAiRAAZT3AAmQAAmQAAmQAAmQQFQJUACNKm5WRgIkQAIkQAIkQAIkQAGU9wAJkAAJkAAJkAAJkEBUCVAAjSpuVkYCJEACJEACJEACJEABlPcACZAACZAACZAACZBAVAlQAI0qblZGAiRAAiRAAiRAAiRAAZT3AAmQAAmQAAmQAAmQQFQJUACNKm5WRgIkQAIkQAIkQAIkQAGU9wAJkAAJkAAJkAAJkEBUCVAAjSpuVkYCJEACJEACJEACJEABlPcACZAACZAACZAACZBAVAn4CqBff/21PPDAA7Ju3bqoNoyVkQAJkAAJkAAJkAAJZEwCvgLo2WefLbNmzZKaNWvqZ/jw4bJv376MSYO9IgESIAESIAESIAESiDiBLI5J4dSycuVKGT9+vEyaNEkOHTokrVq1kq5du8q1114rOXLkCKcI5iEBEiABEiABEiABEiABCVsAtaxOnjypI6LTpk2TqVOnyllnnSWdOnWSu+66Sy644AKbjUsSIAESIAESIAESIAESCEnAdwo++Kyff/5Z1qxZI6tXr5bDhw9L+fLlZdmyZVK1alX573//G5yd2yRAAiRAAiRAAiRAAiQQQCCsEdD9+/fLBx98IO+9954sXbpUSpQoIbfeeqt069ZNqlWrpgV++OGH0rFjR1m1apVccsklAZVwgwRIgARIgARIgARIgAQsgex2JbnlokWLpFmzZnoY+p6fffaZtGzZUrJnDzwVOqFIe/fu1SW/SIAESIAESIAESIAESCAUAd8R0G+++UbmzZsn99xzjxQrViygjGPHjsny5culcePGcurUKfnjjz90dDQgEzdIgARIgARIgARIgARIwEMgcBjTc8CuwuL9888/l8GDB9td7hKW8U2aNFHBs3DhwhQ+XTJcySwE/vzzT7nhhhuSdDdLlixqoFe0aFFp3bq1tG/fXreTZIzDHUOHDpUvv/xSW4aXT/QlXtJvv/0mnTt3DmgO1IO8L8d79uyRW265JSDPxIkTpVSpUgH7IrmxY8cOwX9iwYIF070auMF78cUXVQ9//fr1kjdvXrnwwgtVBQqeSSKRMLP1n//8R4uG+tVtt92WrtXAGcvo0aNl/vz5smHDBnX1V7ZsWbn44otl4MCBrqpXulYaocK8v5+5c+dK1qxZdWYwkvwi1BUWSwIRJRBSAD1+/Lh06dJFjhw5on8EW7duVbdL3pbgD2Pjxo1SoEABKVSokPcQ10kg0xD4559/ZMGCBSn2F7rTTZs2lRkzZiSEEPrjjz+6fcLvPJ4EUMy6BPOG0HLTTTe51wDbwXlwXjTS33//Lc8++6wMGzZMBan0FkCnT58ud9xxh/z+++8B3YHAi/vrnXfe0WWePHkCjp/pBp4Jlunll19+psUFnA9mEGrhWcWbDh48qAFQ8PIAF4DwtpIIKfj3gzZHkl8iMGEbSSAUgZACaK5cuaRFixaq7wldTzua4y0A+xo2bKi+QOPpAeVtI9dJIJoEKlWqJG3atNEq//33X/WX+9FHHwkepBhJfOutt+Tee++NZpMyRV0YZfIKoNiOVcLI5NNPPx2R6r/77jtp27atnD59Wv+TYfRZu3ZtNfz84osvdMDgq6++kpdeekkeffTRiLQhEoVCwLTCZ926dXXGoHjx4joaCld/+C317NlTmjdvLtifiAkvBNdff702HaPVTCRAAoaAGeFIMRkXS06vXr1SzMODJJBZCZjpXgRy0E+7du2SYPj+++/d4zfeeGOS49hh3Jk5mzZtcrZv3+4cPXo0ZB670wizjpl5cMyUqGMEEbs75NKozzjGbVrIY96dxrevY0bQ3PKMdwu3zX51eMsxeuDaByzDTUa4cH766SfnxIkTYZ1iZmPctplpd10vV65cwLnnnXee7rfHcX22bdsWkMdupKXN4GpUAWwRAcvHH3/cbd+WLVsCjtkN9HmH4W1G/uyusJZXXXWVW/bHH38ccA7uH+OTWY/ny5fPwX3pTejnr7/+6pjRuSTHvPm867jXcG8i4RrZ+9wIt95s7npaWOLk6667zm23Gal2y8OKUV9x6zUvcwHHsJGa3449+Zdffklyv+Ga7Ny50wn33kU+MMF5wcn7+wm3PFtGuL8H+5sNVb8ti0sSiHcCvgJovHeA7SOBWBLwE0AhAJoZAn2IBj+4IQyY6Uz3AYsHPIQIo8fnBD+ITQQyx/jcDchr3KE5I0aMSNL9JUuWOBdddJFbrwmn6/Tu3dsx04ABeSEA9ejRwzEzHlpu/vz5HTN65xj1G7eecATQmTNnOmbGxMH56EPOnDkd4zlDhWpvhRACjb6ifoxeufPYY485RYoU0XPQbzy4jdqP95Qk614BtEOHDm47rbCHpRWUIPDb9WABNNw2m+lube9ll12mwlu9evUco9On5RodRWf27NluG42er2Oiwrl15s6d2ylZsqR7HPz79OnjckI5NWrUcHC9/NK6devccq+55pqQ2Y0OpfPUU085ZhQ04Fo/8cQTDu4BywJLCO1mVD6gHOPlRPuKFymjx+hky5ZN+4N7IiUBNFyWAZV5NowOtdu2V155xYFwZROERTBevHixvnTZ/eH+durXr699Mka0zuTJk50yZcpoXbjn77zzTn3pGjVqlGN0tXW/USnTa2TrwdL4vdYycO/OmTPHMaOxDvKBI7ia8NTe7HofW9ZWAMX/gL33cT2Q0vJ7wAuqCfri/maN+pvzzDPPOEblwy0/oDHcIIE4JhBSAMWop9Fjcoz/Twd/+FhP6RPH/WPTSCCiBLwCKIQUY7yjH6OP57z77rsOBBY8jIwuoIPRUJsg2NljOF66dGlXsME2hECbzJSyK0xiVA9CqxUoINwanUebVdchONgHIOq168ZbhZsPKxAa7TGU4xUg7X4/ART9tCNv9hy7hABm3Li5dXqFx8qVK2vd6I8V6HDegAED3PyhVrxlQEgyU5tazmuvvabZsUQ5GAV8/vnn3f55BdDUtNkYPLntxMMeAqYxLnLLRf3GKEjrNq7o3P2WAQQVm4wesHscrG2/jZpTgCBr83uXxtDKPddMsXsPpbgOQd+2BW31th19wWi6TXhpQF5cE/vShG2jd5qsAJoalrae4KWZgnfbiPpwb+Pl4e2333Z27doVnF2FxnB/O8aIScvGiwDKRv/xgoR1fKpXr65L+3uy+yEI22R8W7v57Uug90UD50AItCnUCGgoAd57L4f7e8BLgm0j7h/c59i2gjXWmUggUQiEvFvx48MPEn9OeKBiPaVPonSW7SSB9CbgFUDtgyF4CQHNRA4LqBqjVEYXTAUaK0BiatdOH5977rlufozUoEwIqXbKDaNpxgOFY3zyOq+++qrmxWiLfaDigWu8VOhoEkZobJuMH1/Ni9Evu69BgwYqHGM6E6OSdj+WKQmgGNWxo6do7zvvvKOjVBD87IPR6MW6agXeBy6ELqO3qG0xVs8OhFXUh/anlLxloF9GL1DPwygakh0VxSghBDXbFyuAprbNVgBFORDYMS0NJhiltmUbPUWtG1PcUFey+zFaZuv1CpAYBcVIL45ZAcnocmoZyX1hZNOWa4J+JJctyX60H0LX1Vdf7RiDOb1/MGpuy4KQZ5MVQHEML1MYeYSQjxHJUAJUalnaekItvdxs27CEkAWhy6tSkJrfjuWLsqAegWuHqXavENq/f3+desfvBfcl8tr7CW31CqAQzF9++WXnr7/+cozeqnPOOedoftzvxjBMu5YWATSc3wP+JywbvITi+YzfLGZW7H4smUggUQjwbk2UK8V2xiWBcARQPBRMqFrn22+/TdIHCAVI0IE0PncdE0VMHyYYIbMJD0j7gIGgMmTIEM1rp/dsPkxL2nxevW0IEHaK0RiuaHbvQ+v999+3RegSgrEtJyUBdOzYsW4+PJS9yTuNj5dYJK/wePPNN3uzu6oIUCtIKXnLgACK6WG0FUIW+mmn9J977rmQAmhq2+wVQL2jhRAuLSM7+op2J6cDaoykND9Gp62ggvxeYfCHH37ArpCpX79+bn3B+p8hTwjaae8zCMnGUMotC1O3NnkF0BUrVtjdugwlgKaWZUCBITYwWg7BHiPNlq1dVqxYMYk+s+1TSr8dK4Di9+S9l+09DoHSq5qCFybU6X0h8Aqg3v3ogh1xxzmffPKJ9iotAmg4vwfvbxYqOTaBg33hQzuYSCBRCIS0gkes96+//trcy+Gl+++/P7yMzEUCGZgALJRh9Y5khEMxoyRqyQsLXiNcqIU8/FgaIUTzGGFAw9uaaUwxai9iHqS6H1/mD8RdNyOgMm7cOHWJhlC3+AwePFj9TMLfpRm1VD+YRv/RPQftgDsim6wbIqNTp7uMwZM9JGZ0zF3HihGWxQizAftCbSxcuNDdba3/7Q5sw3UOEvw6mhFJe0iXRgcxYBvu3JC8DAIyJLNx5ZVX6pEDBw6IEYjUJzF2wD+x0a1MclZ6tdm2FxWE02Z7bcyIntg241yj04eFJlyb5Cyk4WHBJtxDoRLuGSNQJTkEP86ffvqpmBFNsdffZvLeZ3afGY2TmjVr2s1kl2fCMlShV1xxheBjBEWBj+lZs2bJyJEj9ZqaFw91MYV7HSnc346tx8weqD9Ou21G3HUVVvVmNNTuVp+q2EjumiIKoDd5OaGNaU3h/B7MiLlbvHlZcNeNOoDeU7jOTCSQSARCCqD4Y3nooYfC7gcF0LBRMWMGJoCHPwQMJDPtLmY0TowumxgDCjEjXeq7ES92EI7gUgcPETj4Rl6sw80MhFEzuuaWg7LM6I8+kM1Uu5jpVzGjUdgtELqwD2XigW2FTByD2xczKoJVTWZqW5fWGbtXUIEjc2+C26hwkn2II68Vqu153vLtPu8Srt68Kfh877GU1uvUqaNCA3xJGuMOzWpGu9Q9USgBNK1tRn+8gkpq22uvDc7zXhesW9dCELySS1WqVHEP4VqHSmZkXOCOyRgRqa9QM5qsbr/g4B3J6C+KMUYTo2/ougOz96u3PLQJQqhfSitLb7lmGl+FzN27dwv8iyLiHhgZ4yH9wOH9+eefr0IpnksQQFPz27F1Bd9v9v40I+c2S1jL4HK8J4Vi6T2e0npwuaHuL9tmlBN8fRCFkIkEEo3A/56WQa1+4IEH9A0Qb4HhfIJO5yYJkICHAIRMmzAqigSBFPsh1GB0FIKD0Q1UwRHHgx9mEBKN9asY9z2C0cvXX39drFBiLKR1xBIPapuM3pwsXbrU/WAEDNt2hBZCrU14oNuEETmE3w0nGd1RNxvK9yaja+puGot8d92ueB+mdl9alhj9geCChFExJPgnDn5A6wHzdSZttmWEu/SOLtprg5FxOJO31wajkgtMIANsB4+ueeuBoG0MTXSXUZnQe8B7HC8j8DML4RSj4xBmwcMKn927dxeMoBm1BTH6ne6pwfcZDuCFKJyUHiyNbYH+FtCnRx55RH3meus2Oo7ubIBtV2p/O97ygtdTex8GC//47drk/U3ZfeEuw2kHXiBs8v5GjbGw3j/2GJckkCgEQgqgidJ4tpME4okApkaNHph+jJ6eGLcvKjRi1BIJoxpWWNq8ebO7z0YSg4AAYQQJI3o2Gb1QQUhPLDFSBGEG0/oI8WkTysB0oDFi0l2o206jYyreGCUJHvZWIPFOu/ft21cf/Bj5hBCQ3PSjrcsuIehZAQaCDfoJAdu4tRH0HwkP5UaNGtlTIrL0TmmjguBtb6WRbjMEYpuMBbcYHWHdtCoKEEBfeOEFZWwMylQtAyOOtWrVEghbySW8gMDJPZLR+VNBesyYMaqOgf0QKu3UvDHEEkw523sM52A03iacZxOi3QWnUKNvwXmwnR4socqAKGFICPsMZ+1QpYDahtGv1LCr4ISElyok2y+00++3oyek4xderOzvGSOyxvpdS8eou1cgT8cq3aIQytMKqsZ9mhhjYf2vARfLyM3MFRJIBALmLT1JohumJEi4gwRCEgjXCMn8FzhGn80tw2ttbqZgHbjogWsX84BxDTBMnHnNP2HCBHe/GQVyjJ6cY4RQN5/RPXXLhUGReTC7x2BsYYRE3ca61/m5tRhH28yIofoRxDr8W2KJj9dww63Es4K2eevzrsPSGBbLNnkNiGBI5U2wdEZ98LaRUvKWASMkJBh32fZiuXz5ct0fygoeB1LTZmuEhOviTWYkzK3TtgPH4WvStgXngD2MRIxQ7xgh0z0GV0cwuLJ54UEgnGQiabnn2HO9y2rVqjn2vjGjour+C8fRFvMi4F5be5/BP6xN1gjJqGnYXe7SqH249Xr92aaGpVtY0Aqs0mFE5u1H8Dqs8tEfpNT8dqwREvytehOMiVAHjAO9ybzE6X6vNwavEZKZKtfjXvdmKOdM3TCF+3swL4tJOMG/qDWqQluYSCBRCIS8W+mGKVEuH9sZawLJCaAQxCCA4cGKaC5ww+NNsLw1BkTuwwT5Taxrx0xlu/vgH9GmKVOmBDxk8KDBw9Coy7jRamxeWGjDr6AVMmAZDitbrx9S5EUb4OIJwifKg6Uw/P3Coh3b+PgJoCgH7mggIEA4xjnoixkdS1KfV3gM94GL8r3JW4YV/GD9bkYRtW743bTeAZITQFFeuG1OrQAKAR+CnuUHpmbUWruAY7Dyxj4ch3BqptbV1ZG3j37r8MsJwcpeN5QFH5+4F6xPUluGMeRR9122PXAbhHvM+iSF1bdNaRFAcW64LG09oZZwSYX739sntBnuvSB0Q4C3KTW/nfQWQOFdAcEJ7EsduJsRbds0XXbzRBKz92IoAd57L6fm94D73oQs1Zc1uCHDgNGtt96q9xR+g0wkkCgE9LXe/NCZSIAEYkAAunuYqoWVs9eoI7mmGBc+OtWK6XQjTCSr64jzMR2OsqErah6YyRWpxkvQLYVxihEAks3nd8AIBmIeqlKhQoWw+uJXXjSOR6rNMK7BVDlYmBeBgK6Yh4PqY+IaQrUirQmqEsY1lKpWGEEt2WuMaX/oDUPf2Ixup7U63/PSgyXaCkt9/C7wm/B6GwhuQGp/O8Hnh7ttfPiqURvyG+FPDbnw20I7z/Q3E24bkA/3lBkt1msIfWDzoueebsKZqm4xDNq8OuduBq6QQBwSSJUACh0d6KnhjxN/ZN4fQBz2jU0iARIgARIggTMiEEoAPaMC03gydLmtvix0q+GmCgInDJLgbQP6vNAHpTumNALmaVEnkPywiKcpUPqGhSYET6M7o2/1UP42TqDV36EnK1dJgARIgARIgATSmQAMzYxKgZZqZxpg/IRnM4RPDAhZV2TpXDWLI4GIEPCdb8NUg4lxLPBTZsK26bQIbn4T3USMvphaLppwbRFpHAslARIgARIggVgSgAcCE3temwDfqrFKeAbDRzC8KBi9W1XFgRoGpuONkZW634I3BSYSSBQCvlPwuNFN+D7ZtGmTOjL2dgz+7Nq3b6+6ZtAvYiIBEiABEiABEogOAfh7pSpcdFizlvQn4DsFbyNUeJ3g2mZAH8VYoLq+7ux+LkmABEiABEiABCJLgMJnZPmy9MgS8BVAETYQToFhfBScMDparly5iFpWBtfJbRIgARIgARIgARIggcQmEFIHFOHGEOXBJriaQDg9RBhp0aKFuliBZSAiavTv399m45IESIAESIAESIAESIAEfAmE1AE1EVtk0KBBvifbDDBUYiIBEiABEiABEiABEiCBcAiEFEDDOZF5SIAESIAESIAESIAESCAtBHx1QP0KNXGH/bLwOAmQAAmQAAmQAAmQAAm4BELqgLpH///K3LlzZdSoUbJ//36B2wckLI8ePSpwUg9fZEwkQAIkQAIkQAIkQAIkEA4B3xFQxLu9/vrrZcmSJZIjRw5Zv369lCxZUg4ePCjfffedOqMPpyLmIQESIAESIAESIAESIAEQ8B0BRZzZf//9V90wYdSzWLFiMn78eEF0iLvvvlu2b99OkiRAAiRAAiRAAiRAAiQQNgHfEVA4oq9fv77ky5dPChYsKKVKlZJly5ZJlixZNPTXW2+9pc7ow66RGUmABEiABEiABEiABDI1AV8B9Pzzz5cdO3a4kC644AJZvHixbhcqVEiXu3btco9zhQRIgARIgARIgARIgARSIuArgDZo0ED1Pbt16yaweMc2puChCzp06FCdkkc0JCYSIAESIAESIAESIAESCIeArwAKg6O3335bvvzyS435Dr1P6ITWqFFDhgwZIj179tTp+HAqYx4SIAESIAESIAESIAESCNsR/T///CNHjhyRn376SbJmzSqbNm2SunXrSvny5UmRBEiABEiABEiABEiABMIm4DsCipLg67NNmzZSpEgRqV27ttSqVUt69OghkyZNklOnToVdGTOSAAmQAAmQAAmQAAmQgK8bJsR5b9WqleTKlUun4itVqiRbt27VKflnn31WDh06pLqgREkCJEACJEACJEACJEAC4RDwnYKfNm2adOzYUafcg6fbp0+fLu3btxcIqTlz5gynPuYhARIgARIgARIgARLI5AR8p+DhB/Tyyy8PqevZtGlT9QG6Z8+eTI6R3ScBEiABEiABEiABEgiXgK8A2qRJE9mwYYNGQgouFKOjcMFUtmzZ4EPcJgESIAESIAESIAESIIGQBELqgK5cuVIWLlzonlC5cmW56KKL5Morr5QWLVpI7ty5ZfXq1TJmzBjp37+/m48rJEACJEACJEACJEACJOBHIKQO6MiRI2XQoEF+57rHoQPKRAIkQAIkQAIkQAIkQALhEAgpgIZzIvOQAAmQAAmQAAmQAAmQQFoIhJyCT66gX375RV0wlSpVSjAtD4f0TCRAAiRAAiRAAiRAAiSQGgJhSZDbt2+X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tVKH7/DRhlFRxNzFn8ott9wS1bfZnTt36p8bfH3CFRMs8gsXLqy+PzEKumPHDg3PBv9xcFJfoUKFzHx92XcSIAESiDgBCJkvvvii/vc2bdpUHn74YUEYZwxQMJEACZBAKAK+/w4wtpk2bZo6e4ewidS5c2ddwk8bnANHM8HXJ96qoZuanBuoZ555RqMljR8/XoYMGRLN5rEuEiABEsgUBGBUhIEIWLKvWLFC7rvvPnXThwEBJhIgARLwI+ArgKIA+GSD/s6qVat09POss85SvdALL7zQr/x0P7527Vo1fEpO+ESFOXLkUIH5lVdeoQCa7leABZIACWRmAhA8MdqJwQc8G+644w510ZcrV67MjIV9JwESSCUBXwH022+/VVcZsHaH0RE+sUyXXXaZ6qT26NEjxWbMnz8/6rqpKTaIB0mABEgggQns379f3njjDRk1apRceeWVOihRtmzZBO4Rm04CJBBLAr4CKEYTEaXiqaeekkaNGunIInQv8+bNG5N2Qw0AQujevXulU6dOquMJA6SsWbOqJTycw0+cOFGjaWCanokESIAESCDtBLZv3y5Dhw4VGJ126NBBZs+ereGO014izyQBEiABEV8reDgMhtX5F198oREr7rnnHilZsqQ6DkbotGinmjVryvr16wUO8jEqC2G0SpUqUqlSJalfv77AxcfRo0f1T7Jx48bRbh7rIwESIIEMQWDdunWCwBz16tXT/3yEYUbwkerVq2eI/rETJEACsSXgOwKK5mXLlk2Nelq2bKkx1qdOnSoffPCBwNoRUzCwio9mgl85WLhDCEVIN4x6In47QrrBYh8jokwkQAIkQAKpJwCDokGDBsn333+vnk/gQD5//vypL4hnkAAJkEAKBMISQL3nQ9CD4Hf69GmNgJSSMZD3vEiswxgKwig+TCRAAiRAAmknsHr1aoEHEYTGhMoVVJyggsVEAiRAApEg4DsFj0ph9YhRT7hdKlWqlDz00EMq9MFB/XfffReJdrFMEiABEiCBKBCAdxP47Lz++uvliiuukK1bt6quP4XPKMBnFSSQiQn4joDibRgRLRDhAlPu77zzjrRv317ociMT3zXsOgmQQMITQBhlRI1buHChjnhC35NCZ8JfVnaABBKGQFgjoH379lU9yzlz5mjkIwqfCXN92VASIAESCCAAI0348LzooovUgBMjnrfffjuF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28vQoUPdsm+77Tb6BXVpcIUESIAESIAESIAESCCYgK8O6KxZs6Rjx47B5yW7DeMkCKtMJEACJEACJEACJEACJBCKgK8AGuok7iMBEiABEiABEiABEiCBtBLw1QFNa8E8jwRIgARIgARIgARIgARCEaAAGooK95EACZAACZAACZAACUSMAAXQiKFlwSRAAiRAAiRAAiRAAqEIUAANRYX7SIAESIAESIAESIAEIkaAAmjE0LJgEiABEiABEiABEiCBUAQogIaiwn0kQAIkQAIkQAIkQAIRI0ABNGJoWTAJkAAJkAAJkAAJkEAoAhRAQ1HhPhIgARIIQWD//v0ybty4EEfSfxdCIH/zzTfpX7CnxM6dO8sVV1zh2cNVEiABEogOAQqg0eHMWkiABDIAgZ49e8qUKVMi3pNTp07JZZddJlu3bo14XayABEiABGJBgAJoLKizThIggYQk8O+//0qWLFki3nbHcQQfJhIgARLIqAQogGbUK8t+kUAmI7By5Uq56aabpESJEnLllVfKa6+9JhAYbcJ0duPGjaVgwYJSqVIlGThwoPzzzz/2sB6bPXu29OrVS84991z99OvXT06ePKl57r//flm4cKFOi9epU0d2794tjz/+uDz22GNaVvHixXWJzDt27JAbbrhBypUrJ/nz55fatWvL+++/79aFldGjR0uVKlUkb968UrNmTRkxYoQeP3r0qFx66aW6PmTIEOnatauue7/Qbkydv/32297dsm/fPkHb5s6dq/vDaYe3gAYNGsgHH3zg3SWPPPKIYOTXm8aOHSuXXHKJ9q1evXry+eefew9znQRIgAR8CVAA9UXEDCRAAvFO4KeffpJWrVrJX3/9JW+88YYKZ71795bJkydr09esWSNNmjSRAgUKqA7nvffeK6+//rq0b9/e7dratWvljjvukNWrV6vQ1bJlSxk2bJgrGF533XVSvnx5FSrvu+8+Fb5QL4QxCJfNmzeXIkWKyOHDh1Xg3LNnjwqnKOOss86STp06yffff6/1TZ8+XdAGCKk496qrrpI+ffpo25D3nnvu0XxNmzaVG2+80W2jXUGeUqVKyZtvvml36fKjjz6SH374QerXrx9WOwJONhvo+++//x6wG0Ls5s2b3X3oz5133imVK1eWd999VyC0tmnTRqZNm+bm4QoJkAAJ+BIw0zxMJEACJJDQBG655RbH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" /><!-- --></p>
+<p>Because the estimates for the probability that <span class="math inline">\(\Delta&gt;0\)</span> and the Bayes factor are based on the random set of <span class="math inline">\(10,000\)</span> vectors drawn for <span class="math inline">\(\Delta\)</span>, those values can vary when another random set of vectors are drawn. To decrease the variability between any set of random value, the user can increase the value for <code>samples</code> argument from the default value.</p>
+<p>Although Monte Carlo sampling is somewhat variable on different implementations of the <code>dfba_beta_contrast</code> function, there is one result that does not vary. The output value <em>exact posterior contrast mean</em> (<code>mean</code>) has an analytic value that does not depend on Monte Carlo sampling. From elementary probability theory, the expected value <span class="math inline">\(E(\Delta)\)</span> or the mean of a linear combination of <span class="math inline">\(K\)</span> <em>independent random variables</em> is</p>
+<p><span class="math display" id="eq:ExpDelta">\[\begin{equation}
+  \begin{aligned}
+    E(\Delta) &amp; =  \psi_1 E(\phi_1) +\ldots+ \psi_K E(\phi_K) \\
+              &amp; =  \sum_{i=1}^{K} \psi_i \frac{a_i}{a_i+b_i}
+  \end{aligned}
+  \tag{3.1}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(a_i\)</span> and <span class="math inline">\(b_i\)</span>, for <span class="math inline">\(i=1,\ldots,K\)</span> are the shape parameters for the <span class="math inline">\(K\)</span> separate posterior beta distributions.</p>
+<p>Finally, it should be stressed that a contrast is a specific comparison among the <span class="math inline">\(K\)</span> binomial conditions. Presumably, if a scientist observed <span class="math inline">\(K\)</span> groups, there was a reason for the <span class="math inline">\(K\)</span> conditions in the first place. In the above example, the contrast examined is only one possible way to compare the four groups. Contrasts are widely used in parametric analysis of variance (ANOVA) models (Kirk, 2013). From the ANOVA literature, it is useful to mention the idea of orthogonal contrasts (non-correlated comparisons). Contrast <span class="math inline">\(\Psi_A=(\psi_{1A},\ldots,\psi_{KA})\)</span> and contrast <span class="math inline">\(\Psi_B=(\psi_{1B},\cdots,\psi_{KB})\)</span> are <em>orthogonal</em> if <span class="math inline">\(\sum_{i=1}^{K} \psi_{iA} \psi_{iB}=0\)</span>. For <span class="math inline">\(K\)</span> groups, there are <span class="math inline">\(K-1\)</span> orthogonal contrasts possible. For the example above, the contrast coefficients are <span class="math inline">\(\Psi_A=(.5,-.5,.5,-.5)\)</span>. Two other orthogonal contrasts to this vector might be <span class="math inline">\(\Psi_B=(.5,.5,-.5,-.5)\)</span> and <span class="math inline">\(\Psi_C=(.5,-.5,-.5,.5)\)</span>. Note that each of these three contrasts are mutually orthogonal to the others. However, that set of three orthogonal contrasts is not unique. For example, an alternative set of three orthogonal contrasts might be <span class="math inline">\(\Psi_{A&#39;}=(1,-1,0,0)\)</span>, <span class="math inline">\(\Psi_{B&#39;}=(0,0,1,-1)\)</span> and <span class="math inline">\(\Psi_{C&#39;}=(.5,.5,-.5,-.5)\)</span>. While the <code>dfba_beta_contrast</code> function can produce any linear contrast among the <span class="math inline">\(K\)</span> independent beta distributed variates, the user needs to keep in mind the specific contrasts that make sense given the purposes of the research study.</p>
+</div>
+</div>
+<div id="references" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> References</h1>
+<p>Birkoff, G. D. (1931). Proof of the ergodic theorem. <em>Proceedings of the National Academic of Sciences</em>, <strong>17</strong>, 404-408.</p>
+<p>Chechile, R.A. (2020). <em>Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods</em>. Cambridge: MIT Press.</p>
+<p>Geman, S., and Geman, D. (1984). Stochastic relaxation, Gibbs distributions, and the Bayesian restoration of images. <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, <strong>6</strong>, 721-741.</p>
+<p>Kirk, R. E. (2013). <em>Experimental Design: Procedures for the Behavioral Sciences, 4th ed.</em>, Los Angles: Sage.</p>
+<p>Metropolis, N., Rosenbluth, A. W., Rosenbluth, M.N., Teller, A. H., and Teller, E. (1953). Equations of state calculations by fast computing machines. <em>Journal of Chemical Physics</em>, <strong>21</strong>, 1021-1092.</p>
+<p>Siegel, S., and Castellan, N. J. (1988) <em>Nonparametric Statistics for the Behavioral Sciences</em>. New York: McGraw Hill.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+## R package reference generated from DESCRIPTION metadata
+citation(auto = meta)
+
+## JSS Article
+bibentry(bibtype = "Article",
+  title        = "{poLCA}: An {R} Package for Polytomous Variable Latent Class Analysis",
+  author       = c(person(c("Drew", "A."), "Linzer"),
+                   person(c("Jeffrey", "B."), "Lewis")),
+  journal      = "Journal of Statistical Software",
+  year         = "2011",
+  volume       = "42",
+  number       = "10",
+  pages        = "1--29",
+  url          = "https://www.jstatsoft.org/v42/i10/",
+
+  textVersion  =
+  paste("Drew A. Linzer, Jeffrey B. Lewis (2011).",
+        "poLCA: An R Package for Polytomous Variable Latent Class Analysis.",
+        "Journal of Statistical Software, 42(10), 1-29.",
+        "URL https://www.jstatsoft.org/v42/i10/")
+)
+

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>dfba_median_test</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dfba_median_test</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="introduction" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Introduction</h1>
+<p>The two-sample <span class="math inline">\(t\)</span>-test is the standard frequentist parametric procedure when the variate in each condition is continuous and when the data are normally distributed with the same population variance in each condition. It is not likely that the assumptions of the parametric analysis are strictly valid, so it is prudent to have some nonparametric procedures as alternatives. The median test and the Mann-Whitney <span class="math inline">\(U\)</span>-test are two frequentist nonparametric procedures that are the conventional alternatives to the two-sample-<span class="math inline">\(t\)</span> test.</p>
+<p>The essential idea underlying the median test is to categorize all the scores so as to form a <span class="math inline">\(2 \times 2\)</span> table of frequencies. One classification (<em>e.g.</em>, the <em>rows</em>) is based on the observation being <em>above the combined median</em> versus being <em>at or below the median</em>. The other classification (<em>e.g.</em> the columns) is based on the observation being from the <em>experimental</em> group (denoted as the <span class="math inline">\(E\)</span> group) or being from the <em>control</em> group (denoted as the <span class="math inline">\(C\)</span> group). In contrast to the median test, the Mann-Whitney test is based on <span class="math inline">\(U\)</span>-statistics. The <span class="math inline">\(U_E\)</span> statistic is the number of times an <span class="math inline">\(E\)</span>-labelled score is larger than a <span class="math inline">\(C\)</span>-labelled score, whereas the <span class="math inline">\(U_C\)</span> statistic is the number of times the <span class="math inline">\(C\)</span> variate is larger than the <span class="math inline">\(E\)</span> variate. Because the <span class="math inline">\(U\)</span> statistics are based on more fine-grained information than the median test, the median test is generally less powerful relative to the Mann-Whitney procedure. Yet, for precisely that reason, the median test has an appeal for some investigators: if a median test can detect differences between the two conditions, then it is convincing that those conditions are different.</p>
+<p>In the <code>DFBA</code> package, the Bayesian counterpart to the median test is given by the <code>dfba_median_test()</code> function. This vignette on the <code>dfba_median_test()</code> contains discussion of the beta distribution, the binomial model, and Bayes factors; for more on those topics see the <code>dfba_binomial()</code> and <code>dfba_beta_bayes_factor()</code> vignettes.</p>
+</div>
+<div id="theoretical-framework-for-the-bayesian-median-test" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Theoretical Framework for the Bayesian Median Test</h1>
+<p>Given <span class="math inline">\(n_E\)</span> continuous scores from group <span class="math inline">\(E\)</span> and <span class="math inline">\(n_C\)</span> scores from group <span class="math inline">\(C\)</span>, the display below helps to define the frequencies associated with the median test where the rows of the <span class="math inline">\(2 \times 2\)</span> table are organized in relation to the combined median.</p>
+<p><span class="math display">\[
+   \begin{array}{c|cc|c}
+   &amp; E \hskip 1mm &amp;  C\hskip 1mm &amp;  \\
+   \hline
+   above\,\,median &amp; n_E^{above} &amp; n_C^{above} &amp; n_E^{above} + n_C^{above}\\
+   &amp; &amp; &amp;\\
+   at\,\,or\,\,below\,\,median &amp; n_E^{below} &amp; n_C^{below} &amp; n_E^{below} + n_C^{below}\\
+    \hline
+    &amp; &amp; &amp;\\
+   &amp; n_E &amp; n_C &amp; n_E+n_C
+   \end{array}
+\]</span></p>
+<p>The frequentist median test examines, with a <span class="math inline">\(\chi^2\)</span> statistic, the sharp null hypothesis that the proportion of responses above the combined median is the same for both the <span class="math inline">\(E\)</span> and <span class="math inline">\(C\)</span> groups (Siegel &amp; Castellan, 1988). Chechile (2020) provided an alternative Bayesian analysis for this procedure. Rather than focusing the median test on an assessment of a point-null hypothesis, the Bayesian approach involves estimating a population parameter associated with an above-median response being from the <span class="math inline">\(E\)</span> group. The frequencies in row 1 (<em>above-median</em> frequencies) are binomial frequencies in terms of the group origin (<em>i.e.</em>, <span class="math inline">\(E\)</span> versus <span class="math inline">\(C\)</span>). From a Bayesian perspective, a population-level <span class="math inline">\(\phi\)</span> parameter can be defined for the proportion of <span class="math inline">\(E\)</span> values that are above the combined sample median. Similarly, the frequencies for the scores at or below the combined sample median can also be examined; in that case, the corresponding population proportion in the <span class="math inline">\(E\)</span> condition must be <span class="math inline">\(1-\phi\)</span>. Thus, it is sufficient only to examine the <em>above-median</em> frequencies to make an inference about the <span class="math inline">\(\phi\)</span> parameter. Thus the Bayesian form of the median test reduces to the binomial model, so the prior and posterior distributions for the population <span class="math inline">\(\phi\)</span> parameter belong to the beta family of distributions. The default prior for the <code>dfba_median_test()</code> function is the uniform distribution, i.e, <span class="math inline">\(a_0 = b_0 = 1\)</span>. The posterior shape parameters for <span class="math inline">\(\phi\)</span> are <span class="math inline">\(a = a_0 + n_E^{above}\)</span> and <span class="math inline">\(b = b_0 + n_C^{above}\)</span>.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+<p>Because the number of scores in groups <span class="math inline">\(E\)</span> and <span class="math inline">\(C\)</span> might be very different, it is important to examine the <span class="math inline">\(\phi\)</span> parameter relative to an expected base-rate value. For example, suppose that there are <span class="math inline">\(n_E = 90\)</span> observed values from the <span class="math inline">\(E\)</span> condition and <span class="math inline">\(n_C = 10\)</span> observed values for the <span class="math inline">\(C\)</span> condition. Given that there are nine times more <span class="math inline">\(E\)</span> scores than <span class="math inline">\(C\)</span> scores in the sample, the assessment of the <span class="math inline">\(\phi\)</span> parameter should be to see if it is greater than <span class="math inline">\(.9\)</span>. If there were no difference whatsoever between the <span class="math inline">\(E\)</span> and <span class="math inline">\(C\)</span> conditions in this hypothetical example, then about <span class="math inline">\(90\)</span> percent or less of the above-median values would be expected from the <span class="math inline">\(E\)</span> condition. If the posterior <span class="math inline">\(\phi\)</span> parameter were substantially greater than the group <span class="math inline">\(E\)</span> sample base rate, then that would provide support for the hypothesis that group <span class="math inline">\(E\)</span> has larger representation of the above-median responses in the population than does the <span class="math inline">\(C\)</span> group.</p>
+</div>
+<div id="using-the-dfba_median_test-function" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Using the <code>dfba_median_test()</code> Function</h1>
+<p>There are four arguments for the <code>dfba_median_test()</code> function: <code>E</code>, <code>C</code>, <code>a0</code>, and <code>b0</code>. The <code>E</code> and <code>C</code> arguments are required vectors of continuous values for the data in the two independent conditions. The <code>a0</code> and <code>b0</code> arguments are the shape parameters for the prior beta distribution; each have default values of <code>1</code>. Note: the default values <code>a0 = 1</code> and <code>b0 = 1</code> – resulting in a beta distribution with <span class="math inline">\(\alpha = \beta = 1\)</span> – represent the uniform distribution.</p>
+<div id="example" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Example</h2>
+<p>Given two groups of data:</p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">Group 1</th>
+<th align="center">Group 2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">12.90, 10.84, 22.67, 10.64, 10.67, 10.79, 13.55, 10.95, 12.19, 12.76, 10.89, 11.02, 14.27, 13.98, 11.52, 13.49, 11.22, 15.07, 15.74, 19.00</td>
+<td align="center">4.63, 58.64, 5.07, 4.66, 4.13, 3.92, 3.39, 3.57, 3.56, 3.39</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>group1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">12.90</span>, <span class="fl">10.84</span>, <span class="fl">22.67</span>, <span class="fl">10.64</span>, <span class="fl">10.67</span>, <span class="fl">10.79</span>, <span class="fl">13.55</span>, <span class="fl">10.95</span>, <span class="fl">12.19</span>, <span class="fl">12.76</span>, <span class="fl">10.89</span>, <span class="fl">11.02</span>, <span class="fl">14.27</span>, <span class="fl">13.98</span>, <span class="fl">11.52</span>, <span class="fl">13.49</span>, <span class="fl">11.22</span>, <span class="fl">15.07</span>, <span class="fl">15.74</span>, <span class="fl">19.00</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>group2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">4.63</span>, <span class="fl">58.64</span>, <span class="fl">5.07</span>, <span class="fl">4.66</span>, <span class="fl">4.13</span>, <span class="fl">3.92</span>, <span class="fl">3.39</span>, <span class="fl">3.57</span>, <span class="fl">3.56</span>, <span class="fl">3.39</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">dfba_median_test</span>(<span class="at">E =</span> group1, </span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>                 <span class="at">C =</span> group2)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Descriptive Statistics </span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;   Observed frequencies: </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;   E               C </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;   20              10 </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;   Overall median: </span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;   10.985 </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;   Frequencies above the median: </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;   E               C </span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;   14              1 </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;   Frequencies at or below the median: </span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;   E               C </span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   6               9 </span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; Bayesian Analyses</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt;   Base rates for E and C responses:</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt;   E               C</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt;   0.666667        0.3333333 </span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt;   Analysis of above-median response rates for E and C:</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt;   Posterior beta shape parameter for the phi parameter </span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="co">#&gt;   15              2 </span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="co">#&gt;   Prior probability of exceeding base rate: </span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="co">#&gt;   E               C </span></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="co">#&gt;   0.333333        0.6666667 </span></span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a><span class="co">#&gt;   Posterior probability of exceeding base rate: </span></span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="co">#&gt;   E               C </span></span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="co">#&gt;   0.986298        0.01370195 </span></span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a><span class="co">#&gt;   Bayes factor BF10 E &gt; E_baserate: </span></span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a><span class="co">#&gt;   143.9646 </span></span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a><span class="co">#&gt;   Bayes factor BF10 C &gt; C_baserate </span></span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a><span class="co">#&gt;   0.006946151</span></span></code></pre></div>
+<p>The function computes the combined median of the scores, and it forms the <span class="math inline">\(2 \times 2\)</span> median-test table. The function also shows the base rates for <span class="math inline">\(E\)</span> and <span class="math inline">\(C\)</span> responses, which in this example are <span class="math inline">\(\frac{2}{3}\)</span> for <span class="math inline">\(E\)</span> and <span class="math inline">\(\frac{1}{3}\)</span> for <span class="math inline">\(C\)</span> because there are twice as many observations for the <span class="math inline">\(E\)</span> group. The function also computes the Bayes factor for the interval alternative hypothesis <span class="math inline">\(H_1: \phi &gt; \frac{2}{3}\)</span> where <span class="math inline">\(\phi\)</span> is the population proportion of the above median scores that are from the <span class="math inline">\(E\)</span> group. Since this value is large (<em>i.e.</em>, <span class="math inline">\(143.9646\)</span>), the data have increased the belief in the hypothesis that the group <span class="math inline">\(E\)</span> group has a greater representation of the above-median scores than would be expected from its base rate of <span class="math inline">\(\frac{2}{3}\)</span>. The function also provides a corresponding Bayes factor for the hypothesis that <span class="math inline">\(1-\phi\)</span> exceeds the <span class="math inline">\(C\)</span> group base rate of <span class="math inline">\(\frac{1}{3}\)</span>. This value is the reciprocal of the other Bayes factor (<em>i.e.</em>, <span class="math inline">\(\frac{1}{143.9646}=.006946\)</span>), so the data have <em>decreased</em> the belief that the above-median scores are above the <span class="math inline">\(C\)</span> group base rate.</p>
+<p>The <code>dfba_median_test()</code> function does not compute a point Bayes factor, and it does not have a specialized plotting function. However, if the user desires that type of information, there are simple <code>DFBA</code> commands that can be used instead. For example, entering <code>nEabove</code> and <code>nCabove</code> from the <code>dfba_median_test()</code> results as arguments in the <code>dfba_binomial()</code> function can produce estimates of the posterior mean, median, and mode for the <span class="math inline">\(\phi\)</span> parameter…</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>median_test_results<span class="ot">&lt;-</span><span class="fu">dfba_median_test</span>(<span class="at">E =</span> group1, </span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                                      <span class="at">C =</span> group2)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">dfba_binomial</span>(median_test_results<span class="sc">$</span>nEabove, </span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>              median_test_results<span class="sc">$</span>nCabove)</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; Prior and Posterior Beta Shape Parameters: </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;   Prior Beta Shape Parameters </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   Posterior Beta Shape Parameters:   </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   15              2 </span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; Estimates of the Binomial Population Rate Parameter </span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   Posterior Mean </span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;   0.8823529 </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;   Posterior Median </span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt;   0.897297 </span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt;   Posterior Mode </span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt;   0.9333333 </span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt;   95% Equal-tail interval limits: </span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt;   0.697679        0.9844864 </span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt;   95% Highest-density interval limits: </span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt;   0.734172        0.9962847 </span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co">#&gt; </span></span></code></pre></div>
+<p>…and can produce a display of the prior and posterior distributions using the <code>plot()</code> method:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">dfba_binomial</span>(median_test_results<span class="sc">$</span>nEabove, </span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                   median_test_results<span class="sc">$</span>nCabove))</span></code></pre></div>
+<p><img src="data:image/png;base64,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ZhCAAAQgAAEIQAACGKDcAxCAAAQgAAEIQAACKSVQJqW5kRkEIACBQhIYNWqUPfvss2FnlSpVynbeeWerVq2ade3a1U444QTbcccdw+JE2vnuu+/skksusf79+9vpp58eKUqJhW3bts2OOeaYfPmrXLvssosdcMABduaZZ9p+++2XL06yA+bOnevyS2a6V199tX399df21ltvJTNZ0oIABDKUAAZohl441IZArhD45Zdf7P3337fdd9/ddtppJ1fsQCBga9eutb/++suefPJJa968uU2fPj14PBqb1atXu7Q6d+4cLUqJhatMKqcMzho1agT12LJli/3555/2/PPP2+DBg+25554rVuO5d+/etnjxYps6dWpQh2RszJkzx12jZKRFGhCAQOYToAk+868hJYBAThBQTej8+fPdsmDBAlu1apUtW7bMZEx+/vnn9u9//zsmh4MPPtg+++wz69OnT8y4JRWhcePGwXKqvDIG169fb2PHjnUG9tlnn22///57san3zjvvFEvaDz74oH300UfFkjaJQgACmUcAAzTzrhkaQwAC/yOgWlEZNpLJkyf/LzR8pVpSGXCSihUrutrS6tWrh0fy9rZv3+4MP9WSxpLQNGPFTdZxdRk46aSTbOPGjRENuXj1F4uffvrJpZOIbhs2bLBff/3V8SrofNXoLl26NBilfv361rRp0+B+6Ea8uuuckmAfqivbEIBAcghggCaHI6lAAAIlREDGpJqtVVPoi2pF1Z/y4Ycfdk33MlS1PWvWLNd39N577/Wj2po1a+zyyy+3SpUqWd26da1KlSqu/2PevorR0gwmlIKNvffe2+USWtZ49V+yZInrL6u+s+pHKmNcBuHMmTNdmur3qWOqWVZ3Bm2PHDkyWCr132zTpo3jVK9ePatcubKdf/75tm7dumAc/7xXXnnFGjVqZDVr1rSDDjrIZLR2797dXYtgZG8jXt3TgX2o3mxDAAJFJ4ABWnSGpAABCJQggXHjxtnmzZudoeOroVrCb775xjTwpVu3btaiRQtr0qSJq7WTwaR+lb6cdtppJoP0jDPOsIkTJ9ozzzxjZcuWdcbamDFj/GiuxjBSmsEIxbyhWkLpJpFR50u8+vfs2dOmTZtmt99+u7377rs2bNgwW7lypbVr18416avf6aOPPuoMz/33399t+4Oi1H/zkEMOsXnz5tmAAQNM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rlu3LlY0jkMAAhCAAAQgUIIENIW47IEHH3zQNKhaY1xatmxpauEtXbq0LV261BmlV155pR1++OF28803M6FOCq5XRANUNYlaJAcccID9+eefKVAlvizk+qlXr17ByKqh7d69e9D49A8ojm62wsrbb79tV199dczTZJiHOumPeQIRIAABCEAAAhBIKYEnn3zSZFg2btzYbr/9djvuuOOi5i9DddSoUa6S69RTT7WhQ4e6VtWoJ3CgSARi9gH1U5fbJV802OfVV191Xw1+WKrWBx98sOsSIFdREvkh1exM27ZtC6ogXd966y1r2LBhMCzejVNOOcWNHNPosYKWihUrWu3ateNNlngQgAAEIAABCKSIgNxEajzIvffea2+88YZNnTq1QONTapUtW9bOP/98mzt3ri1evNh5+lGrKFI8BOIyQB966CE78MADnQY///yzqxU98cQTnQGmGsNUyjXXXGNff/21HXrooTZu3Djnn7RBgwZuNqYnnnjCnn/+eZNuGpg0cODAVKpGXhCAAAQgAAEIlDABtX42b97cuYn86quv3LiRwqgk35kvvviia1nVtj/guTBpEDc2gYhN8KGn/fjjjzZgwAA799xzTTWLd999t7soH330kTMANVBJnXpTJfvss49r+h48eLCdccYZYTWfM2bMcGqoM7FqRfX1g0AAAhCAAAQgkP0END34/fffb2p2l+FZv379IhV65syZrk+oWlo/+OCDlLh4LJLCGXZyTANUg3v23Xdfe+SRR1zRVLN40kknuS8KuT6Sf9Bly5a5gUCpKrtqY5977jl3o/3666+uqlxThtasWdPVyqrfKgIBCEAAAhCAQG4Q0EAiecdp1KiRaYR73slzEqWgiq0LLrjATTxz4403JpoM50UgENMAXbVqVXAeeH1RLFmyJOgCadOmTa42VM7fS0KqVatmWjSaDYEABCAAAQhAIPcIfPfdd87zjTzgXHfddUkHoCZ9TUcuP+P+AO2kZ5KDCcbsA6ppnDTyXNXP99xzj1WoUMGOOeYYW7NmjRtRpr6YmhEIgQAEIAABCEAAAqkkIL/lRx55pLNPisP4VFl22GEH1+Xw1ltvNXVLRJJDIGYNqOYTld9N9YGQqH+FOuVqqk41x8sPJwIBCEAAAhCAAARSSUAzHqpLoLrkafKZ4pS6deuaDND+/fu7EfXFmVeupB2zBlQg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GlRbnWf15SWpWrWqWy9atMit+YEABCAAAQhAIHkE9L7VqGnNAPjll1/awIEDk5c4KZUYAdlS8+bNK7H80yHjmAaoHKWqv2ffvn1NI961ryZ49QUdOnSoa5LXbEgIBCAAAQhAAALJIaCpNE899VS75ZZbnK/t9957L6WzDianFKQSjYCa4OfOnRvtcE6ExzRA5WvziSeesLffftvN+a5+n2oOaNKkiXNWf/7557vm+JygRSEhAAEIQAACxUhA/Ts12YpGSmvRu/eUU04pxhxJuiQIaIZJzeqYyxJzEJLg6Cuse/fuptmQtGgaTn2NqT+K/iAIBCAAAQhAAAKJE1DFjka3X3/99Xb00Ue75tnatWsnniBnpjWBPfbYw42fUcuy350xrRUuBuXiMkCV74477mirV692o+GrVKliJ510kjNGi0EnkoQABCAAAQjkDIExY8bYddddZ3vttZe9++67dsghh+RM2XO5oBqIpH6gcqmVixKXAapq4gEDBrimAB9SpUqV7JprrnGLfFpli6hv65tvvhmzOJs3b3Z9Y2NGLESExx57zOR1QCIvA5LGjRtbjx493Lb/owkB5H0gVDQjxhlnnJFvCraJEyfap59+ajpeuvR/e1yoFvuGG24IPd1t33///bZu3ToXV/nrHP0x9DUeKuoTfN9997kgX0/t9O/fP9/0qDNnzrQPPvggLE053r388stDk3TbKr8+cjTBQWi6mmIubxPUmjVr3OQIfiLSVcvpp5/u/Kv54VrrgS4/tn75FabtG2+8UZth8tBDDzkd/PIrTdX0d+rUKSyepqYdPnx4mJ6Ke95551mtWrXC4s6ePdu1GISmKZ+6V111VVg87Tz++OPuvhIDX3SemmtOO+00P8itFce/Dn75tRYrdXAPlcmTJwcHD/rh0e6Dhx9+2DHw01TNTLNmzey4447zT3Vr5T9s2LBgmOKLa58+ffLdh2o10XXw09Ra+V977bXB8/2NJ5980v744w93LypM5deiAZGa6zpU5MhZ1yE0XW2feOKJ7r8TGnfq1Kk2bdq0YJDSlL6R/guqiZIOSkvl1/rggw92LUHBBLwN5X/XXXe5IMVRekpX/8U6efrGawDJW2+9Faar4qvGK6+on73+52vXrg2WX+mqRuyss84Ki75161bXH1/5+4sidOvWzV230Mga0KJ7QaL0fAaRdNC9uGLF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dOnSgVdeeSWY2Pfff++4v/XWW8GwaBsycryaNvehgAEajVJi4Yk8yx577LGA14oT+O2334KZvvnmm84o9WpGg2FsJE4g0f9Ms2bNAp07dw5mvHXr1kCtWrUCZ555ZjCMjaIR+Ouvv1xFkj6IvRrmQDwGaCLvpqJpWTJn0wRfzNXRixYtMu/laT169AjLqXv37jZx4sSwsNCdd99917wHg3k1pcHgE044wVauXGmffvppMIyNxAkkwth7YNtDDz1khxxySDDjSpUquWYV70ETDGMjcQJerad5LQbWpUuXYCINGjQwr9aswP+MIqsZ0vuws3vuucc13Xu1O8E02CgagUSfZU8//bT17NnT9tprr6AC6sKycOFCq169ejCMjcQJJPqfUfcW7wM6mLFnhphnhLruRcFANopE4PPPP7cPP/zQJkyYYF4Ns8XzTErk3VQkJUvoZAzQYgb/008/uRy8r8qwnNTn5vfff7doHb91XugDWyf7aag/FVJ0AokwlgF64YUXhmX+0Ucf2fz5861169Zh4ewkRmDevHm2++67OyM0NAX9Z5YvXx4alG9bfQvVj61Pnz75jhFQNALSAUciAAAME0lEQVSJPstkaDZu3NhefPFF69atm/ufDBkyxNT/EEkOgUT/M3qWeV2H7IYbbrBp06ZZv379TINk+P8k57oolebNm9uPP/5oJ554YtyJJvJuijvxNIqIAVrMF8P/ulTn+1DRwCI9gKMNrNB5+joNlSpVqrjdFStWhAaznSCBZDDWYBevmdcNljnvvPMS1ITTQgn8/fff+e59Hdd/piADdNKkSW4AxaOPPhqaHNtJIpDIs0w1avpgfvXVV81r1jU9B3fYYQdn8Jx99tlJ0oxkEv3PnHzyyXb55ZebPgjatWtn3lgDu++++8JaeKBbNAK77LKLlStXrlCJJOPdVKgMSyhymRLKN2ey9QanuLJ6fdrCyuzvb968OSzc39F5elCHiqrutWzatCk0mO0ECRSVsZp71S3i559/tqlTpxb6IZOg2ll/mu57//8RWljd+9H+L3pgn3vuueYNprB99tkn9DS2k0QgkWeZ11/dXTN9HKgrkmqnJTfddJMNHjzYBg4caGpVQIpGIJH/jHJUk7Bqpm+//XY79thj7dlnn3Uf1KoFzdvSUzQNObswBIr6bipMXiUZN9wqKklNsjTvPffc05Xs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" /><!-- --></p>
+<p>Given that the modal estimate for the example data is <span class="math inline">\(\frac{14}{15}\)</span>, suppose an analyst wants to see the point Bayes factor for the point <span class="math inline">\(\phi=\frac{14}{15}\)</span>. Using the <code>a.post</code>, and <code>b.post</code> outputs from <code>dfba_median_test()</code> output as arguments in the <code>dfba_beta_bayes_factor()</code> function:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> median_test_results<span class="sc">$</span>a_post, </span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                       <span class="at">b_post =</span> median_test_results<span class="sc">$</span>b_post, </span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;point&quot;</span>, </span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                       <span class="at">H0 =</span> <span class="dv">14</span><span class="sc">/</span><span class="dv">15</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Point Estimates </span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   Point Null Hypothesis </span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   0.9333333 </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;   15              2 </span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;   Prior Probability Density for Null Hypothesis </span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt;   1 </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability Density for Null Hypothesis </span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt;   6.090246 </span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#&gt;   0.164197 </span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#&gt;   6.090246</span></span></code></pre></div>
+<p>This command results in finding the point Bayes factor of <span class="math inline">\(6.090246\)</span>. Thus, the posterior probability density at the null point has increased by more than a factor of <span class="math inline">\(6\)</span> from prior probability density. Yet the probability for any point is still zero. See the vignette on the <code>dfba_beta_bayes_factor()</code> for more theoretical information about the interpretation of point Bayes factors.</p>
+<p>Finally, suppose one performed a parametric two-sample <span class="math inline">\(t\)</span>-test for the above data (<em>i.e.</em>, <code>t.test(group1, group2, paired=FALSE)</code>). The resulting <span class="math inline">\(t\)</span>-test would not be significant (<span class="math inline">\(p = .5167\)</span>). Why does the <span class="math inline">\(t\)</span>-test fail to detect an effect whereas the Bayesian distribution-free median test finds a reliable difference between the two conditions? The answer to this question is that the data contains an outlier. The second value for the <span class="math inline">\(C\)</span> group is unusually large. This single score decreases the difference between the means of the groups, and it increases the standard error. Thus this single score has an enormous influence on the parametric <span class="math inline">\(t\)</span>-test. The Bayesian median test is simple, but it is not influenced by outlier scores (<em>i.e.</em>, it is <em>robust</em>). The example thus illustrates the utility for a simple distribution-free Bayesian alternative to the two-sample <span class="math inline">\(t\)</span>-test. Had the <code>dfba_mann_whitney()</code> function been employed for the above data, it too would have detected a difference between the conditions with a large Bayes factor value.</p>
+</div>
+</div>
+<div id="references" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> References</h1>
+<p>Chechile, R. A. (2020). <em>Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods</em>. Cambridge, MA: MIT Press.</p>
+<p>Siegel, S., and Castellan N. J. (1988). <em>Nonparametric Statistics for the Behavioral Sciences</em>. New York: McGraw-Hill.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>To prevent confusion between the prior and posterior shape parameters, the <code>dfba_median_test()</code> function uses the variable names <code>a0</code> and <code>b0</code> to refer to <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span> and <code>a_post</code> and <code>b_post</code> to refer to the posterior <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, respectively<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

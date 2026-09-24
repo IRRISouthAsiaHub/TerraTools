@@ -1,0 +1,14 @@
+pkg_cache_reset         Reset cached package indexes
+pkg_macros              Load a package's Rd macros
+pkg_search_attached     Packages searched for help by default
+pkg_search_deps         Packages to search for topics in a package's
+                        dependencies
+pkg_topics              List the topics documented by a package
+topic_exists            Is a topic documented?
+topic_find              Find packages that document a topic
+topic_origin            Find the package where a topic's object
+                        originates
+topic_qualifier         Find the package qualifier for a topic
+topic_rd                Get the parsed Rd for a topic
+topic_rd_path           Get the path to the Rd file for a topic
+topic_split             Split a qualified topic into package and topic

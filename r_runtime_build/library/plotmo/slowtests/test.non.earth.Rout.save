@@ -1,0 +1,1766 @@
+> # test.non.earth.R: test plotmo on non-earth models
+> # Stephen Milborrow, Basley KwaZulu-Natal Mar 2011
+> 
+> source("test.prolog.R")
+> library(plotmo)
+Loading required package: Formula
+Loading required package: plotrix
+> library(earth)
+> data(ozone1)
+> data(etitanic)
+> dopar <- function(nrows, ncols, caption = "")
++ {
++     cat("                             ", caption, "\n")
++     par(mfrow=c(nrows, ncols))
++     par(oma = c(0, 0, 3, 0))
++     par(mar = c(3, 3, 1.7, 0.5))
++     par(mgp = c(1.6, 0.6, 0))
++     par(cex = 0.7)
++ }
+> caption <- "test lm(log(doy) ~ vh+wind+humidity+temp+log(ibh), data=ozone1)"
+> dopar(4,5,caption)
+                              test lm(log(doy) ~ vh+wind+humidity+temp+log(ibh), data=ozone1) 
+> a <- lm(log(doy) ~ vh + wind + humidity + temp + log(ibh), data=ozone1)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, col.response=3, pt.pch=20, smooth.col="indianred",
++        trace=2)
+plotmo trace 2: plotmo(object=a, smooth.col="indianred", do.par=FALSE, ylim=NA,
+                       caption=caption, trace=2, col.response=3, pt.pch=20)
+--get.model.env for object with class lm
+object call is lm(formula=log(doy)~vh+wind+humidity+temp+log(ibh), data=ozone1)
+using the environment saved in $terms of the lm model: R_GlobalEnv
+--plotmo_prolog for lm object 'a'
+--plotmo_x for lm object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is lm(formula=log(doy)~vh+wind+humidity+temp+log(ibh), data=ozone1)
+
+get.x.from.model.frame:
+formula(object) is log(doy) ~ vh + wind + humidity + temp + log(ibh)
+naked formula is log(doy) ~ vh + wind + humidity + temp + ibh
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names log(doy) vh wind humidity temp log(ibh)
+object$model cannot be used because it has non-naked column names "log(doy)" "log(ibh)"
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(log(doy) ~ vh + wind + humidity + tem..., data=call$data, na.action="na.fail")
+x=model.frame[,-1] is usable and has column names vh wind humidity temp ibh
+plotmo_x returned[330,5]:
+      vh wind humidity temp  ibh
+1   5710    4       28   40 2693
+2   5700    3       37   45  590
+3   5760    3       51   54 1450
+... 5720    4       69   35 1568
+330 5550    4       85   39 5000
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.lm with NULL newdata
+stats::predict(lm.object, NULL, type="response")
+predict returned[330,1] with no column names:
+            
+1   4.869230
+2   4.711557
+3   5.135810
+... 4.906652
+330 5.044131
+predict after processing with nresponse=NULL is [330,1] with no column names:
+            
+1   4.869230
+2   4.711557
+3   5.135810
+... 4.906652
+330 5.044131
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=lm.object)
+fitted(object) returned[330,1] with no column names:
+            
+1   4.869230
+2   4.711557
+3   5.135810
+... 4.906652
+330 5.044131
+fitted(object) after processing with nresponse=NULL is [330,1] with no column names:
+            
+1   4.869230
+2   4.711557
+3   5.135810
+... 4.906652
+330 5.044131
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for lm object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is lm(formula=log(doy)~vh+wind+humidity+temp+log(ibh), data=ozone1)
+
+get.y.from.model.frame:
+formula(object) is log(doy) ~ vh + wind + humidity + temp + log(ibh)
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names log(doy) vh wind humidity temp log(ibh)
+object$model cannot be used because it has non-naked column names "log(doy)" "log(ibh)"
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(log(doy) ~ vh + wind + humidity + tem..., data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name log(doy)
+plotmo_y returned[330,1]:
+    log(doy)
+1   3.496508
+2   3.526361
+3   3.555348
+... 3.583519
+330 5.966147
+plotmo_y after processing with nresponse=NULL is [330,1]:
+    log(doy)
+1   3.496508
+2   3.526361
+3   3.555348
+... 3.583519
+330 5.966147
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for lm object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is lm(formula=log(doy)~vh+wind+humidity+temp+log(ibh), data=ozone1)
+
+get.y.from.model.frame:
+formula(object) is log(doy) ~ vh + wind + humidity + temp + log(ibh)
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names log(doy) vh wind humidity temp log(ibh)
+object$model cannot be used because it has non-naked column names "log(doy)" "log(ibh)"
+object$data is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names O3 vh wind humidity temp ibh dpg ibt vis doy
+na.action(object) is "na.fail"
+stats::model.frame(log(doy) ~ vh + wind + humidity + tem..., data=call$data, na.action="na.fail")
+y=model.frame[,1] is usable and has column name log(doy)
+got model response from model.frame(log(doy) ~ vh + wind + humidity + tem...,
+                                    data=call$data, na.action="na.fail")
+plotmo_y returned[330,1]:
+    log(doy)
+1   3.496508
+2   3.526361
+3   3.555348
+... 3.583519
+330 5.966147
+plotmo_y after processing with nresponse=1 is [330,1]:
+    log(doy)
+1   3.496508
+2   3.526361
+3   3.555348
+... 3.583519
+330 5.966147
+got response name "log(doy)" from yfull
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: vh 53 wind 11 humidity 65 temp 63 ibh 196
+
+----plotmo_singles for lm object
+singles: 1 vh, 2 wind, 3 humidity, 4 temp, 5 ibh 
+
+----plotmo_pairs for lm object
+formula(object) returned log(doy) ~ vh + wind + humidity + temp + log(ibh)
+formula.vars "vh" "wind" "humidity" "temp" "log(ibh)"
+term.labels "vh" "wind" "humidity" "temp" "log(ibh)"
+plotmo_pairs_from_term_labels
+term.labels: "vh" "wind" "humidity" "temp" "log(ibh)" "vh" "wind" "humidity" "temp" "log(ibh)"
+pred.names:  "vh" "wind" "humidity" "temp" "ibh"
+considering vh
+considering wind
+considering humidity
+considering temp
+considering log(ibh)
+considering vh
+considering wind
+considering humidity
+considering temp
+considering log(ibh)
+no pairs
+
+----Figuring out ylim
+ylim c(NA, NA)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+
+degree1 plot1 (pmethod "plotmo") variable vh
+newdata[50,5]:
+          vh wind humidity temp    ibh
+1   5320.000    5       64   62 2112.5
+2   5332.857    5       64   62 2112.5
+3   5345.714    5       64   62 2112.5
+... 5358.571    5       64   62 2112.5
+50  5950.000    5       64   62 2112.5
+stats::predict(lm.object, data.frame[50,5], type="response")
+predict returned[50,1] with no column names:
+            
+1   4.684507
+2   4.700786
+3   4.717064
+... 4.733343
+50  5.482156
+predict after processing with nresponse=1 is [50,1]:
+     predict
+1   4.684507
+2   4.700786
+3   4.717064
+... 4.733343
+50  5.482156
+graphics::plot.default(x=c(5320,5333,534...), y=c(4.685,4.701,4...), type="n",
+                       main="1 vh", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(5320,5951), ylim=NULL)
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable wind
+degree1 plot3 (pmethod "plotmo") variable humidity
+degree1 plot4 (pmethod "plotmo") variable temp
+degree1 plot5 (pmethod "plotmo") variable ibh
+> termplot(a)
+> par(org.par)
+> 
+> caption <- "test lm(log(doy) ~ vh+wind+humidity+I(wind*humidity)+temp+log(ibh), data=ozone1)"
+> dopar(4,5,caption)
+                              test lm(log(doy) ~ vh+wind+humidity+I(wind*humidity)+temp+log(ibh), data=ozone1) 
+> a <- lm(log(doy) ~ vh + wind + humidity + temp + log(ibh), data=ozone1)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, col.resp=3, pt.pch=20, clip=FALSE, smooth.col="indianred")
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> termplot(a)
+> par(org.par)
+> 
+> caption <- "test lm(doy ~ (vh+wind+humidity)^2, data=ozone1)"
+> dopar(4,3,caption)
+                              test lm(doy ~ (vh+wind+humidity)^2, data=ozone1) 
+> a <- lm(doy ~ (vh+wind+humidity)^2, data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NULL)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> # termplot(a) # termplot fails with Error in `[.data.frame`(mf, , i): undefined columns selected
+> par(org.par)
+> 
+> caption <- "test lm(doy^2 ~ vh+wind+humidity+I(wind*humidity)+temp+log(ibh), data=ozone1)"
+> dopar(4,3,caption)
+                              test lm(doy^2 ~ vh+wind+humidity+I(wind*humidity)+temp+log(ibh), data=ozone1) 
+> a <- lm(doy^2 ~ vh+wind+humidity+I(wind*humidity)+temp+log(ibh), data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NULL)
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> termplot(a) # termplot draws a funky second wind plot
+> par(org.par)
+> 
+> caption <- "test lm with data=ozone versus attach(ozone)"
+> dopar(4,3,caption)
+                              test lm with data=ozone versus attach(ozone) 
+> a <- lm(log(doy) ~ I(vh*wind) + wind + I(humidity*temp) + log(ibh), data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, degree1=c(1,2,4,5))
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> attach(ozone1)
+> a <- lm(log(doy) ~ I(vh*wind) + wind + I(humidity*temp) + log(ibh))
+> plotmo(a, do.par=FALSE, degree1=c(1,2,4,5))
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> detach(ozone1)
+> par(org.par)
+> 
+> # commented out because "$" in names is not yet supported
+> # a <- lm(log(ozone1$doy) ~ I(ozone1$vh*ozone1$wind) + log(ozone1$ibh))
+> # plotmo(a)
+> 
+> set.seed(1)
+> caption <- "test lm and glm a900..a902: damage~temp family=binomial data=orings"
+> dopar(2,3,caption)
+                              test lm and glm a900..a902: damage~temp family=binomial data=orings 
+> library(faraway)
+> data(orings)
+> a900 <- lm(I(damage/6) ~ temp, data=orings)
+> plotmo(a900, do.par=FALSE, caption=caption, col.response=2, nrug=-1,
++     main="lm(damage/6~temp)", smooth.col="indianred", trace=0)
+> response <- cbind(orings$damage, 6-orings$damage)
+> a901 <- glm(response ~ temp, family="binomial", data=orings)
+> set.seed(2020)
+> plotmo(a901, do.par=FALSE, col.response=2, nrug=-1,
++        main="glm(response~temp)", smooth.col="indianred", trace=2)
+plotmo trace 2: plotmo(object=a901, smooth.col="indianred", nrug=-1,
+                       do.par=FALSE, trace=2, col.response=2,
+                       main="glm(response~temp)")
+--get.model.env for object with class glm
+object call is glm(formula=response~temp, family="binomial", data=orings)
+using the environment saved in $terms of the glm model: R_GlobalEnv
+--plotmo_prolog for glm object 'a901'
+--plotmo_x for glm object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is glm(formula=response~temp, family="binomial", data=orings)
+
+get.x.from.model.frame:
+formula(object) is response ~ temp
+naked formula is the same
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names response temp
+x=model.frame[,-1] is usable and has column name temp
+plotmo_x returned[23,1]:
+    temp
+1     53
+2     57
+3     58
+...   63
+23    81
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for glm object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is glm(formula=response~temp, family="binomial", data=orings)
+
+get.x.from.model.frame:
+formula(object) is response ~ temp
+naked formula is the same
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names response temp
+x=model.frame[,-1] is usable and has column name temp
+plotmo_x returned[23,1]:
+    temp
+1     53
+2     57
+3     58
+...   63
+23    81
+will use the above data instead of newdata=NULL for predict.glm
+stats::predict(glm.object, data.frame[3,1], type="response")
+predict returned[3,1] with no column names:
+           
+1 0.5504788
+2 0.3402166
+3 0.2934757
+predict after processing with nresponse=NULL is [3,1] with no column names:
+           
+1 0.5504788
+2 0.3402166
+3 0.2934757
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=glm.object)
+fitted(object) returned[23,1] with no column names:
+               
+1   0.550478817
+2   0.340216592
+3   0.293475686
+... 0.123496147
+23  0.002866088
+fitted(object) after processing with nresponse=NULL is [23,1] with no column names:
+               
+1   0.550478817
+2   0.340216592
+3   0.293475686
+... 0.123496147
+23  0.002866088
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for glm object
+
+get.object.y:
+object$y is usable but without colnames so we will keep on searching
+
+object call is glm(formula=response~temp, family="binomial", data=orings)
+
+get.y.from.model.frame:
+formula(object) is response ~ temp
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names response temp
+y=model.frame[,1] is usable and has column name response
+the variable on the left side of the formula is a matrix or data.frame
+         plotmo often cannot process such variables
+the number of dimensions of each variable in y is 2 and y is [23,1] with colname response, and values c(5, 1, 1, 1, 0, 0, 0, 0, 0, ...
+replacing y with y[[1]]
+y colnames were "response" and now "response[,1]" "response[,2]"
+plotmo_y returned[23,2]:
+    response[,1] response[,2]
+1              5            1
+2              1            5
+3              1            5
+...            1            5
+23             0            6
+plotmo_y after processing with nresponse=NULL is [23,2]:
+    response[,1] response[,2]
+1              5            1
+2              1            5
+3              1            5
+...            1            5
+23             0            6
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 2
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for glm object
+
+get.object.y:
+object$y is usable but without colnames so we will keep on searching
+
+object call is glm(formula=response~temp, family="binomial", data=orings)
+
+get.y.from.model.frame:
+formula(object) is response ~ temp
+formula is valid, now looking for data for the model.frame
+object$model is usable and has column names response temp
+y=model.frame[,1] is usable and has column name response
+the variable on the left side of the formula is a matrix or data.frame
+         plotmo often cannot process such variables
+the number of dimensions of each variable in y is 2 and y is [23,1] with colname response, and values c(5, 1, 1, 1, 0, 0, 0, 0, 0, ...
+replacing y with y[[1]]
+y colnames were "response" and now "response[,1]" "response[,2]"
+got model response from object$model
+yfrac[23,1] with colname response[,1], and values 0.8333, 0.1667, 0.1667, 0.166...
+created column "response.yfrac" from two column binomial response
+plotmo_y returned[23,1]:
+    response.yfrac
+1        0.8333333
+2        0.1666667
+3        0.1666667
+...      0.1666667
+23       0.0000000
+plotmo_y after processing with nresponse=1 is [23,1]:
+    response.yfrac
+1        0.8333333
+2        0.1666667
+3        0.1666667
+...      0.1666667
+23       0.0000000
+got response name "response[,1]" from yfull
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: temp 16
+
+----plotmo_singles for glm object
+singles: 1 temp 
+
+----plotmo_pairs for glm object
+formula(object) returned response ~ temp
+formula.vars "temp"
+term.labels "temp"
+plotmo_pairs_from_term_labels
+term.labels: "temp" "temp"
+pred.names:  "temp"
+considering temp
+considering temp
+no pairs
+
+----Figuring out ylim
+ylim c(-0.1, 1.1)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+degree1 plot1 (pmethod "plotmo") variable temp
+newdata[50,1]:
+        temp
+1   53.00000
+2   53.57143
+3   54.14286
+... 54.71429
+50  81.00000
+stats::predict(glm.object, data.frame[50,1], type="response")
+predict returned[50,1] with no column names:
+               
+1   0.550478817
+2   0.519750569
+3   0.488872165
+... 0.458078452
+50  0.002866088
+predict after processing with nresponse=1 is [50,1]:
+        predict
+1   0.550478817
+2   0.519750569
+3   0.488872165
+... 0.458078452
+50  0.002866088
+graphics::plot.default(x=c(53,53.57,54.1...), y=c(0.5505,0.5198...), type="n",
+                       main="glm(response~temp)", xlab="", ylab="", xaxt="s",
+                       yaxt="s", xlim=c(53,81.01), ylim=c(-0.1,1.1))
+> a902 <- glm(cbind(damage, 6-damage)~temp, family="binomial", data=orings)
+> set.seed(2020)
+> plotmo(a902, do.par=FALSE, col.response=2, nrug=TRUE,
++        main="glm(cbind(damage,6-damage)~temp)", trace=0)
+> termplot(a902, main="termplot")
+> plotmo(a902, type="link", main="type=\"link\"", do.par=F)
+> set.seed(2020)
+> plotmo(a902, type="response", main="type=\"response\"", col.response=2, do.par=F)
+> par(org.par)
+> 
+> set.seed(1)
+> caption <- "test glm(lot2~log(u),data=clotting,family=Gamma)"
+> dopar(2,2,caption)
+                              test glm(lot2~log(u),data=clotting,family=Gamma) 
+> u = c(5,10,15,20,30,40,60,80,100)
+> lota = c(118,58,42,35,27,25,21,19,18)
+> clotting <- data.frame(u = u, lota = lota)
+> a <- glm(lota ~ log(u), data=clotting, family=Gamma)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, caption=caption, col.response=3, clip=FALSE, nrug=-1)
+> termplot(a)
+> plotmo(a, type="link", caption=paste("type=\"link\"", caption))
+> par(org.par)
+> 
+> if(length(grep("package:gam", search())))
++     detach("package:gam")
+> library(mgcv)
+Loading required package: nlme
+This is mgcv 1.9-4. For overview type '?mgcv'.
+> set.seed(1)
+> caption <- "test plot.gam, with mgcv::gam(y ~ s(x) + s(x,z)) with response and func (and extra image plot)"
+> dopar(3,2,caption)
+                              test plot.gam, with mgcv::gam(y ~ s(x) + s(x,z)) with response and func (and extra image plot) 
+> par(mar = c(3, 5, 1.7, 0.5))    # more space for left and bottom axis
+> test1 <- function(x,sx=0.3,sz=0.4)
++     (pi**sx*sz)*(1.2*exp(-(x[,1]-0.2)^2/sx^2-(x[,2]-0.3)^2/sz^2)+
++     0.8*exp(-(x[,1]-0.7)^2/sx^2-(x[,2]-0.8)^2/sz^2))
+> n <- 100
+> set.seed(1)
+> x <- runif(n);
+> z1 <- runif(n);
+> y <- test1(cbind(x,z1)) + rnorm(n) * 0.1
+> a <- gam(y ~ s(x) + s(x,z1))
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, type2="contour", caption=caption,
++       col.response=3, smooth.col="indianred",
++       func=test1, func.col="indianred", func.lwd=5, func.lty=2, smooth.lwd=3)
+ plotmo grid:    x        z1
+         0.4878107 0.5185988
+> 
+> plotmo(a, do.par=FALSE, degree1=F, degree2=1, type2="image", ylim=NA)
+> plot(a, select=1)
+> plot(a, select=2)
+> plot(a, select=3)
+> n<-400
+> sig<-2
+> set.seed(1)
+> x0 <- runif(n, 0, 1)
+> x1 <- runif(n, 0, 1)
+> x2 <- runif(n, 0, 1)
+> x3 <- runif(n, 0, 1)
+> f0 <- function(x) 2 * sin(pi * x)
+> f1 <- function(x) exp(2 * x)
+> f2 <- function(x) 0.2*x^11*(10*(1-x))^6+10*(10*x)^3*(1-x)^10
+> f <- f0(x0) + f1(x1) + f2(x2)
+> e <- rnorm(n, 0, sig)
+> y <- f + e
+> test.func <- function(x) f0(x[,1]) + f1(x[,2]) + f2(x[,3])
+> library(mgcv)
+> caption <- "test mgcv::gam(y~s(x0,x1,k=12)+s(x2)+s(x3,k=20,fx=20)) (and extra persp plot)"
+> dopar(3,3,caption)
+                              test mgcv::gam(y~s(x0,x1,k=12)+s(x2)+s(x3,k=20,fx=20)) (and extra persp plot) 
+> a <- gam(y~s(x0,x1,k=12)+s(x2)+s(x3,k=20,fx=20))
+> plot(a, select=2)
+> plot(a, select=3)
+> plot(a, select=1)
+> plotmo(a, do.par=FALSE, type2="contour", caption=caption, xlab=NULL, main="", func=test.func, ngrid2=10, contour.drawlabels=FALSE)
+ plotmo grid:    x0        x1        x2       x3
+           0.474141 0.5151294 0.4460308 0.479208
+> plotmo(a, do.par=FALSE, degree1=F, degree2=1, persp.the=-35)
+> par(org.par)
+> 
+> set.seed(1)
+> caption <- "test plot.gam, with mgcv::gam(doy~s(wind)+s(humidity,wind)+s(vh)+temp,data=ozone1)"
+> dopar(3,3,caption)
+                              test plot.gam, with mgcv::gam(doy~s(wind)+s(humidity,wind)+s(vh)+temp,data=ozone1) 
+> a <- gam(doy ~ s(wind) + s(humidity,wind) + s(vh) + temp, data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, type2="contour", degree1=c("wind","vh"), swapxy=T, xlab=NULL, main="", clip=FALSE)
+ plotmo grid:    temp wind humidity   vh
+                   62    5       64 5760
+> plot(a, select=1)
+> plot(a, select=3)
+> plot(a, select=2)
+> plot(a, select=4)
+> par(org.par)
+> 
+> detach("package:mgcv")
+> library(gam)
+Loading required package: splines
+Loading required package: foreach
+Loaded gam 1.22-7
+
+> caption <- "test gam:gam(Ozone^(1/3)~lo(Solar.R)+lo(Wind, Temp),data=airquality)"
+> set.seed(1)
+> dopar(3,2,caption)
+                              test gam:gam(Ozone^(1/3)~lo(Solar.R)+lo(Wind, Temp),data=airquality) 
+> data(airquality)
+> airquality <- na.omit(airquality)   # plotmo doesn't know how to deal with NAs yet
+> a <- gam(Ozone^(1/3) ~ lo(Solar.R) + lo(Wind, Temp), data = airquality)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, col.response=3)
+ plotmo grid:    Solar.R Wind Temp
+                     207  9.7   79
+> # termplot gives fishy looking wind plot, plotmo looks ok
+> # termplot(a) #TODO this fails with R2.5: dim(data) <- dim: attempt to set an attribute on NULL
+> detach("package:gam")
+> par(org.par)
+> 
+> library(mda)
+Loading required package: class
+Loaded mda 0.5-5
+
+> caption <- "test mars and earth (expect not a close match)"
+> dopar(6,3,caption)
+                              test mars and earth (expect not a close match) 
+> a <- mars( ozone1[, -1], ozone1[,1], degree=2)
+> b <- earth(ozone1[, -1], ozone1[,1], degree=2)
+> # this also tests trace=2 on a non formula model
+> plotmo(a, do.par=FALSE, caption=caption, trace=2)
+plotmo trace 2: plotmo(object=a, do.par=FALSE, caption=caption, trace=2)
+--get.model.env for object with class mars
+object call is mars(x=ozone1[, -1], y=ozone1[, 1], degree=2)
+assuming the environment of the mars model is that of plotmo's caller: R_GlobalEnv
+--plotmo_prolog for mars object 'a'
+--plotmo_x for mars object
+
+get.object.x:
+ignoring object$x for this mars object
+
+object call is mars(x=ozone1[, -1], y=ozone1[, 1], degree=2)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, R_GlobalEnv)
+getCall(object)$x is usable and has column names vh wind humidity temp ibh dpg ibt vis doy
+plotmo_x returned[330,9]:
+      vh wind humidity temp  ibh dpg ibt vis doy
+1   5710    4       28   40 2693 -25  87 250  33
+2   5700    3       37   45  590 -24 128 100  34
+3   5760    3       51   54 1450  25 139  60  35
+... 5720    4       69   35 1568  15 121  60  36
+330 5550    4       85   39 5000   8  44 100 390
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for mars object
+
+get.object.x:
+ignoring object$x for this mars object
+
+object call is mars(x=ozone1[, -1], y=ozone1[, 1], degree=2)
+
+get.x.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$x, R_GlobalEnv)
+getCall(object)$x is usable and has column names vh wind humidity temp ibh dpg ibt vis doy
+plotmo_x returned[330,9]:
+      vh wind humidity temp  ibh dpg ibt vis doy
+1   5710    4       28   40 2693 -25  87 250  33
+2   5700    3       37   45  590 -24 128 100  34
+3   5760    3       51   54 1450  25 139  60  35
+... 5720    4       69   35 1568  15 121  60  36
+330 5550    4       85   39 5000   8  44 100 390
+will use the above data instead of newdata=NULL for predict.mars
+stats::predict(mars.object, data.frame[3,9], type="response")
+predict returned[3,1] with no column names:
+          
+1 3.333568
+2 1.865073
+3 7.044289
+predict after processing with nresponse=NULL is [3,1] with no column names:
+          
+1 3.333568
+2 1.865073
+3 7.044289
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=mars.object)
+fitted(object) returned[330,1] with no column names:
+            
+1   3.333568
+2   1.865073
+3   7.044289
+... 6.925382
+330 1.885331
+fitted(object) after processing with nresponse=NULL is [330,1] with no column names:
+            
+1   3.333568
+2   1.865073
+3   7.044289
+... 6.925382
+330 1.885331
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for mars object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is mars(x=ozone1[, -1], y=ozone1[, 1], degree=2)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, R_GlobalEnv)
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "degree"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+plotmo_y returned[330,1] with no column names:
+     
+1   3
+2   5
+3   5
+... 6
+330 1
+plotmo_y after processing with nresponse=NULL is [330,1] with no column names:
+     
+1   3
+2   5
+3   5
+... 6
+330 1
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for mars object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is mars(x=ozone1[, -1], y=ozone1[, 1], degree=2)
+
+get.y.from.model.frame:
+terms(object) did not return the terms, will look for the formula elsewhere
+no formula in getCall(object)
+
+get.data.from.object.call.field:
+eval(getCall(object)$y, R_GlobalEnv)
+getCall(object)$y is usable but without colnames so we will keep on searching
+
+names(call) is "" "x" "y" "degree"
+the name of argument 2 is "y" so we will not process it with argn
+object$y is NULL
+call$y is usable but without colnames but we will use it anyway
+got model response from getCall(object)$y
+plotmo_y returned[330,1] with no column names:
+     
+1   3
+2   5
+3   5
+... 6
+330 1
+plotmo_y after processing with nresponse=1 is [330,1]:
+    plotmo_y
+1          3
+2          5
+3          5
+...        6
+330        1
+response name is NULL
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: vh 53 wind 11 humidity 65 temp 63 ibh 196 dpg 128 ibt 193...
+
+----plotmo_singles for mars object
+singles: 1 vh, 2 wind, 3 humidity, 4 temp, 5 ibh, 6 dpg, 7 ibt, 8 vis, 9 doy 
+
+----plotmo_pairs for mars object
+Error in attr(x, "formula") %||% { : invalid formula
+formula(object) failed for mars object in plotmo.pairs.default
+Error in x$terms %||% attr(x, "terms") %||% stop("no terms component nor attribute") : 
+  no terms component nor attribute
+terms(object) failed for mars object in plotmo.pairs.default
+no pairs
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable vh
+newdata[50,9]:
+          vh wind humidity temp    ibh dpg   ibt vis   doy
+1   5320.000    5       64   62 2112.5  24 167.5 120 205.5
+2   5332.857    5       64   62 2112.5  24 167.5 120 205.5
+3   5345.714    5       64   62 2112.5  24 167.5 120 205.5
+... 5358.571    5       64   62 2112.5  24 167.5 120 205.5
+50  5950.000    5       64   62 2112.5  24 167.5 120 205.5
+stats::predict(mars.object, data.frame[50,9], type="response")
+predict returned[50,1] with no column names:
+             
+1    8.123619
+2    8.303007
+3    8.482395
+...  8.661783
+50  16.216014
+predict after processing with nresponse=1 is [50,1]:
+      predict
+1    8.123619
+2    8.303007
+3    8.482395
+...  8.661783
+50  16.216014
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable wind
+degree1 plot3 (pmethod "plotmo") variable humidity
+degree1 plot4 (pmethod "plotmo") variable temp
+degree1 plot5 (pmethod "plotmo") variable ibh
+degree1 plot6 (pmethod "plotmo") variable dpg
+degree1 plot7 (pmethod "plotmo") variable ibt
+degree1 plot8 (pmethod "plotmo") variable vis
+degree1 plot9 (pmethod "plotmo") variable doy
+--done get.ylim.by.dummy.plots
+
+ylim c(6.671, 20.41)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+
+graphics::plot.default(x=c(5320,5333,534...), y=c(8.124,8.303,8...), type="n",
+                       main="1 vh", xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=c(5320,5950), ylim=c(6.671,20.42))
+> plotmo(b, do.par=FALSE)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> par(org.par)
+> 
+> caption <- "test mars and mars.to.earth(mars) (expect no degree2 for mars)"
+> dopar(6,3,caption)
+                              test mars and mars.to.earth(mars) (expect no degree2 for mars) 
+> a <- mars(ozone1[, -1], ozone1[,1], degree=2)
+> b <- mars.to.earth(a)
+Converted mars(x=ozone1[,-1], y=ozone1[,1], degree=2)
+
+to earth(x=ozone1[,-1], y=ozone1[,1], degree=2)
+
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotmo(b, do.par=FALSE, ylim=NA)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> par(org.par)
+> 
+> # check fix for bug reported by Martin Maechler:
+> # form <- Volume ~ .; a <- earth(form, data = trees); plotmo(a) fails
+> 
+> dopar(4,4, "test f <- O3 ~ .; a <- earth(f, data=ozone1)")
+                              test f <- O3 ~ .; a <- earth(f, data=ozone1) 
+> fa <- log(O3) ~ .
+> a <- earth(fa, data=ozone1, degree=2)
+> print(summary(a))
+Call: earth(formula=fa, data=ozone1, degree=2)
+
+                             coefficients
+(Intercept)                    2.79412331
+h(47-humidity)                -0.01328663
+h(52-temp)                    -0.01753702
+h(temp-52)                     0.02311792
+h(1105-ibh)                   -0.00030601
+h(13-dpg)                     -0.00523433
+h(dpg-13)                     -0.00788042
+h(194-ibt)                    -0.00459263
+h(200-vis)                     0.00195292
+h(96-doy)                     -0.01324138
+h(doy-96)                     -0.00278616
+h(wind-7) * h(200-vis)        -0.00153720
+h(43-humidity) * h(52-temp)    0.00187488
+h(humidity-67) * h(ibh-1105)  -0.00000914
+
+Selected 14 of 21 terms, and 8 of 9 predictors
+Termination condition: Reached nk 21
+Importance: temp, ibt, doy, humidity, ibh, dpg, vis, wind, vh-unused
+Number of terms at each degree of interaction: 1 10 3
+GCV 0.1058972    RSS 28.2111    GRSq 0.8114829    RSq 0.8468883
+> plot(a, do.par=FALSE)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, degree1=2:3, degree2=c(1,2), col.response = "pink", smooth.col="indianred")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> a <- lm(log(doy) ~ I(vh*wind) + I(humidity*temp) + log(ibh), data=ozone1)
+> plotmo(a, do.par=FALSE, degree1=1:2)
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> fa <- log(doy) ~ I(vh*wind) + I(humidity*temp) + log(ibh)
+> a <- lm(fa, data=ozone1)
+> plotmo(a, do.par=FALSE, degree1=1:2)
+ plotmo grid:    vh wind humidity temp    ibh
+               5760    5       64   62 2112.5
+> par(org.par)
+> 
+> # test inverse.func and func
+> 
+> caption <- "test inverse.func=exp"
+> a <- lm(log(Volume) ~ Girth + Height + I(Girth*Height), data=trees)
+> my.func <- function(x) -60 + 5 * x[,1] + x[,2] / 3
+> set.seed(2020)
+> plotmo(a, caption=caption, inverse.func = exp, col.response = "pink", func=my.func, func.col="gray", ngrid1=1000, type2="p", smooth.col="indianred")
+ plotmo grid:    Girth Height
+                  12.9     76
+> par(org.par)
+> 
+> # se testing
+> 
+> caption = "level=.95, lm(doy~., data=ozone1) versus termplot"
+> dopar(6,3,caption)
+                              level=.95, lm(doy~., data=ozone1) versus termplot 
+> a <- lm(doy~., data=ozone1)
+> plotmo(a, level=.95, do.par=FALSE, caption=caption)
+ plotmo grid:    O3   vh wind humidity temp    ibh dpg   ibt vis
+                 10 5760    5       64   62 2112.5  24 167.5 120
+> termplot(a, se=2)
+> par(org.par)
+> 
+> caption <- "test different se options, level=.95, lm(log(doy)~vh+wind+log(humidity),data=ozone1)"
+> dopar(4,3,caption)
+                              test different se options, level=.95, lm(log(doy)~vh+wind+log(humidity),data=ozone1) 
+> a <- lm(log(doy) ~ vh + wind + log(humidity), data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, level=.95)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, level=.95, level.shade="pink", level.shade2=3)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, level=.95, level.shade=3)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NULL, level=.95, level.shade=3)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> par(org.par)
+> 
+> caption <- "test level=.95, lm(log(doy)~vh+wind+log(humidity),data=ozone1)"
+> dopar(2,3,caption)
+                              test level=.95, lm(log(doy)~vh+wind+log(humidity),data=ozone1) 
+> a <- lm(log(doy) ~ vh + wind + log(humidity), data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, level=.95)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> termplot(a, se=2)
+> par(org.par)
+> 
+> caption <- "test level=.95 and inverse.func, lm(log(doy)~vh+wind+log(humidity),data=ozone1)"
+> dopar(3,3,caption)
+                              test level=.95 and inverse.func, lm(log(doy)~vh+wind+log(humidity),data=ozone1) 
+> a <- lm(log(doy) ~ vh + wind + log(humidity), data=ozone1)
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NA, level=.95)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> plotmo(a, do.par=FALSE, caption=caption, ylim=NULL, level=.95, inverse.func=exp)
+ plotmo grid:    vh wind humidity
+               5760    5       64
+> termplot(a, se=2)
+> par(org.par)
+> 
+> caption <- "test level=.95, glm(lot2~log(u),data=clotting,family=Gamma)"
+> set.seed(1)
+> dopar(2,2,caption)
+                              test level=.95, glm(lot2~log(u),data=clotting,family=Gamma) 
+> u = c(5,10,15,20,30,40,60,80,100)
+> lota = c(118,58,42,35,27,25,21,19,18)
+> clotting <- data.frame(u = u, lota = lota)
+> a <- glm(lota ~ log(u), data=clotting, family=Gamma)
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, caption=caption, col.response=4, pt.pch=7, clip=FALSE, nrug=-1, level=.95, smooth.col="indianred")
+Warning: the level argument may not work correctly on glm objects built with weights
+> termplot(a, se=2)
+> par(org.par)
+> 
+> if(length(grep("package:gam", search())))
++     detach("package:gam")
+> library(mgcv)
+This is mgcv 1.9-4. For overview type '?mgcv'.
+> set.seed(1)
+> caption <- "test level=.95, plot.gam, with mgcv::gam(y ~ s(x) + s(x,z1)) with response and func (and extra image plot)"
+> dopar(3,2,caption)
+                              test level=.95, plot.gam, with mgcv::gam(y ~ s(x) + s(x,z1)) with response and func (and extra image plot) 
+> par(mar = c(3, 5, 1.7, 0.5))    # more space for left and bottom axis
+> test1 <- function(x,sx=0.3,sz=0.4)
++     (pi**sx*sz)*(1.2*exp(-(x[,1]-0.2)^2/sx^2-(x[,2]-0.3)^2/sz^2)+
++     0.8*exp(-(x[,1]-0.7)^2/sx^2-(x[,2]-0.8)^2/sz^2))
+> n <- 100
+> set.seed(1)
+> x <- runif(n);
+> z1 <- runif(n);
+> y <- test1(cbind(x,z1)) + rnorm(n) * 0.1
+> a <- gam(y ~ s(x) + s(x,z1))
+> set.seed(2020)
+> plotmo(a, do.par=FALSE, type2="contour", caption=caption, col.response=3, func=test1, func.col="magenta", level=.95)
+ plotmo grid:    x        z1
+         0.4878107 0.5185988
+> plotmo(a, do.par=FALSE, degree1=F, degree2=1, type2="image", image.col=topo.colors(10),
++         ylim=NA, level=.95, main="topo.colors")
+> plot(a, select=1)
+> plot(a, select=2)
+> plot(a, select=3)
+> par(org.par)
+> 
+> # TODO Following commented out because it causes:
+> #      Error: gam objects in the "gam" package do not support confidence intervals on new data
+> # detach("package:mgcv")
+> # library(gam)
+> # set.seed(1)
+> # caption <- "test level=.95, gam:gam(Ozone^(1/3)~lo(Solar.R)+lo(Wind, Temp),data=airquality)"
+> # dopar(3,2,caption)
+> # data(airquality)
+> # airquality <- na.omit(airquality)   # plotmo doesn't know how to deal with NAs yet
+> # a <- gam(Ozone^(1/3) ~ lo(Solar.R) + lo(Wind, Temp), data = airquality)
+> # set.seed(2020)
+> # plotmo(a, do.par=FALSE, caption=caption, ylim=NA, col.response=3, level=.95)
+> # # termplot(a)  #TODO this fails with R2.5: dim(data) <- dim: attempt to set an attribute on NULL
+> # detach("package:gam")
+> # par(org.par)
+> 
+> # test factors by changing wind to a factor
+> 
+> ozone2 <- ozone1
+> ozone2[,"wind"] <- factor(ozone2[,"wind"], labels=c(
++     "wind0", "wind2", "wind3", "wind4", "wind5", "wind6",
++     "wind7", "wind8", "wind9", "wind10", "wind11"))
+> 
+> # commented out because factors are not yet supported by plotmo.earth
+> # caption <- "test wind=factor, earth(O3 ~ ., data=ozone2)"
+> # a <- earth(doy ~ ., data=ozone2)
+> # set.seed(1)
+> # dopar(4,3,caption)
+> # set.seed(2020)
+> # plotmo(a, col.response="gray", level=.95, nrug=-1, do.par=FALSE, caption=caption)
+> # termplot(a)
+> # par(org.par)
+> 
+> caption <- "test wind=factor, lm(doy ~ vh + wind + I(humidity*temp) + log(ibh), data=ozone2)"
+> a <- lm(doy ~ vh + wind + I(humidity*temp) + log(ibh), data=ozone2)
+> set.seed(1)
+> dopar(4,3,caption)
+                              test wind=factor, lm(doy ~ vh + wind + I(humidity*temp) + log(ibh), data=ozone2) 
+> plotmo(a, col.response="gray", level=.95, nrug=-1, do.par=FALSE, caption=caption, smooth.col="indianred")
+ plotmo grid:    vh  wind humidity temp    ibh
+               5760 wind5       64   62 2112.5
+> termplot(a, se=2)
+> par(org.par)
+> 
+> caption <- "test level options"
+> dopar(2,2,caption)
+                              test level options 
+> plotmo(a, do.par=FALSE, degree1=2, degree2=FALSE, level=.95, level.shade=0, caption=caption)
+ plotmo grid:    vh  wind humidity temp    ibh
+               5760 wind5       64   62 2112.5
+> plotmo(a, do.par=FALSE, degree1=2, degree2=FALSE, level=.95, level.shade="orange")
+ plotmo grid:    vh  wind humidity temp    ibh
+               5760 wind5       64   62 2112.5
+> plotmo(a, do.par=FALSE, degree1=2, degree2=FALSE, level=.95, level.shade2=0)
+ plotmo grid:    vh  wind humidity temp    ibh
+               5760 wind5       64   62 2112.5
+> par(org.par)
+> 
+> caption <- "test wind=factor, glm(y ~ i + j, family=poisson())"
+> y <- c(18,17,15,20,10,20,25,13,12)
+> i <- gl(3,1,9)
+> j <- gl(3,3)
+> a <- glm(y ~ i + j, family=poisson())
+> set.seed(1)
+> dopar(2,2,caption)
+                              test wind=factor, glm(y ~ i + j, family=poisson()) 
+> plotmo(a, do.par=F, level=.95, nrug=1, caption=caption)
+Warning: the level argument may not work correctly on glm objects built with weights
+Warning: the level argument may not work correctly on glm objects built with weights
+ plotmo grid:    i j
+                 1 1
+> termplot(a, se=1, rug=T)
+> par(org.par)
+> 
+> if(length(grep("package:gam", search())))
++    detach("package:gam")
+> caption <- "test wind=factor, gam(doy ~ vh + wind + s(humidity) + s(vh) + temp, data=ozone2)"
+> library(mgcv)
+> a <- gam(doy ~ vh + wind + s(humidity) + s(vh) + temp, data=ozone2)
+> plotmo(a, level=.95, caption=caption)
+ plotmo grid:    vh  wind temp humidity
+               5760 wind5   62       64
+> caption <- "test wind=factor, clip=TRUE, gam(doy ~ vh + wind + s(humidity) + s(vh) + temp, data=ozone2)"
+> plotmo(a, level=.95, caption=caption, clip=FALSE)
+ plotmo grid:    vh  wind temp humidity
+               5760 wind5   62       64
+> # termplot doesn't work here so code commented out
+> # dopar(3,3,caption)
+> # plotmo(a, do.par=FALSE)
+> # termplot(a)
+> par(org.par)
+> 
+> # test lda and qda, and also col.response, pt.pch, and jitter
+> library(MASS)
+> etitanic2 <- etitanic
+> etitanic2$pclass <- as.numeric(etitanic$pclass)
+> etitanic2$sex <- as.numeric(etitanic$sex)
+> etitanic2$sibsp <- NULL
+> etitanic2$parch <- NULL
+> lda.model <- lda(survived ~ ., data=etitanic2)
+> set.seed(7)
+> plotmo(lda.model, caption="lda", clip=F,
++        col.response=as.numeric(etitanic2$survived)+2, type="posterior", nresponse=1, smooth.col="indianred",
++        all2=TRUE, type2="image")
+ plotmo grid:    pclass sex age
+                      2   2  28
+> set.seed(8)
+> plotmo(lda.model, caption="lda with no jitter", clip=F,
++        col.response=as.numeric(etitanic2$survived)+2, type="posterior", nresponse=1,
++        all2=TRUE, type2="image", jitter=0)
+ plotmo grid:    pclass sex age
+                      2   2  28
+> qda.model <- qda(survived ~ ., data=etitanic2)
+> set.seed(9)
+> plotmo(qda.model, caption="qda", clip=F,
++        col.response=as.numeric(etitanic2$survived)+2, type="post", nresponse=2, smooth.col="indianred",
++        all2=TRUE, type2="image", jitter.resp=.6, pch.resp=20)
+ plotmo grid:    pclass sex age
+                      2   2  28
+> 
+> # test plotmo.y from the 2nd argument of the model function (non-formula interface)
+> lcush <- data.frame(Type=as.numeric(Cushings$Type), log(Cushings[,1:2]))[1:21,]
+> a <- qda(lcush[,2:3], lcush[,1])
+> set.seed(2020)
+> plotmo(a, type="class", all2=TRUE,
++        caption= "plotmo.y from 2nd argument of call (qda)",
++        type2="contour", ngrid2=100, contour.nlevels=2, contour.drawlabels=FALSE,
++        col.response=as.numeric(lcush$Type)+1,
++        pt.pch=as.character(lcush$Type))
+ plotmo grid:    Tetrahydrocortisone Pregnanetriol
+                             2.04122     0.1823216
+> par(org.par)
+> 
+> # # example from MASS (works, but removed because unnecessary test)
+> # predplot <- function(object, main="", len = 100, ...)
+> # {
+> #     plot(Cushings[,1], Cushings[,2], log="xy", type="n",
+> #          xlab = "Tetrahydrocortisone", ylab = "Pregnanetriol", main = main)
+> #     for(il in 1:4) {
+> #         set <- Cushings$Type==levels(Cushings$Type)[il]
+> #         text(Cushings[set, 1], Cushings[set, 2],
+> #              labels=as.character(Cushings$Type[set]), col = 2 + il) }
+> #     xp <- seq(0.6, 4.0, length=len)
+> #     yp <- seq(-3.25, 2.45, length=len)
+> #     cushT <- expand.grid(Tetrahydrocortisone = xp,
+> #                          Pregnanetriol = yp)
+> #     Z <- predict(object, cushT, ...); zp <- as.numeric(Z$class)
+> #     zp <- Z$post[,3] - pmax(Z$post[,2], Z$post[,1])
+> #     contour(exp(xp), exp(yp), matrix(zp, len),
+> #             add = TRUE, levels = 0, labex = 0)
+> #     zp <- Z$post[,1] - pmax(Z$post[,2], Z$post[,3])
+> #     contour(exp(xp), exp(yp), matrix(zp, len),
+> #             add = TRUE, levels = 0, labex = 0)
+> #     invisible()
+> # }
+> # par(mfrow=c(2,2))
+> # cush <- log(as.matrix(Cushings[, -3]))
+> # tp <- Cushings$Type[1:21, drop = TRUE]
+> # set.seed(203)
+> # cush.data <- data.frame(tp, cush[1:21,])
+> # a <- qda(tp~., data=cush.data)
+> # predplot(a, "QDA example from MASS")
+> # set.seed(2020)
+> # plotmo(a, type="class", all2=TRUE, type2="contour", degree1=NA, do.par=FALSE,
+> #        col.response=as.numeric(cush.data$tp)+1)
+> # set.seed(2020)
+> # plotmo(a, type="class", all2=TRUE, type2="contour", degree1=NA, do.par=FALSE,
+> #        col.response=as.numeric(cush.data$tp)+1, drawlabels=F, nlevels=2)
+> # set.seed(2020)
+> # plotmo(a, type="class", all2=TRUE, type2="contour", degree1=NA, do.par=FALSE,
+> #        col.response=as.numeric(cush.data$tp)+1, drawlabels=F, nlevels=2, ngrid2=100)
+> # par(org.par)
+> 
+> library(rpart)
+
+Attaching package: 'rpart'
+
+The following object is masked from 'package:faraway':
+
+    solder
+
+> data(kyphosis)
+> # kyphosis data, earth model
+> a <- earth(Kyphosis ~ ., data=kyphosis, degree=2, glm=list(family=binomial))
+> cat("summary(a): (Kyphosis)\n")
+summary(a): (Kyphosis)
+> print(summary(a))
+Call: earth(formula=Kyphosis~., data=kyphosis, glm=list(family=binomial),
+            degree=2)
+
+GLM coefficients
+                            present
+(Intercept)              12.4739052
+h(97-Age)                -0.1563678
+h(6-Number)              -3.8334755
+h(Start-6)               -0.3798750
+h(Age-42) * h(Number-3)  -0.0197570
+h(114-Age) * h(Start-6)   0.0089521
+h(Number-3) * h(Start-6) -0.3545004
+
+GLM (family binomial, link logit):
+ nulldev df       dev df   devratio     AIC iters converged
+ 83.2345 80   36.4652 74      0.562   50.47     8         1
+
+Earth selected 7 of 19 terms, and 3 of 3 predictors
+Termination condition: Reached nk 21
+Importance: Start, Age, Number
+Number of terms at each degree of interaction: 1 3 3
+Earth GCV 0.1359306    RSS 7.090206    GRSq 0.2004084    RSq 0.4721446
+> par(mfrow=c(3, 3))
+> par(mar=c(3, 3, 2, .5))  # small margins to pack figs in
+> set.seed(9) # for jitter
+> set.seed(2020)
+> plotmo(a, do.par=F, type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        clip=F)
+ plotmo grid:    Age Number Start
+                  87      4    13
+> plotmo(a, do.par=F, clip=F, degree1=0)
+> par(org.par)
+> 
+> # kyphosis data, rpart models (also test ngrid2)
+> fit1 <- rpart(Kyphosis ~ ., data=kyphosis)
+> plotres(fit1, SHOWCALL=TRUE)
+> par(mfrow=c(3, 3))
+> par(mar=c(.5, 0.5, 2, .5), mgp = c(1.6, 0.6, 0))  # b l t r small margins to pack figs in
+> library(rpart.plot)
+> prp(fit1, main="rpart kyphosis\nno prior")
+> plotmo(fit1, degree1=NA, do.par=F, main="", persp.theta=220, nresponse=2)
+> par(mar=c(4, 4, 2, .5))
+> set.seed(2020)
+> plotmo(fit1, nresp=2, degree1=FALSE, do.par=F, main="", type2="image", # test default type="prob"
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=ifelse(kyphosis$Kyphosis=="present", "p", "a"),
++        image.col=gray(10:4/10), ngrid2=30)
+> par(mar=c(.5, 0.5, 2, .5))  # b l t r small margins to pack figs in
+> plotmo(fit1, type="class", degree1=NA, do.par=F, main="type=\"class\"")
+> # with type="prob" and response has two columns,
+> # nresponse should automatically default to column 2
+> plotmo(fit1, type="prob", degree1=0, do.par=F, main="type=\"prob\"",
++        clip=F, ngrid2=50, persp.border=NA, trace=1)
+stats::predict(rpart.object, data.frame[3,3], type="prob")
+stats::fitted(object=rpart.object)
+fitted() was unsuccessful, will use predict() instead
+set nresponse=2
+nresponse=2 but for plotmo_y using nresponse=1 because ncol(y) == 1
+got model response from model.frame(Kyphosis ~ Age + Number + Start,
+                                    data=call$data, na.action="na.pass")
+> set.seed(2020)
+> plotmo(fit1, type="prob", nresp=2, degree1=NA, do.par=F, main="", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10), ngrid2=5)
+> # better rpart model with prior
+> fit2 <- rpart(Kyphosis ~ ., data=kyphosis, parms=list(prior=c(.65,.35)))
+> prp(fit2, main="rpart kyphosis\nwith prior, better model")
+> plotmo(fit2, type="v", degree1=NA, do.par=F, main="", persp.theta=220, ngrid2=10)
+> par(mar=c(4, 4, 2, .5))
+> set.seed(2020)
+> plotmo(fit2, type="v", degree1=NA, do.par=F, main="", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10), ngrid2=100)
+> par(org.par)
+> 
+> plotmo(fit1, type="prob", nresponse=1, persp.border=NA, persp.col="pink", all1=TRUE, all2=TRUE,
++        caption="plotmo rpart fit1, all1=TRUE, all2=TRUE")
+ plotmo grid:    Age Number Start
+                  87      4    13
+> expect.err(try(plotmo(fit1, type="none.such1")))
+Error : predict.rpart does not support type="none.such1"
+Got expected error from try(plotmo(fit1, type = "none.such1"))
+> 
+> # rpart model with ozone data
+> data(ozone1)
+> par(mfrow=c(4,4))
+> par(mar=c(.5, 0.5, 2, .5), cex=.6, mgp = c(1.6, 0.6, 0))  # b l t r small margins to pack figs in
+> a1 <- rpart(O3~temp+humidity, data=ozone1)
+> prp(a1, main="rpart model with ozone data\n(temp and humidity only)\n")
+> plotmo(a1, do.par=F, degree1=0, main="rpart", persp.ticktype="detail", persp.nticks=2)
+> expect.err(try(plotmo(a1, type="class")))
+Error : predict.rpart does not support type="class" (for "anova" rpart objects)
+Got expected error from try(plotmo(a1, type = "class"))
+> # compare to a linear and earth model
+> a3 <- lm(O3~temp+humidity, data=ozone1)
+> plotmo(a3, do.par=F, clip=F, main="lm", degree1=0, all2=TRUE, persp.ticktype="detail", persp.nticks=2)
+> expect.err(try(plotmo(a3, type="none.such2")))
+
+stats::predict(lm.object, NULL, type="none.such2")
+
+Error in match.arg(type) : 'arg' should be one of "response", "terms"
+Got expected error from try(plotmo(a3, type = "none.such2"))
+> a <- earth(O3~temp+humidity, data=ozone1, degree=2)
+> plotmo(a, do.par=F, clip=F, main="earth", degree1=NA, persp.ticktype="detail", persp.nticks=2)
+> expect.err(try(plotmo(a, type="none.such3")))
+
+stats::predict(earth.object, NULL, type="none.such3")
+
+Error : type="none.such3" is not allowed
+Choose one of: "link" "response" "earth" "class" "terms"
+Got expected error from try(plotmo(a, type = "none.such3"))
+> expect.err(try(plotmo(a, type=c("abc", "def"))))
+Error : 'type' has more than one element
+       type = c("abc" "def")
+Got expected error from try(plotmo(a, type = c("abc", "def")))
+> par(org.par)
+> 
+> # detailed rpart model
+> par(mfrow=c(3,3))
+> a1 <- rpart(O3~., data=ozone1)
+> prp(a1, cex=.9, main="rpart model with full ozone data")
+> plotmo(a1, type="vector", do.par=F, degree1=NA, persp.ticktype="detail",
++        persp.nticks=3, degree2=2:3)
+> par(org.par)
+> 
+> plotmo(a1, persp.border=NA, all1=TRUE, all2=TRUE,
++        caption="plotmo rpart a1, all1=TRUE, all2=TRUE")
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> 
+> library(tree)
+> tree1 <- tree(O3~., data=ozone1)
+> plotmo(tree1)
+ plotmo grid:    vh wind humidity temp    ibh dpg   ibt vis   doy
+               5760    5       64   62 2112.5  24 167.5 120 205.5
+> plotres(tree1)
+> 
+> # rpart data with NAs
+> 
+> rpart.airquality <- rpart(Ozone~., data=airquality) # airquality has NAs in response and variables
+> plotmo <- plotmo(rpart.airquality, trace=0, SHOWCALL=TRUE)
+ plotmo grid:    Solar.R Wind Temp Month Day
+                     207  9.7   79     7  16
+> print(rpart.rules(rpart.airquality))
+ Ozone                                                     
+    12 when Temp <  83       & Wind >=  7.2 & Solar.R <  80
+    21 when Temp <  78       & Wind >=  7.2 & Solar.R >= 80
+    35 when Temp is 78 to 83 & Wind >=  7.2 & Solar.R >= 80
+    49 when Temp >=       83 & Wind >= 10.6                
+    61 when Temp <  83       & Wind <   7.2                
+    75 when Temp is 83 to 89 & Wind <  10.6                
+    93 when Temp >=       89 & Wind <  10.6                
+> 
+> airquality.nonaOzone <- subset(airquality, !is.na(Ozone)) # no NAs in response but NAs in variables
+> rpart.nonaOzone <- rpart(Ozone~., data=airquality.nonaOzone)
+> print(rpart.rules(rpart.nonaOzone))
+ Ozone                                                     
+    12 when Temp <  83       & Wind >=  7.2 & Solar.R <  80
+    21 when Temp <  78       & Wind >=  7.2 & Solar.R >= 80
+    35 when Temp is 78 to 83 & Wind >=  7.2 & Solar.R >= 80
+    49 when Temp >=       83 & Wind >= 10.6                
+    61 when Temp <  83       & Wind <   7.2                
+    75 when Temp is 83 to 89 & Wind <  10.6                
+    93 when Temp >=       89 & Wind <  10.6                
+> plotmo.nonaOzone <- plotmo(rpart.nonaOzone, trace=0, SHOWCALL=TRUE)
+ plotmo grid:    Solar.R Wind Temp Month Day
+                     207  9.7   79     7  16
+> airquality.nonaOzone$Ozone <- NULL
+> stopifnot(identical(plotmo.nonaOzone, airquality.nonaOzone))
+> 
+> # test xflip and yflip
+> 
+> par(mfrow=c(4, 4))
+> par(mgp = c(1.6, 0.6, 0))
+> par(mar=c(4, 4, 2, .5))
+> 
+> flip.test1 <- rpart(Kyphosis ~ ., data=kyphosis)
+> set.seed(2020)
+> plotmo(flip.test1, type="prob", nresp=2, degree1=NA, do.par=F, main="", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10))
+> set.seed(2020)
+> plotmo(flip.test1, type="prob", nresp=2, degree1=NA, do.par=F, main="xflip", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10),
++        xflip=T)
+> set.seed(2020)
+> plotmo(flip.test1, type="prob", nresp=2, degree1=NA, do.par=F, main="yflip", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10),
++        yflip=T)
+> set.seed(2020)
+> plotmo(flip.test1, type="prob", nresp=2, degree1=NA, do.par=F, main="xflip and yflip", type2="image",
++        col.response=ifelse(kyphosis$Kyphosis=="present", "red", "lightblue"),
++        pt.pch=20, image.col=gray(10:4/10),
++        xflip=T, yflip=T)
+> 
+> flip.test2 <- earth(O3~., data=ozone1, degree=2)
+> plotmo(flip.test2, degree1=NA, degree2=2, do.par=F, main="", type2="cont")
+> plotmo(flip.test2, degree1=NA, degree2=2, do.par=F, main="xflip", type2="cont",
++        xflip=T)
+> plotmo(flip.test2, degree1=NA, degree2=2, do.par=F, main="yflip", type2="cont",
++        yflip=T)
+> plotmo(flip.test2, degree1=NA, degree2=2, do.par=F, main="xflip and yflip", type2="cont",
++        xflip=T, yflip=T)
+> 
+> cat("Expect warnings: ignoring xflip=TRUE for persp plot\n")
+Expect warnings: ignoring xflip=TRUE for persp plot
+> plotmo(flip.test2, degree1=NA, degree2=2, do.par=F, main="xflip and yflip", type2="persp",
++        xflip=T, yflip=T)
+Warning: ignoring xflip=TRUE for persp plot
+Warning: ignoring yflip=TRUE for persp plot
+> 
+> library(randomForest)
+randomForest 4.7-1.2
+Type rfNews() to see new features/changes/bug fixes.
+> data(etitanic)
+> etit <- etitanic[1:300,]
+> 
+> cat("=== rf.regression ===\n")
+=== rf.regression ===
+> set.seed(2016)
+> # Expect Warning: The response has five or fewer unique values.  Are you sure you want to do regression?
+> rf.regression <- randomForest(survived~., data=etit, ntree=100, importance = FALSE)
+Warning in randomForest.default(m, y, ...) :
+  The response has five or fewer unique values.  Are you sure you want to do regression?
+> plotmo(rf.regression, trace=1)
+stats::predict(randomForest.formula.object, data.frame[3,5], type="response")
+stats::fitted(object=randomForest.formula.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from model.frame(survived ~ pclass + sex + age + sibsp...,
+                                    data=call$data, na.action="na.fail")
+randomForest built with importance=FALSE, ranking variables on IncNodePurity
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  38     0     0
+
+> 
+> cat("=== rf.regression.importance ===\n")
+=== rf.regression.importance ===
+> set.seed(2016)
+> # Expect Warning: The response has five or fewer unique values.  Are you sure you want to do regression?
+> rf.regression.importance <- randomForest(survived~., data=etit, ntree=100, importance = TRUE)
+Warning in randomForest.default(m, y, ...) :
+  The response has five or fewer unique values.  Are you sure you want to do regression?
+> plotmo(rf.regression.importance, trace=1)
+stats::predict(randomForest.formula.object, data.frame[3,5], type="response")
+stats::fitted(object=randomForest.formula.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from model.frame(survived ~ pclass + sex + age + sibsp...,
+                                    data=call$data, na.action="na.fail")
+randomForest built with importance=TRUE, ranking variables on %IncMSE
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  38     0     0
+
+> 
+> etit <- etitanic[1:300,]
+> etit$survived <- factor(ifelse(etit$survived == 1, "survived", "died"),
++                        levels = c("survived", "died"))
+> cat("=== rf.classification ===\n")
+=== rf.classification ===
+> set.seed(2016)
+> rf.classification <- randomForest(survived~., data=etit, ntree=100, importance = FALSE)
+> plotmo(rf.classification, trace=1, type="prob", nresponse="surv", SHOWCALL=TRUE)
+stats::predict(randomForest.formula.object, data.frame[3,5], type="prob")
+stats::fitted(object=randomForest.formula.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from model.frame(survived ~ pclass + sex + age + sibsp...,
+                                    data=call$data, na.action="na.fail")
+randomForest built with importance=FALSE, ranking variables on MeanDecreaseGini
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  38     0     0
+
+> plotmo(rf.classification, trace=1, type="prob", nresponse="died", degree2=0, SHOWCALL=TRUE)
+stats::predict(randomForest.formula.object, data.frame[3,5], type="prob")
+stats::fitted(object=randomForest.formula.object)
+fitted() was unsuccessful, will use predict() instead
+nresponse=2 but for plotmo_y using nresponse=1 because ncol(y) == 1
+got model response from model.frame(survived ~ pclass + sex + age + sibsp...,
+                                    data=call$data, na.action="na.fail")
+randomForest built with importance=FALSE, ranking variables on MeanDecreaseGini
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  38     0     0
+
+> 
+> cat("=== rf.classification.importance ===\n")
+=== rf.classification.importance ===
+> set.seed(2016)
+> rf.classification.importance <- randomForest(survived~., data=etit, ntree=100, importance = TRUE)
+> plotmo(rf.classification.importance, trace=1, type="prob", nresponse="surv", SHOWCALL=TRUE)
+stats::predict(randomForest.formula.object, data.frame[3,5], type="prob")
+stats::fitted(object=randomForest.formula.object)
+fitted() was unsuccessful, will use predict() instead
+got model response from model.frame(survived ~ pclass + sex + age + sibsp...,
+                                    data=call$data, na.action="na.fail")
+randomForest built with importance=TRUE, ranking variables on MeanDecreaseAccuracy
+
+ plotmo grid:    pclass  sex age sibsp parch
+                    1st male  38     0     0
+
+> 
+> cat("=== plotres randomForest ===\n")
+=== plotres randomForest ===
+> plotres(rf.regression)
+> plotres(rf.regression.importance)
+> # TODO residuals are in range 0 to 1
+> plotres(rf.classification, type="prob", nresponse="surv")
+> plotres(rf.classification.importance, type="prob", nresponse="surv")
+> 
+> #--- fda ------------------------------------------------------------------------------
+> 
+> par(org.par)
+> par(mfrow=c(4,5))
+> par(mar = c(3, 2, 3, .1)) # b, l, t, r
+> par(mgp = c(1.5, .5, 0))
+> fda.earth <- fda(Species~., data=iris, keep.fitted=TRUE, method=earth, keepxy=TRUE)
+> fda.polyreg <- fda(Species~., data=iris, keep.fitted=TRUE, keepxy=TRUE)
+> fda.bruto <- fda(Species~., data=iris, keep.fitted=TRUE, method=bruto)
+> 
+> # 'fda.polyreg$fit' does not have a 'call' field or 'x' and 'y' fields
+> expect.err(try(plotmo(fda.polyreg$fit, type="variates", nresponse=1, clip=F, do.par=F)))
+Error : 'fda.polyreg$fit' does not have a 'call' field or 'x' and 'y' fields
+Got expected error from try(plotmo(fda.polyreg$fit, type = "variates", nresponse = 1,     clip = F, do.par = F))
+> 
+> plot(1, main="plotmo with fda", xaxt="n", yaxt="n", xlab="", ylab="",
++      type="n", bty="n", cex.main=1.2, xpd=NA)
+> 
+> plotmo(fda.earth, type="variates", nresponse=1, clip=F, do.par=F)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> 
+> plot(1, main="plotmo with fda.earth$fit", xaxt="n", yaxt="n", xlab="", ylab="",
++      type="n", bty="n", cex.main=1.2, xpd=NA)
+> 
+> plotmo(fda.earth$fit, nresponse=1, clip=F, do.par=F)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> 
+> plot(1, main="", xaxt="n", yaxt="n", xlab="", ylab="",
++      type="n", bty="n", cex.main=1.5, xpd=NA)
+> 
+> plot(fda.earth)
+> plotmo(fda.earth, clip=F, do.par=F) # default type is class
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> 
+> plot(fda.polyreg)
+> plotmo(fda.polyreg, type="variates", nresponse=1, clip=F, do.par=F, degree1=c(1,3,4))
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> plot(1, main="", xaxt="n", yaxt="n", xlab="", ylab="",
++      type="n", bty="n", cex.main=1.5, xpd=NA)
+> 
+> par(mfrow=c(3,3))
+> par(mar = c(3, 2, 3, .1)) # b, l, t, r
+> par(mgp = c(1.5, .5, 0))
+> plot(fda.bruto)
+> plotmo(fda.bruto, type="variates", nresponse=1, do.par=F)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> par(org.par)
+> 
+> # neural net package
+> # for speed we use artificial data because neuralnet is very slow on say trees
+> library(neuralnet)
+> n <- 20
+> set.seed(3)
+> x1 <- runif(n, min=-1, max=1)
+> x2 <- runif(n, min=-1, max=1) # x2 is noise
+> y <- x1^2
+> data <- data.frame(y=y, x1=x1, x2=x2)
+> colnames(data) <- c("y","x1", "x2")
+> set.seed(3)
+> nn <- neuralnet(y~x1+x2, data=data, hidden=3, rep=3)
+> print(head(plotmo:::predict.nn(nn, rep="best", trace=TRUE)))
+predict.nn: rep = "best" is rep = 2 
+           [,1]
+[1,] 0.46903930
+[2,] 0.36653551
+[3,] 0.02542870
+[4,] 0.10970959
+[5,] 0.06457524
+[6,] 0.04182985
+> set.seed(2020)
+> plotmo(nn, trace=1, col.response=2, all2=TRUE, SHOWCALL=TRUE)
+stats::predict(nn.object, data.frame[3,2], trace=TRUE)
+predict.nn: rep = "mean" will take the mean of 3 reps
+stats::fitted(object=nn.object)
+fitted() was unsuccessful, will use predict() instead
+assuming "y" in the model.frame is the response, because terms(object) did not return the terms
+assuming "y" in the model.frame is the response, because terms(object) did not return the terms
+got model response from model.frame(y ~ x1 + x2,
+                                    data=object$data, na.action="na.fail")
+
+ plotmo grid:    x1         x2
+         0.09128479 -0.2904531
+
+> # trace=0 below to test hushing of message "assuming "y" in the model.frame is the response, because object$terms is NULL"
+> set.seed(2020)
+> plotmo(nn, trace=0, col.response=2, predict.rep="best", SHOWCALL=TRUE)
+ plotmo grid:    x1         x2
+         0.09128479 -0.2904531
+> plotres(nn, trace=0, info=TRUE, SHOWCALL=TRUE)
+> plotres(nn, trace=1, info=TRUE, predict.rep="best", SHOWCALL=TRUE)
+stats::residuals(object=nn.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+stats::predict(nn.object, data.frame[3,2], trace=TRUE, rep="best")
+predict.nn: rep = "best" is rep = 2 
+stats::fitted(object=nn.object)
+fitted() was unsuccessful, will use predict() instead
+assuming "y" in the model.frame is the response, because terms(object) did not return the terms
+assuming "y" in the model.frame is the response, because terms(object) did not return the terms
+got model response from model.frame(y ~ x1 + x2,
+                                    data=object$data, na.action="na.fail")
+assuming "y" in the model.frame is the response, because terms(object) did not return the terms
+
+training rsq 0.99
+> 
+> library(nnet)
+
+Attaching package: 'nnet'
+
+The following object is masked from 'package:mgcv':
+
+    multinom
+
+> data(iris3)
+> set.seed(301)
+> samp <- c(sample(1:50,25), sample(51:100,25), sample(101:150,25))
+> ird <- data.frame(rbind(iris3[,,1], iris3[,,2], iris3[,,3]),
++                   species=factor(c(rep("seto",50), rep("vers", 50), rep("virg", 50))))
+> ir.nn2 <- nnet(species ~ ., data = ird, subset = samp, size = 2, rang = 0.1,
++                decay = 5e-4, maxit = 20)
+# weights:  19
+initial  value 82.506969 
+iter  10 value 21.754594
+iter  20 value 8.896424
+final  value 8.896424 
+stopped after 20 iterations
+> plotmo(ir.nn2, nresponse=1, type="class", all2=T, degree2=2:6)
+ plotmo grid:    Sepal.L. Sepal.W. Petal.L. Petal.W.
+                      5.8        3      4.4      1.3
+> plotmo(ir.nn2, nresponse=2, clip=F, all2=T, degree2=1:5)
+ plotmo grid:    Sepal.L. Sepal.W. Petal.L. Petal.W.
+                      5.8        3      4.4      1.3
+> plotres(ir.nn2, nresponse=2)
+> 
+> library(biglm)
+Loading required package: DBI
+> data(trees)
+> ff <- log(Volume)~log(Girth)+log(Height)
+> chunk1 <- trees[1:20,]
+> chunk2 <- trees[20:31,]
+> biglm <- biglm(ff,chunk1)
+> biglm <- update(biglm, chunk2)
+> plotmo(biglm, pt.col=2, SHOWCALL=TRUE)
+ plotmo grid:    Girth Height
+                 11.25     75
+> plotres(biglm, SHOWCALL=TRUE)
+Warning: plotting 20 cases but the model was built with 32 cases
+
+> 
+> library(adabag)
+Loading required package: caret
+Loading required package: ggplot2
+
+Attaching package: 'ggplot2'
+
+The following object is masked from 'package:randomForest':
+
+    margin
+
+Loading required package: lattice
+
+Attaching package: 'lattice'
+
+The following object is masked from 'package:faraway':
+
+    melanoma
+
+Loading required package: doParallel
+Loading required package: iterators
+Loading required package: parallel
+> data(iris)
+> set.seed(2015)
+> # mfinal=3 for speed during testing
+> mod.boosting <- boosting(Species~., data=iris, mfinal=3)
+> mod.bagging <- bagging(Species~., data=iris, mfinal=3)
+> dopar(4, 4, caption="adabag package")
+                              adabag package 
+> plotmo(mod.boosting, nresponse=1, ylim=c(0,1), do.par=FALSE) # default type="prob"
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> plotmo(mod.boosting, type="class", do.par=FALSE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> plotmo(mod.bagging, nresponse=1, ylim=c(0,1), do.par=FALSE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> plotmo(mod.bagging, nresponse=1, type="votes", do.par=FALSE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> par(org.par)
+> 
+> library(e1071)
+
+Attaching package: 'e1071'
+
+The following object is masked from 'package:ggplot2':
+
+    element
+
+> data(iris)
+> x.iris <- subset(iris, select=-Species)
+> y.iris <- iris$Species
+> set.seed(2016)
+> svm.xy <- svm(x.iris, y.iris, probability=FALSE)
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> expect.err(try(plotmo(svm.xy, prob=TRUE, nresponse="vers", do.par=TRUE, all2=TRUE))) # probability=FALSE in call to svm
+
+stats::predict(svm.object, data.frame[3,4], prob=TRUE)
+
+Error in predict.svm(structure(list(call = svm.default(x = x.iris, y = y.iris,  : 
+  (converted from warning) SVM has not been trained using `probability = TRUE`, probabilities not available for predictions.
+Got expected error from try(plotmo(svm.xy, prob = TRUE, nresponse = "vers", do.par = TRUE,     all2 = TRUE))
+> plotmo(svm.xy, decision=TRUE,
++        nresponse="vers", do.par=FALSE, all2=TRUE, degree1=2:3, degree2=6)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> svm.xy <- svm(x.iris, y.iris, probability=TRUE)
+> plotmo(svm.xy, prob=TRUE,
++        nresponse="vers", do.par=FALSE, all2=TRUE, degree1=2:3, degree2=6)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> set.seed(2016)
+> svm.form <- svm(Species ~ ., data=iris, probability=T)
+> plotmo(svm.form, predict.p=TRUE,
++        nresponse="vers", do.par=FALSE, all2=TRUE, degree1=2:3, degree2=6)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> expect.err(try(plotmo(svm.form, decision.values=TRUE, probab=TRUE))) # not both
+Error : predict.svm: specify either 'decision.values' or 'probability' (not both)
+Got expected error from try(plotmo(svm.form, decision.values = TRUE, probab = TRUE))
+> plotres(svm.form, predict.prob=TRUE, nresponse="vers", info=TRUE)
+Cannot get training rsq (nresponse is 2 but the number of columns is only 1)
+> plotres(svm.form, jitter=5, info=TRUE)
+> par(org.par)
+> 
+> source("test.epilog.R")

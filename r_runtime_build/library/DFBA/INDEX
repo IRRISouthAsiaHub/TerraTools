@@ -1,0 +1,22 @@
+dfba_bayes_vs_t_power   Simulated Distribution-Free Bayesian Power and
+                        _t_ Power
+dfba_beta_bayes_factor
+                        Bayes Factor for Posterior Beta Distribution
+dfba_beta_contrast      Bayesian Contrasts
+dfba_beta_descriptive   Descriptive Statistics for a Beta Distribution
+dfba_binomial           Bayesian Binomial Rate Parameter Inference
+dfba_bivariate_concordance
+                        Bayesian Distribution-Free Correlation and
+                        Concordance
+dfba_gamma              Goodman-Kruskal Gamma
+dfba_gamma_out-class    Classes for DFBA
+dfba_mann_whitney       Independent Samples Test (Mann Whitney U)
+dfba_mcnemar            Bayesian Repeated-Measures McNemar Test for
+                        Change
+dfba_median_test        Bayesian Median Test
+dfba_power_curve        Power Curves
+dfba_sign_test          Bayesian Sign Test
+dfba_sim_data           Simulated Data Generator and Inferential
+                        Comparison
+dfba_wilcoxon           Repeated-Measures Test (Wilcoxon Signed-Ranks
+                        Test)

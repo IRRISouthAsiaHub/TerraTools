@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — BreedSight Genomic Prediction</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+    :root {
+        --primary: #1a3a2a; --primary-mid: #2d6a4f; --accent: #52b788; --accent-light: #95d5b2;
+        --bg-card: rgba(245,250,247,0.97); --text-dark: #1a2e22; --text-muted: #5a7566;
+        --border: rgba(82,183,136,0.18); --shadow-card: 0 4px 24px rgba(26,58,42,0.08);
+        --radius: 12px; --radius-sm: 7px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #f5faf7; color: var(--text-dark); min-height: 100vh; padding: 24px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+    .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: white; box-shadow: 0 4px 18px rgba(82,183,136,0.35); }
+    header h1 { font-family: 'Playfair Display', serif; font-size: 1.7rem; color: var(--primary); font-weight: 700; }
+    header p { color: var(--text-muted); font-size: 0.9rem; }
+    .dashboard { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 40px rgba(26,58,42,0.10); border: 1px solid var(--border); }
+    .tabs { display: flex; flex-wrap: wrap; background: rgba(245,250,247,0.98); border-bottom: 1.5px solid var(--border); padding: 0 8px; }
+    .tab-btn { padding: 14px 20px; cursor: pointer; background: none; border: none; font-family: 'DM Sans'; font-size: 0.9rem; font-weight: 500;
+        color: var(--text-muted); display: flex; align-items: center; gap: 8px; border-bottom: 3px solid transparent; position: relative; top: 1.5px; }
+    .tab-btn:hover { color: var(--primary-mid); background: rgba(82,183,136,0.07); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--accent); background: white; font-weight: 600; }
+    .tab-content { padding: 26px 30px 34px; min-height: 480px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .section-header h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--primary); font-weight: 600; }
+    .section-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; margin-bottom: 20px; }
+    .card { background: var(--bg-card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow-card); border: 1px solid var(--border); margin-bottom: 18px; }
+    .card h3 { color: var(--primary); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card h3 i { color: var(--accent); }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 260px; }
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 500; margin: 10px 0 5px; }
+    input[type=text], input[type=number] { width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+        font-family: 'DM Sans'; font-size: 0.88rem; background: white; color: var(--text-dark); }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .file-row { display: flex; gap: 8px; }
+    .file-row input { flex: 1; }
+    .btn { padding: 9px 16px; border-radius: var(--radius-sm); border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans'; transition: background 0.2s; }
+    .btn-secondary { background: transparent; color: var(--primary-mid); border: 1.5px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(82,183,136,0.10); }
+    .btn-run { width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px; background: linear-gradient(135deg, var(--accent), var(--primary-mid)); color: white;
+        display: flex; align-items: center; justify-content: center; gap: 10px; border: none; }
+    .btn-run:hover { opacity: 0.92; }
+    .btn-run:disabled { opacity: 0.6; cursor: not-allowed; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.88rem; }
+    .status-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 0.85rem; color: var(--text-muted); }
+    .spinner { width: 16px; height: 16px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.95rem; }
+    .empty-state i { font-size: 2.2rem; color: var(--accent-light); margin-bottom: 12px; display: block; }
+    .downloads { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 4px; border-bottom: 1.5px solid var(--border); }
+    .subtab-btn { padding: 8px 14px; cursor: pointer; background: none; border: none; font-family: 'DM Sans'; font-size: 0.85rem; font-weight: 500;
+        color: var(--text-muted); border-bottom: 2.5px solid transparent; white-space: nowrap; }
+    .subtab-btn:hover { color: var(--primary-mid); }
+    .subtab-btn.active { color: var(--primary); font-weight: 700; border-bottom: 2.5px solid var(--accent); }
+    .subtab-pane { display: none; padding-top: 16px; }
+    .subtab-pane.active { display: block; }
+    .plot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px,1fr)); gap: 18px; }
+    .plot-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; padding-bottom: 8px; }
+    .plot-card img { width: 100%; display: block; background: white; }
+    .plot-card .dl-row { padding: 8px 12px 0; }
+    .plot-card .plot-label { padding: 4px 12px 8px; font-size: 0.82rem; color: var(--primary); font-weight: 600; }
+    .table-wrap { max-height: 420px; overflow: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 18px; }
+    table.results-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    table.results-table th, table.results-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    table.results-table th { background: rgba(245,250,247,0.98); color: var(--primary); font-weight: 600; position: sticky; top: 0; }
+    table.results-table tr:hover td { background: rgba(82,183,136,0.05); }
+    .interp-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 18px; font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; }
+    pre.log-box { background: #16261c; color: #d3f5e0; border-radius: var(--radius); padding: 14px 16px; font-size: 0.78rem;
+        max-height: 500px; overflow: auto; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace, monospace; }
+    .tf-warning { background: #fff7ed; border: 1px solid #fdba74; color: #9a3412; border-radius: var(--radius-sm); padding: 12px 16px; font-size: 0.82rem; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-icon"><i class="fas fa-seedling"></i></div>
+        <div>
+            <h1>BreedSight Genomic Prediction</h1>
+            <p>Hybrid Deep Neural Network + Random Forest ensemble for genomic selection, benchmarked against Lasso/RBLUP/GBLUP</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="input-settings"><i class="fas fa-sliders-h"></i> Input &amp; Settings</button>
+            <button class="tab-btn" data-tab="results"><i class="fas fa-th-large"></i> Results</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- INPUT & SETTINGS -->
+            <div class="tab-pane active" id="input-settings">
+                <div class="tf-warning">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    This tool requires TensorFlow and scikit-learn to be installed. First runs and large datasets can take a long time — training happens once per cross-validation fold, plus a final full retrain.
+                </div>
+
+                <div class="section-header">
+                    <h2>Data Files</h2>
+                    <p>Upload training and testing phenotypic/genotypic data.</p>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-file-csv"></i> Training Phenotypic Data</h3>
+                        <div class="file-row">
+                            <input type="text" id="trainPhenoPath" readonly placeholder="sample_id, phenotypes">
+                            <button class="btn btn-secondary" onclick="browse('trainPheno')"><i class="fas fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-dna"></i> Training Genotypic Data</h3>
+                        <div class="file-row">
+                            <input type="text" id="trainGenoPath" readonly placeholder="sample_id, SNP1, SNP2, ...">
+                            <button class="btn btn-secondary" onclick="browse('trainGeno')"><i class="fas fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-file-csv"></i> Testing Phenotypic Data</h3>
+                        <div class="file-row">
+                            <input type="text" id="testPhenoPath" readonly placeholder="sample_id, [phenotypes optional]">
+                            <button class="btn btn-secondary" onclick="browse('testPheno')"><i class="fas fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-dna"></i> Testing Genotypic Data</h3>
+                        <div class="file-row">
+                            <input type="text" id="testGenoPath" readonly placeholder="sample_id, SNP1, SNP2, ...">
+                            <button class="btn btn-secondary" onclick="browse('testGeno')"><i class="fas fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-info-circle"></i> Expected CSV Format</h3>
+                    <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.8;">
+                        <strong>Phenotypic:</strong> sample_id, phenotypes<br>
+                        <strong>Genotypic:</strong> sample_id, SNP1, SNP2, ...<br>
+                        Marker encoding: 0 (AA) / 1 (Aa) / 2 (aa) &nbsp;&bull;&nbsp; No missing values — impute before upload
+                    </div>
+                </div>
+
+                <div class="section-header" style="margin-top:8px;">
+                    <h2>Model Parameters</h2>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-layer-group"></i> Cross-Validation &amp; Heritability</h3>
+                        <label>Number of CV folds: <span id="nSplitsVal">5</span></label>
+                        <input type="range" id="outerNSplits" min="2" max="10" step="1" value="5" oninput="nSplitsVal.textContent=this.value">
+                        <label>Trait heritability h&sup2;: <span id="heritabilityVal">0.82</span></label>
+                        <input type="range" id="heritability" min="0.1" max="1.0" step="0.01" value="0.82" oninput="heritabilityVal.textContent=this.value">
+                    </div>
+
+                    <div class="col card">
+                        <h3><i class="fas fa-brain"></i> BreedSight — DNN + RF Ensemble</h3>
+                        <label>Training epochs: <span id="epochsVal">300</span></label>
+                        <input type="range" id="epochs" min="50" max="500" step="50" value="300" oninput="epochsVal.textContent=this.value">
+                        <label>Batch size: <span id="batchSizeVal">32</span></label>
+                        <input type="range" id="batchSize" min="16" max="128" step="16" value="32" oninput="batchSizeVal.textContent=this.value">
+                        <label>Learning rate</label>
+                        <input type="number" id="learningRate" value="0.001" step="0.0001">
+                        <label>DNN weight &alpha; (RF weight = 1&minus;&alpha;): <span id="alphaVal">0.50</span></label>
+                        <input type="range" id="alpha" min="0" max="1" step="0.05" value="0.5" oninput="alphaVal.textContent=parseFloat(this.value).toFixed(2)">
+                    </div>
+
+                    <div class="col card">
+                        <h3><i class="fas fa-tree"></i> Regularization &amp; RF</h3>
+                        <label>L2 regularization: <span id="l2Val">0.010</span></label>
+                        <input type="range" id="l2Reg" min="0" max="0.1" step="0.005" value="0.01" oninput="l2Val.textContent=parseFloat(this.value).toFixed(3)">
+                        <label>Dropout rate: <span id="dropoutVal">0.30</span></label>
+                        <input type="range" id="dropoutRate" min="0" max="0.7" step="0.05" value="0.3" oninput="dropoutVal.textContent=parseFloat(this.value).toFixed(2)">
+                        <label>RF trees: <span id="rfTreesVal">200</span></label>
+                        <input type="range" id="rfNEstimators" min="50" max="500" step="50" value="200" oninput="rfTreesVal.textContent=this.value">
+                        <label>RF max depth (0 = None): <span id="rfDepthVal">15</span></label>
+                        <input type="range" id="rfMaxDepth" min="0" max="30" step="1" value="15" oninput="rfDepthVal.textContent=this.value">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-cogs"></i> Feature Engineering</h3>
+                    <div class="row">
+                        <div class="col">
+                            <div class="checkbox-row"><input type="checkbox" id="usePca" checked><label for="usePca" style="margin:0;">Use PCA on GRM features</label></div>
+                            <div class="checkbox-row"><input type="checkbox" id="featureSelection" checked><label for="featureSelection" style="margin:0;">RFE feature selection</label></div>
+                            <div class="checkbox-row"><input type="checkbox" id="useRawGeno"><label for="useRawGeno" style="margin:0;">Use raw genotypes (skip GRM)</label></div>
+                        </div>
+                        <div class="col">
+                            <label>PCA components: <span id="nComponentsVal">50</span></label>
+                            <input type="range" id="nComponents" min="10" max="200" step="10" value="50" oninput="nComponentsVal.textContent=this.value">
+                            <label>RFE features to select: <span id="rfeNVal">100</span></label>
+                            <input type="range" id="rfeNFeatures" min="20" max="500" step="10" value="100" oninput="rfeNVal.textContent=this.value">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="runBtn" class="btn btn-run" onclick="runPrediction()">
+                    <span id="spinner" class="spinner"></span>
+                    <i class="fas fa-play"></i> Run BreedSight Analysis
+                </button>
+                <div class="status-bar"><span id="statusText">Ready.</span></div>
+
+                <div class="card" style="margin-top:16px;">
+                    <h3><i class="fas fa-terminal"></i> Live Log</h3>
+                    <pre class="log-box" id="liveLog">Waiting to start...</pre>
+                </div>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="tab-pane" id="results">
+                <div class="section-header">
+                    <h2>Results</h2>
+                    <p id="resultsSubhead">Run the analysis to see results here.</p>
+                </div>
+
+                <div id="resultsEmpty" class="empty-state">
+                    <i class="fas fa-seedling"></i>
+                    Run the analysis to see results here.
+                </div>
+
+                <div id="resultsBody" style="display:none;">
+                    <div class="subtabs">
+                        <button class="subtab-btn active" data-subtab="st-metrics"><i class="fas fa-table"></i> Metrics &amp; Interpretation</button>
+                        <button class="subtab-btn" data-subtab="st-preds"><i class="fas fa-list-ol"></i> Test Predictions</button>
+                        <button class="subtab-btn" data-subtab="st-plots"><i class="fas fa-chart-line"></i> Plots</button>
+                        <button class="subtab-btn" data-subtab="st-downloads"><i class="fas fa-download"></i> Downloads</button>
+                    </div>
+
+                    <div class="subtab-pane active" id="st-metrics">
+                        <div class="table-wrap" id="metricsTableWrap"></div>
+                        <div class="interp-box" id="interpModelBox"></div>
+                        <div class="interp-box" id="interpH2Box"></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-preds">
+                        <div class="table-wrap" id="predsTableWrap"></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-plots">
+                        <div class="plot-grid" id="plotGrid"></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-downloads">
+                        <div class="downloads" id="downloadsWrap"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+    let genomicPredictionBridge;
+    console.log("[GENOMICPRED] Initializing QWebChannel...");
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        genomicPredictionBridge = channel.objects.genomicPredictionBridge;
+        if (!genomicPredictionBridge) { console.error("[GENOMICPRED] bridge not found"); return; }
+        genomicPredictionBridge.resultReady.connect(function(jsonStr) {
+            console.log("[GENOMICPRED] resultReady received, length:", jsonStr.length);
+            try { onResult(jsonStr); }
+            catch (err) {
+                console.error("[GENOMICPRED] onResult() threw:", err);
+                document.getElementById('statusText').textContent = "Frontend error: " + err.message;
+                resetRunButton();
+            }
+        });
+        genomicPredictionBridge.statusUpdate.connect(txt => {
+            console.log("[GENOMICPRED] statusUpdate:", txt);
+            document.getElementById('statusText').textContent = txt;
+        });
+        genomicPredictionBridge.logUpdate.connect(line => {
+            const log = document.getElementById('liveLog');
+            if (log.textContent === 'Waiting to start...') log.textContent = '';
+            log.textContent += line + "\n";
+            log.scrollTop = log.scrollHeight;
+        });
+        console.log("[GENOMICPRED] bridge connected");
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.subtab).classList.add('active');
+            });
+        });
+    });
+
+    const BROWSE_MAP = {
+        trainPheno: ['browse_train_pheno', 'trainPhenoPath'],
+        trainGeno:  ['browse_train_geno',  'trainGenoPath'],
+        testPheno:  ['browse_test_pheno',  'testPhenoPath'],
+        testGeno:   ['browse_test_geno',   'testGenoPath'],
+    };
+    function browse(key) {
+        if (!genomicPredictionBridge) return;
+        const [fnName, inputId] = BROWSE_MAP[key];
+        genomicPredictionBridge[fnName](function(path) {
+            if (path) document.getElementById(inputId).value = path;
+        });
+    }
+
+    function resetRunButton() {
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('spinner').classList.remove('active');
+    }
+
+    function collectConfig() {
+        return {
+            train_pheno_file: document.getElementById('trainPhenoPath').value,
+            train_geno_file: document.getElementById('trainGenoPath').value,
+            test_pheno_file: document.getElementById('testPhenoPath').value,
+            test_geno_file: document.getElementById('testGenoPath').value,
+            outer_n_splits: parseInt(document.getElementById('outerNSplits').value, 10),
+            heritability: parseFloat(document.getElementById('heritability').value),
+            epochs: parseInt(document.getElementById('epochs').value, 10),
+            batch_size: parseInt(document.getElementById('batchSize').value, 10),
+            learning_rate: parseFloat(document.getElementById('learningRate').value),
+            l2_reg: parseFloat(document.getElementById('l2Reg').value),
+            dropout_rate: parseFloat(document.getElementById('dropoutRate').value),
+            rf_n_estimators: parseInt(document.getElementById('rfNEstimators').value, 10),
+            rf_max_depth: parseInt(document.getElementById('rfMaxDepth').value, 10),
+            alpha: parseFloat(document.getElementById('alpha').value),
+            use_pca: document.getElementById('usePca').checked,
+            feature_selection: document.getElementById('featureSelection').checked,
+            use_raw_genotypes: document.getElementById('useRawGeno').checked,
+            n_components: parseInt(document.getElementById('nComponents').value, 10),
+            rfe_n_features: parseInt(document.getElementById('rfeNFeatures').value, 10),
+        };
+    }
+
+    function runPrediction() {
+        if (!genomicPredictionBridge) { console.error("[GENOMICPRED] Bridge not ready"); return; }
+        const cfg = collectConfig();
+        console.log("[GENOMICPRED] runPrediction() called with config:", cfg);
+        if (!cfg.train_pheno_file || !cfg.train_geno_file || !cfg.test_pheno_file || !cfg.test_geno_file) {
+            document.getElementById('statusText').textContent = "Please select all four input files.";
+            return;
+        }
+        document.getElementById('runBtn').disabled = true;
+        document.getElementById('spinner').classList.add('active');
+        document.getElementById('statusText').textContent = "Running BreedSight pipeline...";
+        document.getElementById('liveLog').textContent = 'Waiting to start...';
+        genomicPredictionBridge.run_prediction(JSON.stringify(cfg));
+    }
+
+    function downloadFile(sourcePath, suggestedName) {
+        if (!genomicPredictionBridge) return;
+        genomicPredictionBridge.save_file(sourcePath, suggestedName);
+    }
+
+    // Windows paths contain backslashes (e.g. C:\Users\...\plot.png).
+    // Embedding a raw path into a JS string literal inside an onclick="..."
+    // attribute corrupts it silently: \U, \A, \T etc. aren't valid JS
+    // escapes, so the backslash just gets dropped, turning the path into
+    // something with no separators at all. This is why "Download" appeared
+    // to work (the dialog opened) but the file was never actually found to
+    // copy. Escaping backslashes before embedding preserves the real path.
+    function escapeForJsAttr(str) {
+        return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    const PLOT_LABELS = {
+        regression: "Best-Fold Regression + Residuals + Distribution (BreedSight)",
+        comparison: "Train vs Validation R\u00b2 and Pearson r — All Models",
+        folds: "R\u00b2 and Pearson r per Fold (95% CI)",
+        heatmap: "Performance Heatmap (RMSE & R\u00b2 \u00d7 Folds)",
+        test_grid: "Test Predictions — All Models",
+        distribution: "Phenotype Distribution — True vs Predicted",
+    };
+
+    function onResult(jsonStr) {
+        resetRunButton();
+        const result = JSON.parse(jsonStr);
+        console.log("[GENOMICPRED] parsed result, status:", result.status);
+
+        if (result.status !== "success") {
+            document.getElementById('statusText').textContent = "Error: " + result.message;
+            return;
+        }
+        document.getElementById('statusText').textContent =
+            `Done — best model: ${result.best_model} (Val R\u00b2 = ${result.best_val_r2.toFixed(4)}).`;
+        document.getElementById('resultsSubhead').textContent =
+            `Best model: ${result.best_model} — Val R\u00b2 = ${result.best_val_r2.toFixed(4)}`;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
+        document.getElementById('results').classList.add('active');
+
+        document.getElementById('resultsEmpty').style.display = 'none';
+        document.getElementById('resultsBody').style.display = 'block';
+
+        document.getElementById('metricsTableWrap').innerHTML = tableHtml(result.metrics_table);
+        document.getElementById('interpModelBox').innerHTML = mdLiteToHtml(result.interpretation_model);
+        document.getElementById('interpH2Box').innerHTML = mdLiteToHtml(result.interpretation_heritability);
+        document.getElementById('predsTableWrap').innerHTML = tableHtml(result.test_predictions_table);
+
+        const plotGrid = document.getElementById('plotGrid');
+        plotGrid.innerHTML = '';
+        for (const [key, path] of Object.entries(result.plots || {})) {
+            if (!path) continue;
+            const label = PLOT_LABELS[key] || key;
+            plotGrid.innerHTML += `
+                <div class="plot-card">
+                    <img src="file://${path}">
+                    <div class="dl-row">
+                        <button class="btn btn-secondary" style="font-size:0.78rem; padding:6px 12px;" onclick="downloadFile('${escapeForJsAttr(path)}', '${key}.png')"><i class="fas fa-download"></i> Download</button>
+                    </div>
+                    <div class="plot-label">${label}</div>
+                </div>`;
+        }
+        if (plotGrid.innerHTML === '') {
+            plotGrid.innerHTML = `<div class="empty-state" style="padding:30px;"><i class="fas fa-info-circle"></i>No plots were generated.</div>`;
+        }
+
+        const dl = result.downloads || {};
+        document.getElementById('downloadsWrap').innerHTML = `
+            ${dl.metrics_csv ? `<button class="btn btn-secondary" onclick="downloadFile('${escapeForJsAttr(dl.metrics_csv)}', 'model_metrics.csv')"><i class="fas fa-file-csv"></i> Model Metrics (CSV)</button>` : ''}
+            ${dl.test_csv ? `<button class="btn btn-secondary" onclick="downloadFile('${escapeForJsAttr(dl.test_csv)}', 'test_predictions.csv')"><i class="fas fa-file-csv"></i> Test Predictions (CSV)</button>` : ''}
+            ${dl.val_csv ? `<button class="btn btn-secondary" onclick="downloadFile('${escapeForJsAttr(dl.val_csv)}', 'validation_predictions.csv')"><i class="fas fa-file-csv"></i> Validation Predictions (CSV)</button>` : ''}
+        `;
+    }
+
+    function tableHtml(rows) {
+        if (!rows || rows.length === 0) return '<div class="empty-state" style="padding:20px;">No data.</div>';
+        const cols = Object.keys(rows[0]);
+        let html = '<table class="results-table"><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+        for (const row of rows) {
+            html += '<tr>' + cols.map(c => {
+                let v = row[c];
+                if (typeof v === 'number') v = Number.isInteger(v) ? v : v.toFixed(4);
+                return `<td>${v === null || v === undefined ? '' : v}</td>`;
+            }).join('') + '</tr>';
+        }
+        html += '</tbody></table>';
+        return html;
+    }
+
+    // Minimal **bold** -> <strong> and newline -> <br> renderer (the
+    // interpretation text uses very simple markdown, no need for a full parser)
+    function mdLiteToHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n\n/g, '<br><br>')
+            .replace(/\n/g, '<br>');
+    }
+</script>
+</body>
+</html>

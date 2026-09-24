@@ -1,0 +1,2731 @@
+> # test.linmod.R: test example S3 model at http://www.milbo.org/doc/linmod.R
+> 
+> source("test.prolog.R")
+> source("linmod.R")         # linear model code (http://www.milbo.org/doc/linmod.R)
+> source("linmod.methods.R") # additional method functions for linmod
+> options(warn=1) # print warnings as they occur
+> 
+> almost.equal <- function(x, y, max=1e-8)
++ {
++     stopifnot(max >= 0 && max < .01)
++     length(x) == length(y) && max(abs(x - y)) < max
++ }
+> # check that linmod model matches reference lm model in all essential details
+> check.lm <- function(fit, ref, newdata=trees[3:5,],
++                      check.coef.names=TRUE,
++                      check.casenames=TRUE,
++                      check.newdata=TRUE,
++                      check.sigma=TRUE)
++ {
++     check.names <- function(fit.names, ref.names)
++     {
++         if(check.casenames &&
++         # lm always adds rownames even if "1", "2", "3": this seems
++         # wasteful and not particulary helpful, so linmod doesn't do
++         # this, hence the first !isTRUE(all.equal) below
++            !isTRUE(all.equal(ref.names, paste(1:length(ref.names)))) &&
++            !isTRUE(all.equal(fit.names, ref.names))) {
++             print(fit.names)
++             print(ref.names)
++             stop(deparse(substitute(fit.names)), " != ",
++                  deparse(substitute(ref.names)))
++         }
++     }
++     cat0("check ", deparse(substitute(fit)), " vs ",
++          deparse(substitute(ref)), "\n")
++ 
++     stopifnot(coef(fit) == coef(ref))
++     if(check.coef.names)
++         stopifnot(identical(names(coef(fit)), names(coef(ref))))
++ 
++     stopifnot(identical(dim(fit$coefficients), dim(ref$coefficients)))
++     stopifnot(length(fit$coefficients) == length(ref$coefficients))
++     stopifnot(almost.equal(fit$coefficients, ref$coefficients))
++ 
++     stopifnot(identical(dim(fit$residuals), dim(ref$residuals)))
++     stopifnot(length(fit$residuals) == length(ref$residuals))
++     stopifnot(almost.equal(fit$residuals, ref$residuals))
++ 
++     stopifnot(identical(dim(fit$fitted.values), dim(ref$fitted.values)))
++     stopifnot(length(fit$fitted.values) == length(ref$fitted.values))
++     stopifnot(almost.equal(fit$fitted.values, ref$fitted.values))
++ 
++     stopifnot(identical(fit$rank, ref$rank))
++ 
++     if(!is.null(fit$vcov) && !is.null(ref$vcov)) {
++         stopifnot(identical(dim(fit$vcov), dim(ref$vcov)))
++         stopifnot(length(fit$vcov) == length(ref$vcov))
++         stopifnot(almost.equal(fit$vcov, ref$vcov))
++     }
++     if(check.sigma) {
++         ref.sigma <- ref$sigma
++         if(is.null(ref.sigma)) # in lm models, sigma is only available from summary()
++             ref.sigma <- summary(ref)$sigma
++         stopifnot(almost.equal(fit$sigma, ref.sigma))
++     }
++     stopifnot(almost.equal(fit$df.residual, ref$df.residual))
++ 
++     stopifnot(almost.equal(fitted(fit), fitted(ref)))
++     check.names(names(fitted(fit)), names(fitted(ref)))
++ 
++     stopifnot(almost.equal(residuals(fit), residuals(ref)))
++     check.names(names(residuals(fit)), names(residuals(ref)))
++ 
++     stopifnot(almost.equal(predict(fit), predict(ref)))
++     check.names(names(predict(fit)), names(predict(ref)))
++     if(check.newdata) {
++         stopifnot(almost.equal(predict(fit, newdata=newdata),
++                                predict(ref, newdata=newdata)))
++         check.names(names(predict(fit, newdata=newdata)),
++                     names(predict(ref, newdata=newdata)))
++     }
++ }
+> tr <- trees # trees data but with rownames
+> rownames(tr) <- paste("tree", 1:nrow(trees), sep="")
+> 
+> linmod.form.Volume.tr <- linmod(Volume~., data=tr)
+> cat0("==print(summary(linmod.form.Volume.tr))\n")
+==print(summary(linmod.form.Volume.tr))
+> print(summary(linmod.form.Volume.tr))
+Call: linmod.formula(formula = Volume ~ ., data = tr)
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> lm.Volume.tr <- lm(Volume~., data=tr)
+> check.lm(linmod.form.Volume.tr, lm.Volume.tr)
+check linmod.form.Volume.tr vs lm.Volume.tr
+> stopifnot(almost.equal(predict(linmod.form.Volume.tr, newdata=data.frame(Girth=10, Height=80)),
++                        16.234045, max=1e-5))
+> stopifnot(almost.equal(predict(linmod.form.Volume.tr, newdata=as.matrix(tr[1:3,])),
++                        c(4.8376597, 4.5538516, 4.8169813), max=1e-5))
+> # character new data (instead of numeric)
+> newdata.allchar <- as.data.frame(matrix("blank", ncol=3, nrow=3))
+> colnames(newdata.allchar) <- colnames(trees)
+> expect.err(try(predict(lm.Volume.tr, newdata=newdata.allchar)),
++                "variables 'Girth', 'Height' were specified with different types from the fit")
+Error : variables 'Girth', 'Height' were specified with different types from the fit
+Got expected error from try(predict(lm.Volume.tr, newdata = newdata.allchar))
+> expect.err(try(predict(linmod.form.Volume.tr, newdata=newdata.allchar)),
++               "variables 'Girth', 'Height' were specified with different types from the fit")
+Error : variables 'Girth', 'Height' were specified with different types from the fit
+Got expected error from try(predict(linmod.form.Volume.tr, newdata = newdata.allchar))
+> 
+> linmod.xy.Volume.tr <- linmod(tr[,1:2], tr[,3,drop=FALSE])                         # x=data.frame y=data.frame
+> cat0("==print(summary(linmod.xy.Volume.tr))\n")
+==print(summary(linmod.xy.Volume.tr))
+> print(summary(linmod.xy.Volume.tr))
+Call: linmod.default(x = tr[, 1:2], y = tr[, 3, drop = FALSE])
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> newdata.2col <- trees[3:5,1:2]
+> check.lm(linmod.xy.Volume.tr, lm.Volume.tr, newdata=newdata.2col)
+check linmod.xy.Volume.tr vs lm.Volume.tr
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=data.frame(Girth=10, Height=80)),
++                        16.234045, max=1e-5))
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=tr[1:3,1:2]),
++                        c(4.8376597, 4.5538516, 4.8169813), max=1e-5))
+> 
+> linmod50.xy.Volume.tr <- linmod(as.matrix(tr[,1:2]), as.matrix(tr[,3,drop=FALSE])) # x=matrix y=matrix
+> check.lm(linmod50.xy.Volume.tr, lm.Volume.tr, newdata=newdata.2col)
+check linmod50.xy.Volume.tr vs lm.Volume.tr
+> linmod51.xy.Volume.tr <- linmod(tr[,1:2], tr[,3])                                  # x=data.frame y=vector
+> check.lm(linmod51.xy.Volume.tr, lm.Volume.tr, newdata=newdata.2col)
+check linmod51.xy.Volume.tr vs lm.Volume.tr
+> linmod52.xy.Volume.tr <- linmod(as.matrix(tr[,1:2]), tr[,3])                       # x=matrix y=vector
+> check.lm(linmod52.xy.Volume.tr, lm.Volume.tr, newdata=newdata.2col)
+check linmod52.xy.Volume.tr vs lm.Volume.tr
+> 
+> # newdata can be a vector
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=c(8.3, 70)),
++                        4.8376597, max=1e-5))
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr,
++                        newdata=c(8.3, 8.6, 70, 65)), # 4 element vector, byrow=FALSE
++                        c(4.8376597, 4.5538516), max=1e-5))
+> options(warn=1) # print warnings as they occur
+> # expect Warning: data length [3] is not a sub-multiple or multiple of the number of rows [2]
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=c(8.3, 9, 70)), # 3 element vector
++                       c(4.8376597, -12.7984291), max=1e-5))
+Warning in matrix(newdata, ncol = length(object$coefficients) - 1) :
+  data length [3] is not a sub-multiple or multiple of the number of rows [2]
+> options(warn=2) # treat warnings as errors
+> 
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=as.matrix(data.frame(Girth=10, Height=80))),
++                        16.234045, max=1e-5))
+> # column names in newdata are ignored for linmod.default models
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=data.frame(name1.not.in.orig.data=10, name2.not.in.orig.datax2=80)),
++                        16.234045, max=1e-5))
+> # note name reversed below but names still ignored, same predict result as c(Girth=10, Height=80)
+> stopifnot(almost.equal(predict(linmod.xy.Volume.tr, newdata=data.frame(Height=10, Girth=80)),
++                        16.234045, max=1e-5))
+> 
+> cat0("==print.default(linmod.form.Volume.tr)\n")
+==print.default(linmod.form.Volume.tr)
+> print.default(linmod.form.Volume.tr)
+$coefficients
+(Intercept)       Girth      Height 
+-57.9876589   4.7081605   0.3392512 
+
+$residuals
+      tree1       tree2       tree3       tree4       tree5       tree6 
+ 5.46234035  5.74614837  5.38301873  0.52588477 -1.06900844 -1.31832696 
+      tree7       tree8       tree9      tree10      tree11      tree12 
+-0.59268807 -1.04594918  1.18697860 -0.28758128  2.18459773 -0.46846462 
+     tree13      tree14      tree15      tree16      tree17      tree18 
+-0.06846462  0.79384587 -4.85410969 -5.65220290  2.21603352 -6.40648192 
+     tree19      tree20      tree21      tree22      tree23      tree24 
+-4.90097760 -3.79703501  0.11181561 -4.30831896  0.91474029 -3.46899800 
+     tree25      tree26      tree27      tree28      tree29      tree30 
+-2.27770232  4.45713224  3.47624891  4.87148717 -2.39932888 -2.89932888 
+     tree31 
+ 8.48469518 
+
+$rank
+[1] 3
+
+$fitted.values
+    tree1     tree2     tree3     tree4     tree5     tree6     tree7     tree8 
+ 4.837660  4.553852  4.816981 15.874115 19.869008 21.018327 16.192688 19.245949 
+    tree9    tree10    tree11    tree12    tree13    tree14    tree15    tree16 
+21.413021 20.187581 22.015402 21.468465 21.468465 20.506154 23.954110 27.852203 
+   tree17    tree18    tree19    tree20    tree21    tree22    tree23    tree24 
+31.583966 33.806482 30.600978 28.697035 34.388184 36.008319 35.385260 41.768998 
+   tree25    tree26    tree27    tree28    tree29    tree30    tree31 
+44.877702 50.942868 52.223751 53.428513 53.899329 53.899329 68.515305 
+
+$vcov
+            (Intercept)       Girth      Height
+(Intercept)  74.6189461  0.43217138 -1.05076889
+Girth         0.4321714  0.06983578 -0.01786030
+Height       -1.0507689 -0.01786030  0.01693933
+
+$sigma
+[1] 3.881832
+
+$df.residual
+[1] 28
+
+$call
+linmod.formula(formula = Volume ~ ., data = tr)
+
+$terms
+Volume ~ Girth + Height
+attr(,"variables")
+list(Volume, Girth, Height)
+attr(,"factors")
+       Girth Height
+Volume     0      0
+Girth      1      0
+Height     0      1
+attr(,"term.labels")
+[1] "Girth"  "Height"
+attr(,"order")
+[1] 1 1
+attr(,"intercept")
+[1] 1
+attr(,"response")
+[1] 1
+attr(,".Environment")
+<environment: R_GlobalEnv>
+attr(,"predvars")
+list(Volume, Girth, Height)
+attr(,"dataClasses")
+   Volume     Girth    Height 
+"numeric" "numeric" "numeric" 
+
+$xlevels
+named list()
+
+attr(,"class")
+[1] "linmod"
+> 
+> cat0("==check single x variable\n")
+==check single x variable
+> linmod1a.form <- linmod(Volume~Height, data=tr)
+> cat0("==print(summary(linmod1a.form))\n")
+==print(summary(linmod1a.form))
+> print(summary(linmod1a.form))
+Call: linmod.formula(formula = Volume ~ Height, data = tr)
+
+             Estimate     StdErr   t.value      p.value
+(Intercept) -87.12361 29.2731221 -2.976232 0.0058346689
+Height        1.54335  0.3838693  4.020509 0.0003783823
+> lma.tr <- lm(Volume~Height, data=tr)
+> check.lm(linmod1a.form, lma.tr)
+check linmod1a.form vs lma.tr
+> 
+> stopifnot(almost.equal(predict(linmod1a.form, newdata=data.frame(Height=80)),
++                        36.34437, max=1e-5))
+> stopifnot(almost.equal(predict(linmod1a.form, newdata=data.frame(Girth=99, Height=80)),
++                        36.34437, max=1e-5))
+> stopifnot(almost.equal(predict(linmod1a.form, newdata=as.matrix(tr[1:3,])),
++                        c(20.91087, 13.19412, 10.10742), max=1e-5))
+> 
+> linmod1a.xy <- linmod(tr[,2,drop=FALSE], tr[,3])
+> cat0("==print(summary(linmod1a.xy))\n")
+==print(summary(linmod1a.xy))
+> print(summary(linmod1a.xy))
+Call: linmod.default(x = tr[, 2, drop = FALSE], y = tr[, 3])
+
+             Estimate     StdErr   t.value      p.value
+(Intercept) -87.12361 29.2731221 -2.976232 0.0058346689
+Height        1.54335  0.3838693  4.020509 0.0003783823
+> check.lm(linmod1a.xy, lma.tr, newdata=trees[3:5,2,drop=FALSE])
+check linmod1a.xy vs lma.tr
+> check.lm(linmod1a.xy, lma.tr, newdata=trees[3:5,2,drop=TRUE],
++          check.newdata=FALSE) # needed because predict.lm gives 'data' must be a data.frame, environment, or list
+check linmod1a.xy vs lma.tr
+> stopifnot(almost.equal(predict(linmod1a.xy, newdata=trees[3:5,2,drop=FALSE]),
++                        predict(linmod1a.xy, newdata=trees[3:5,2,drop=TRUE])))
+> stopifnot(almost.equal(predict(linmod1a.xy, newdata=data.frame(Height=80)),
++                        36.34437, max=1e-5))
+> stopifnot(almost.equal(predict(linmod1a.xy, newdata=tr[1:3,2]),
++                        c(20.91087, 13.19412, 10.10742), max=1e-5))
+> stopifnot(almost.equal(predict(linmod1a.xy, newdata=as.matrix(data.frame(Height=80))),
++                        36.34437, max=1e-5))
+> 
+> # check that extra fields in predict newdata are ok with formula models
+> stopifnot(almost.equal(predict(linmod.form.Volume.tr, newdata=data.frame(Girth=10, Height=80, extra=99)),
++                        predict(lm.Volume.tr,          newdata=data.frame(Girth=10, Height=80))))
+> stopifnot(almost.equal(predict(linmod.form.Volume.tr, newdata=data.frame(Girth=10, Height=80, extra=99)),
++                        predict(lm.Volume.tr,          newdata=data.frame(Girth=10, Height=80, extra=99))))
+> # check that extra fields in predict newdata are not ok with x,y models
+> expect.err(try(predict(linmod.xy.Volume.tr, newdata=data.frame(Girth=10, Height=80, extra=99))),
++               "ncol(newdata) is 3 but should be 2")
+Error in predict.linmod(linmod.xy.Volume.tr, newdata = data.frame(Girth = 10,  : 
+  ncol(newdata) is 3 but should be 2
+Got expected error from try(predict(linmod.xy.Volume.tr, newdata = data.frame(Girth = 10,     Height = 80, extra = 99)))
+> 
+> # missing variables in newdata
+> expect.err(try(predict(linmod.form.Volume.tr, newdata=data.frame(Girth=10))),
++                "object 'Height' not found")
+Error in eval(predvars, data, env) : object 'Height' not found
+Got expected error from try(predict(linmod.form.Volume.tr, newdata = data.frame(Girth = 10)))
+> expect.err(try(predict(linmod.form.Volume.tr, newdata=c(8.3, 70))),
++                "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.form.Volume.tr, newdata = c(8.3, 70)))
+> expect.err(try(predict(lm.Volume.tr,          newdata=data.frame(Girth=10))),
++                "object 'Height' not found")
+Error in eval(predvars, data, env) : object 'Height' not found
+Got expected error from try(predict(lm.Volume.tr, newdata = data.frame(Girth = 10)))
+> expect.err(try(predict(linmod.xy.Volume.tr,            newdata=data.frame(Girth=10))),
++                "ncol(newdata) is 1 but should be 2")
+Error in predict.linmod(linmod.xy.Volume.tr, newdata = data.frame(Girth = 10)) : 
+  ncol(newdata) is 1 but should be 2
+Got expected error from try(predict(linmod.xy.Volume.tr, newdata = data.frame(Girth = 10)))
+> 
+> # check that rownames got propagated
+> stopifnot(names(linmod.form.Volume.tr$residuals)[1] == "tree1")
+> stopifnot(names(linmod.form.Volume.tr$fitted.values)[3] == "tree3")
+> stopifnot(names(linmod.xy.Volume.tr$residuals)[1] == "tree1")
+> stopifnot(names(linmod.xy.Volume.tr$fitted.values)[3] == "tree3")
+> stopifnot(!is.null(names(linmod.xy.Volume.tr$residuals)))
+> stopifnot(!is.null(names(linmod.xy.Volume.tr$fitted.values)))
+> cat0("==print.default(linmod.xy.Volume.tr)\n")
+==print.default(linmod.xy.Volume.tr)
+> print.default(linmod.xy.Volume.tr)
+$coefficients
+(Intercept)       Girth      Height 
+-57.9876589   4.7081605   0.3392512 
+
+$residuals
+      tree1       tree2       tree3       tree4       tree5       tree6 
+ 5.46234035  5.74614837  5.38301873  0.52588477 -1.06900844 -1.31832696 
+      tree7       tree8       tree9      tree10      tree11      tree12 
+-0.59268807 -1.04594918  1.18697860 -0.28758128  2.18459773 -0.46846462 
+     tree13      tree14      tree15      tree16      tree17      tree18 
+-0.06846462  0.79384587 -4.85410969 -5.65220290  2.21603352 -6.40648192 
+     tree19      tree20      tree21      tree22      tree23      tree24 
+-4.90097760 -3.79703501  0.11181561 -4.30831896  0.91474029 -3.46899800 
+     tree25      tree26      tree27      tree28      tree29      tree30 
+-2.27770232  4.45713224  3.47624891  4.87148717 -2.39932888 -2.89932888 
+     tree31 
+ 8.48469518 
+
+$rank
+[1] 3
+
+$fitted.values
+    tree1     tree2     tree3     tree4     tree5     tree6     tree7     tree8 
+ 4.837660  4.553852  4.816981 15.874115 19.869008 21.018327 16.192688 19.245949 
+    tree9    tree10    tree11    tree12    tree13    tree14    tree15    tree16 
+21.413021 20.187581 22.015402 21.468465 21.468465 20.506154 23.954110 27.852203 
+   tree17    tree18    tree19    tree20    tree21    tree22    tree23    tree24 
+31.583966 33.806482 30.600978 28.697035 34.388184 36.008319 35.385260 41.768998 
+   tree25    tree26    tree27    tree28    tree29    tree30    tree31 
+44.877702 50.942868 52.223751 53.428513 53.899329 53.899329 68.515305 
+
+$vcov
+            (Intercept)       Girth      Height
+(Intercept)  74.6189461  0.43217138 -1.05076889
+Girth         0.4321714  0.06983578 -0.01786030
+Height       -1.0507689 -0.01786030  0.01693933
+
+$sigma
+[1] 3.881832
+
+$df.residual
+[1] 28
+
+$call
+linmod.default(x = tr[, 1:2], y = tr[, 3, drop = FALSE])
+
+attr(,"class")
+[1] "linmod"
+> 
+> # check that we don't artificially add rownames when no original rownames
+> linmod1a.xy <- linmod(trees[,1:2], trees[,3])
+> stopifnot(is.null(names(linmod1a.xy$residuals)))
+> stopifnot(is.null(names(linmod1a.xy$fitted.values)))
+> 
+> cat0("==example plots\n")
+==example plots
+> 
+> library(plotmo)
+Loading required package: Formula
+Loading required package: plotrix
+> data(trees)
+> 
+> linmod.form.Volume.trees <- linmod(Volume~., data=trees)
+> print(linmod.form.Volume.trees)
+Call: linmod.formula(formula = Volume ~ ., data = trees)
+
+(Intercept)       Girth      Height 
+-57.9876589   4.7081605   0.3392512 
+> print(summary(linmod.form.Volume.trees))
+Call: linmod.formula(formula = Volume ~ ., data = trees)
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> 
+> linmod1.xy <- linmod(trees[,1:2], trees[,3])
+> print(linmod1.xy)
+Call: linmod.default(x = trees[, 1:2], y = trees[, 3])
+
+(Intercept)       Girth      Height 
+-57.9876589   4.7081605   0.3392512 
+> print(summary(linmod1.xy))
+Call: linmod.default(x = trees[, 1:2], y = trees[, 3])
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> 
+> plotmo(linmod.form.Volume.trees)
+ plotmo grid:    Girth Height
+                  12.9     76
+> plotmo(linmod1.xy)
+ plotmo grid:    Girth Height
+                  12.9     76
+> 
+> plotres(linmod.form.Volume.trees)
+> plotres(linmod1.xy)
+> 
+> cat0("==test keep arg\n")
+==test keep arg
+> 
+> trees1 <- trees
+> linmod.form.Volume.trees.keep <- linmod(Volume~., data=trees1, keep=TRUE)
+> print(summary(linmod.form.Volume.trees.keep))
+Call: linmod.formula(formula = Volume ~ ., data = trees1, keep = TRUE)
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> print(head(linmod.form.Volume.trees.keep$data))
+  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+4  10.5     72   16.4
+5  10.7     81   18.8
+6  10.8     83   19.7
+> stopifnot(dim(linmod.form.Volume.trees.keep$data) == c(nrow(trees1), ncol(trees1)))
+> trees1 <- NULL # destroy orginal data so plotmo has to use keep data
+> plotmo(linmod.form.Volume.trees.keep, pt.col=3)
+ plotmo grid:    Girth Height
+                  12.9     76
+> plotres(linmod.form.Volume.trees.keep)
+> 
+> linmod.xy.keep <- linmod(trees[,1:2], trees[,3], keep=TRUE)
+> print(summary(linmod.xy.keep))
+Call: linmod.default(x = trees[, 1:2], y = trees[, 3], keep = TRUE)
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> print(head(linmod.xy.keep$x))
+     Girth Height
+[1,]   8.3     70
+[2,]   8.6     65
+[3,]   8.8     63
+[4,]  10.5     72
+[5,]  10.7     81
+[6,]  10.8     83
+> stopifnot(dim(linmod.xy.keep$x) == c(nrow(trees), 2))
+> stopifnot(class(linmod.xy.keep$x)[1] == "matrix")
+> print(head(linmod.xy.keep$y))
+     trees[,3]
+[1,]      10.3
+[2,]      10.3
+[3,]      10.2
+[4,]      16.4
+[5,]      18.8
+[6,]      19.7
+> stopifnot(dim(linmod.xy.keep$y) == c(nrow(trees), 1))
+> stopifnot(class(linmod.xy.keep$y)[1] == "matrix")
+> linmod.xy.keep$call <- NULL # trick to force use of x and y in plotmo
+> plotmo(linmod.xy.keep, pt.col=3)
+ plotmo grid:    Girth Height
+                  12.9     76
+> plotres(linmod.xy.keep)
+> 
+> check.lm(linmod.form.Volume.trees.keep, linmod.xy.keep, check.casenames=FALSE, check.newdata=FALSE)
+check linmod.form.Volume.trees.keep vs linmod.xy.keep
+> 
+> cat0("==test keep arg with vector x\n")
+==test keep arg with vector x
+> 
+> n <- 20
+> linmod.vecx.form.keep <- linmod(Volume~Height, data=trees[1:n,], keep=TRUE)
+> print(summary(linmod.vecx.form.keep))
+Call: linmod.formula(formula = Volume ~ Height, data = trees[1:n, ], keep =
+      TRUE)
+
+               Estimate     StdErr   t.value     p.value
+(Intercept) -19.3368332 11.9072601 -1.623953 0.121767815
+Height        0.5318092  0.1597269  3.329491 0.003730259
+> print(head(linmod.vecx.form.keep$data))
+  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+4  10.5     72   16.4
+5  10.7     81   18.8
+6  10.8     83   19.7
+> stopifnot(dim(linmod.vecx.form.keep$data) == c(n, ncol(trees)))
+> stopifnot(class(linmod.vecx.form.keep$data) == class(trees))
+> plotmo(linmod.vecx.form.keep, pt.col=3)
+> plotres(linmod.vecx.form.keep)
+> 
+> linmod.vecx.xy.keep <- linmod(trees[1:n,2], trees[1:n,3], keep=TRUE)
+> print(summary(linmod.vecx.xy.keep))
+Call: linmod.default(x = trees[1:n, 2], y = trees[1:n, 3], keep = TRUE)
+
+               Estimate     StdErr   t.value     p.value
+(Intercept) -19.3368332 11.9072601 -1.623953 0.121767815
+V1            0.5318092  0.1597269  3.329491 0.003730259
+> print(head(linmod.vecx.xy.keep$x))
+     [,1]
+[1,]   70
+[2,]   65
+[3,]   63
+[4,]   72
+[5,]   81
+[6,]   83
+> stopifnot(dim(linmod.vecx.xy.keep$x) == c(n, 1))
+> stopifnot(class(linmod.vecx.xy.keep$x)[1] == "matrix")
+> print(head(linmod.vecx.xy.keep$y))
+     trees[1:n,3]
+[1,]         10.3
+[2,]         10.3
+[3,]         10.2
+[4,]         16.4
+[5,]         18.8
+[6,]         19.7
+> stopifnot(dim(linmod.vecx.xy.keep$y) == c(n, 1))
+> stopifnot(class(linmod.vecx.xy.keep$y)[1] == "matrix")
+> linmod.vecx.xy.keep$call <- NULL # trick to force use of x and y in plotmo
+> plotmo(linmod.vecx.xy.keep, pt.col=3)
+> plotres(linmod.vecx.xy.keep)
+> 
+> check.lm(linmod.vecx.form.keep, linmod.vecx.xy.keep, newdata=trees[3:5,2,drop=FALSE],
++          check.coef.names=FALSE, check.casenames=FALSE)
+check linmod.vecx.form.keep vs linmod.vecx.xy.keep
+> 
+> cat0("==test model building with assorted numeric args\n")
+==test model building with assorted numeric args
+> 
+> x <- tr[,1:2]
+> y <- tr[,3]
+> cat0("class(x)=", class(x), " class(y)=", class(y), "\n") # class(x)=data.frame class(y)=numeric
+class(x)=data.frame class(y)=numeric
+> linmod2.xy <- linmod(x, y)
+> check.lm(linmod2.xy, lm.Volume.tr, newdata=newdata.2col)
+check linmod2.xy vs lm.Volume.tr
+> 
+> # check consistency with lm
+> expect.err(try(linmod(y~x)), "invalid type (list) for variable 'x'")
+Error in model.frame.default(formula = formula, data = data, na.action = na.pass) : 
+  invalid type (list) for variable 'x'
+Got expected error from try(linmod(y ~ x))
+> expect.err(try(lm(y~x)),     "invalid type (list) for variable 'x'")
+Error in model.frame.default(formula = y ~ x, drop.unused.levels = TRUE) : 
+  invalid type (list) for variable 'x'
+Got expected error from try(lm(y ~ x))
+> 
+> linmod3.xy <- linmod(as.matrix(x), as.matrix(y))
+> check.lm(linmod3.xy, lm.Volume.tr, newdata=newdata.2col)
+check linmod3.xy vs lm.Volume.tr
+> 
+> linmod4.form <- linmod(y ~ as.matrix(x))
+> lm4 <- lm(y ~ as.matrix(x))
+> check.lm(linmod4.form, lm4, check.newdata=FALSE)
+check linmod4.form vs lm4
+> stopifnot(coef(linmod4.form)  == coef(lm.Volume.tr),
++           gsub("as.matrix(x)", "", names(coef(linmod4.form)), fixed=TRUE)  == names(coef(lm.Volume.tr)))
+> 
+> xm <- as.matrix(x)
+> cat0("class(xm)=", class(xm), " class(y)=", class(y), "\n") # class(xm)=matrix class(y)=numeric
+class(xm)=matrixarray class(y)=numeric
+> linmod5.form <- linmod(y ~ xm)
+> lm5 <- lm(y ~ xm)
+> check.lm(linmod5.form, lm5, check.newdata=FALSE)
+check linmod5.form vs lm5
+> stopifnot(coef(linmod5.form)  == coef(lm.Volume.tr),
++           gsub("xm", "", names(coef(linmod5.form)), fixed=TRUE)  == names(coef(lm.Volume.tr)))
+> 
+> cat0("==test correct use of global x1 and y1, and of predict error handling\n")
+==test correct use of global x1 and y1, and of predict error handling
+> x1 <- tr[,1]
+> y1 <- tr[,3]
+> cat0("class(x1)=", class(x1), " class(y1)=", class(y1), "\n") # class(x1)=numeric class(y1)=numeric
+class(x1)=numeric class(y1)=numeric
+> linmod.y1.x1 <- linmod(y1~x1)
+> lm1 <- lm(y1~x1)
+> linmod6.xy <- linmod(x1, y1)
+> 
+> newdata.x1 <- trees[3:5,1,drop=FALSE]
+> colnames(newdata.x1) <- "x1"
+> stopifnot(almost.equal(predict(linmod.y1.x1, newdata=newdata.x1),
++           c(7.63607739644657, 16.24803331528098, 17.26120459984973)))
+> 
+> check.lm(linmod6.xy, linmod.y1.x1, newdata=x1[3:5],
++          check.newdata=FALSE, # TODO needed because linmod.y1.x1 ignores newdata(!)
++          check.coef.names=FALSE, check.casenames=FALSE)
+check linmod6.xy vs linmod.y1.x1
+> print(predict(linmod6.xy, newdata=x1[3:5]))
+[1]  7.636077 16.248033 17.261205
+> stopifnot(almost.equal(predict(linmod6.xy, newdata=x1[3]), 7.63607739644657))
+> 
+> stopifnot(coef(linmod6.xy) == coef(linmod.y1.x1)) # names(coef(linmod.y1.x1) are "(Intercept)" "x1"
+> stopifnot(names(coef(linmod6.xy)) == c("(Intercept)", "V1"))
+> 
+> # following checks some confusing behaviour of predict.lm
+> options(warn=2) # treat warnings as errors
+> expect.err(try(predict(lm1,    newdata=trees[3:5,1,drop=FALSE])),
++            "'newdata' had 3 rows but variables found have 31 rows")
+Error : (converted from warning) 'newdata' had 3 rows but variables found have 31 rows
+Got expected error from try(predict(lm1, newdata = trees[3:5, 1, drop = FALSE]))
+> expect.err(try(predict(lm1,    newdata=trees[3:5,1,drop=TRUE])),
++            "'data' must be a data.frame, environment, or list")
+Error in model.frame.default(Terms, newdata, na.action = na.action, xlev = object$xlevels) : 
+  'data' must be a data.frame, environment, or list
+Got expected error from try(predict(lm1, newdata = trees[3:5, 1, drop = TRUE]))
+> 
+> # following checks messages when missing variables in newdata
+> 
+> options(warn=2) # treat warnings as errors to check that we get a warning in stats::model.frame
+> expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=FALSE])),
++            "(converted from warning) 'newdata' had 3 rows but variables found have 31 rows")
+Error : (converted from warning) 'newdata' had 3 rows but variables found have 31 rows
+Got expected error from try(predict(linmod.y1.x1, newdata = trees[3:5, 1, drop = FALSE]))
+> expect.err(try(predict(lm1, newdata=trees[3:5,1,drop=FALSE])),
++            "(converted from warning) 'newdata' had 3 rows but variables found have 31 rows")
+Error : (converted from warning) 'newdata' had 3 rows but variables found have 31 rows
+Got expected error from try(predict(lm1, newdata = trees[3:5, 1, drop = FALSE]))
+> expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=TRUE])),
++            "(converted from warning) 'newdata' had 3 rows but variables found have 31 rows")
+Error : (converted from warning) 'newdata' had 3 rows but variables found have 31 rows
+Got expected error from try(predict(linmod.y1.x1, newdata = trees[3:5, 1, drop = TRUE]))
+> 
+> # following checks predict.linmod error messages when missing variables
+> # (it tries to give better error messages than predict.lm)
+> 
+> options(warn=1) # print warnings as they occur to test stop() in linmod.R::process.newdata.formula
+> expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=FALSE])),
++            "newdata has 3 rows but model.frame returned 31 rows (variable 'x1' may be missing from newdata)")
+Warning: 'newdata' had 3 rows but variables found have 31 rows
+Error in process.newdata.formula(object, newdata) : 
+  newdata has 3 rows but model.frame returned 31 rows (variable 'x1' may be missing from newdata)
+Got expected error from try(predict(linmod.y1.x1, newdata = trees[3:5, 1, drop = FALSE]))
+> expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=TRUE])),
++            "newdata has 3 rows but model.frame returned 31 rows (variable 'x1' may be missing from newdata)")
+Warning: 'newdata' had 3 rows but variables found have 31 rows
+Error in process.newdata.formula(object, newdata) : 
+  newdata has 3 rows but model.frame returned 31 rows (variable 'x1' may be missing from newdata)
+Got expected error from try(predict(linmod.y1.x1, newdata = trees[3:5, 1, drop = TRUE]))
+> options(warn=2) # back to treating warnings as errors
+> 
+> # test old version of linmod.R (pre Sep 2020)
+> #
+> # expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=FALSE])),
+> #            "variable 'x1' is missing from newdata")
+> # expect.err(try(predict(lm1, newdata=trees[3:5,1,drop=FALSE])),
+> #            "(converted from warning) 'newdata' had 3 rows but variables found have 31 rows")
+> # expect.err(try(predict(linmod.y1.x1, newdata=trees[3:5,1,drop=TRUE])),
+> #            "variable 'x1' is missing from newdata")
+> 
+> linmod6.form <- linmod(y1~x1)
+> check.lm(linmod6.form, linmod.y1.x1, check.newdata=FALSE)
+check linmod6.form vs linmod.y1.x1
+> 
+> newdata <- trees[5:6,]
+> colnames(newdata) <- c("Girth", "Height", "Volume999") # doesn't matter what we call the response
+> stopifnot(identical(predict(linmod.form.Volume.tr, newdata=newdata),
++                     predict(linmod.form.Volume.tr, newdata=trees[5:6,])))
+> newdata <- trees[5:6,3:1] # reverse columns and their colnames
+> colnames(newdata) <- c("Volume", "Height", "Girth")
+> stopifnot(identical(predict(linmod.form.Volume.tr, newdata=newdata),
++                     predict(linmod.form.Volume.tr, newdata=trees[5:6,])))
+> newdata <- trees[5:6,2:1] # reverse columns and their colnames, delete response column
+> colnames(newdata) <- c("Height", "Girth")
+> stopifnot(identical(predict(linmod.form.Volume.tr, newdata=newdata),
++                     predict(linmod.form.Volume.tr, newdata=trees[5:6,])))
+> stopifnot(identical(predict(linmod.form.Volume.tr, newdata=as.matrix(trees[5:6,])), # allow matrix newdata
++                     predict(linmod.form.Volume.tr, newdata=trees[5:6,])))
+> newdata <- trees[5:6,]
+> colnames(newdata) <- c("Girth99", "Height", "Volume")
+> expect.err(try(predict(linmod.form.Volume.tr, newdata=newdata)),
++            "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.form.Volume.tr, newdata = newdata))
+> colnames(newdata) <- c("Girth", "Height99", "Volume")
+> expect.err(try(predict(linmod.form.Volume.tr, newdata=newdata)),
++            "object 'Height' not found")
+Error in eval(predvars, data, env) : object 'Height' not found
+Got expected error from try(predict(linmod.form.Volume.tr, newdata = newdata))
+> 
+> cat0("==check integer input (sibsp is an integer)\n")
+==check integer input (sibsp is an integer)
+> 
+> library(earth) # for etitanic data
+> data(etitanic)
+> tit <- etitanic[seq(1, nrow(etitanic), by=60), ] # small set of data for tests (18 cases)
+> tit$survived <- tit$survived != 0 # convert to logical
+> rownames(tit) <- paste("pas", 1:nrow(tit), sep="")
+> cat0(paste(colnames(tit), "=", sapply(tit, class), sep="", collapse=", "), "\n")
+pclass=factor, survived=logical, sex=factor, age=numeric, sibsp=integer, parch=integer
+> 
+> linmod7.xy <- linmod(tit$age, tit$sibsp)
+> lm7 <- lm.fit(cbind(1, tit$age), tit$sibsp)
+> stopifnot(coef(linmod7.xy) == coef(lm7)) # coef names will differ
+> 
+> linmod7.form <- linmod(sibsp~age, data=tit)
+> lm7.form  <- lm(sibsp~age, data=tit)
+> check.lm(linmod7.form, lm7.form, newdata=tit[3:5,])
+check linmod7.form vs lm7.form
+> 
+> linmod8.xy <- linmod(tit$sibsp, tit$age)
+> lm8 <- lm.fit(cbind(1, tit$sibsp), tit$age)
+> stopifnot(coef(linmod8.xy) == coef(lm8)) # coef names will differ
+> 
+> linmod8.form <- linmod(age~sibsp, data=tit)
+> lm8.form  <- lm(age~sibsp, data=tit)
+> check.lm(linmod8.form, lm8.form, newdata=tit[3:5,])
+check linmod8.form vs lm8.form
+> 
+> # drop=FALSE so response is a data frame
+> linmod1a.xy <- linmod(trees[,1:2], trees[, 3, drop=FALSE])
+> print(linmod1a.xy)
+Call: linmod.default(x = trees[, 1:2], y = trees[, 3, drop = FALSE])
+
+(Intercept)       Girth      Height 
+-57.9876589   4.7081605   0.3392512 
+> print(summary(linmod1a.xy))
+Call: linmod.default(x = trees[, 1:2], y = trees[, 3, drop = FALSE])
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> plotres(linmod1a.xy) # plot caption shows response name "Volume"
+> 
+> cat0("==test model building with assorted non-numeric args\n")
+==test model building with assorted non-numeric args
+> 
+> library(earth) # for etitanic data
+> data(etitanic)
+> etit <- etitanic[seq(1, nrow(etitanic), by=60), ] # small set of data for tests (18 cases)
+> etit$survived <- etit$survived != 0 # convert to logical
+> rownames(etit) <- paste("pas", 1:nrow(etit), sep="")
+> cat0(paste(colnames(etit), "=", sapply(etit, class), sep="", collapse=", "), "\n")
+pclass=factor, survived=logical, sex=factor, age=numeric, sibsp=integer, parch=integer
+> 
+> lm9 <- lm(survived~., data=etit)
+> linmod9.form <- linmod(survived~., data=etit)
+> check.lm(linmod9.form, lm9, newdata=etit[3:5,])
+check linmod9.form vs lm9
+> 
+> # change class of pclass to numeric
+> etit.pclass.numeric <- etit
+> etit.pclass.numeric$pclass <- as.numeric(etit$pclass)
+> expect.err(try(predict(lm9,       newdata=etit.pclass.numeric)),
++               "(converted from warning) variable 'pclass' is not a factor")
+Error in model.frame.default(Terms, newdata, na.action = na.action, xlev = object$xlevels) : 
+  (converted from warning) variable 'pclass' is not a factor
+Got expected error from try(predict(lm9, newdata = etit.pclass.numeric))
+> expect.err(try(predict(linmod9.form, newdata=etit.pclass.numeric)),
++               "(converted from warning) variable 'pclass' is not a factor")
+Error in model.frame.default(terms, newdata, na.action = na.pass, xlev = object$xlevels) : 
+  (converted from warning) variable 'pclass' is not a factor
+Got expected error from try(predict(linmod9.form, newdata = etit.pclass.numeric))
+> 
+> # change class of age to factor
+> etit.age.factor <- etit
+> etit.age.factor$age <- etit$pclass
+> expect.err(try(predict(lm9,       newdata=etit.age.factor)),
++               "variable 'age' was fitted with type \"numeric\" but type \"factor\" was supplied")
+Error : variable 'age' was fitted with type "numeric" but type "factor" was supplied
+Got expected error from try(predict(lm9, newdata = etit.age.factor))
+> expect.err(try(predict(linmod9.form, newdata=etit.age.factor)),
++               "variable 'age' was fitted with type \"numeric\" but type \"factor\" was supplied")
+Error : variable 'age' was fitted with type "numeric" but type "factor" was supplied
+Got expected error from try(predict(linmod9.form, newdata = etit.age.factor))
+> 
+> # predict for formula model ignores extra column(s) in newdata
+> etit.extra.col <- etit
+> etit.extra.col$extra <- etit$sibsp
+> stopifnot(identical(predict(lm9, newdata=etit), predict(lm9, newdata=etit.extra.col)))
+> stopifnot(identical(predict(linmod9.form, newdata=etit), predict(linmod9.form, newdata=etit.extra.col)))
+> etit.extra.col$extra2 <- etit$sibsp
+> stopifnot(identical(predict(lm9, newdata=etit), predict(lm9, newdata=etit.extra.col)))
+> stopifnot(identical(predict(linmod9.form, newdata=etit), predict(linmod9.form, newdata=etit.extra.col)))
+> 
+> # predict for formula model doesn't care if columns in different order
+> etit.different.col.order <- etit[,ncol(etit):1] # reverse order of columns
+> stopifnot(identical(predict(lm9, newdata=etit), predict(lm9, newdata=etit.different.col.order)))
+> stopifnot(identical(predict(linmod9.form, newdata=etit), predict(linmod9.form, newdata=etit.different.col.order)))
+> 
+> # linmod.default, non numeric x (factors in x)
+> expect.err(try(linmod(etit[c(1,3,4,5,6)], etit[,"survived"])),
++               "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(etit[c(1, 3, 4, 5, 6)], etit[, "survived"]))
+> expect.err(try(linmod.fit(etit[c(1,3,4,5,6)], etit[,"survived"])),
++               "'x' is not a matrix or could not be converted to a matrix")
+Error in check.linmod.x(x) : 
+  'x' is not a matrix or could not be converted to a matrix
+Got expected error from try(linmod.fit(etit[c(1, 3, 4, 5, 6)], etit[, "survived"]))
+> # lousy error message from lm.fit
+> expect.err(try(lm.fit(etit[,c(1,3,4,5,6)], etit[,"survived"])),
++               "INTEGER() can only be applied to a 'integer', not a 'NULL'")
+Error in lm.fit(etit[, c(1, 3, 4, 5, 6)], etit[, "survived"]) : 
+  INTEGER() can only be applied to a 'integer', not a 'NULL'
+Got expected error from try(lm.fit(etit[, c(1, 3, 4, 5, 6)], etit[, "survived"]))
+> 
+> expect.err(try(linmod(data.matrix(cbind("(Intercept)"=1, etit[,c(1,3,4,5,6)])), etit[,"survived"])),
++               "column name \"(Intercept)\" in 'x' is duplicated")
+Error in check.linmod.x(x) : 
+  column name "(Intercept)" in 'x' is duplicated
+Got expected error from try(linmod(data.matrix(cbind(`(Intercept)` = 1, etit[, c(1, 3,     4, 5, 6)])), etit[, "survived"]))
+> linmod9a.xy <- linmod(data.matrix(etit[,c(1,3,4,5,6)]), etit[,"survived"])
+> lm9.fit <- lm.fit(data.matrix(cbind("(Intercept)"=1, etit[,c(1,3,4,5,6)])), etit[,"survived"])
+> stopifnot(coef(linmod9a.xy) == coef(lm9.fit))
+> stopifnot(names(coef(linmod9a.xy)) == names(coef(lm9.fit)))
+> expect.err(try(predict(linmod9a.xy, newdata=etit.age.factor[,c(1,3,4,5,6)])), "non-numeric column in 'newdata'")
+Error in predict.linmod(linmod9a.xy, newdata = etit.age.factor[, c(1,  : 
+  non-numeric column in 'newdata' (after processing)
+Got expected error from try(predict(linmod9a.xy, newdata = etit.age.factor[, c(1, 3,     4, 5, 6)]))
+> expect.err(try(predict(linmod9a.xy, newdata=etit[,c(1,3,4,5)])), "ncol(newdata) is 4 but should be 5")
+Error in predict.linmod(linmod9a.xy, newdata = etit[, c(1, 3, 4, 5)]) : 
+  ncol(newdata) is 4 but should be 5
+Got expected error from try(predict(linmod9a.xy, newdata = etit[, c(1, 3, 4, 5)]))
+> expect.err(try(predict(linmod9a.xy, newdata=etit[,c(1,3,4,5,6,6)])), "ncol(newdata) is 6 but should be 5")
+Error in predict.linmod(linmod9a.xy, newdata = etit[, c(1, 3, 4, 5, 6,  : 
+  ncol(newdata) is 6 but should be 5
+Got expected error from try(predict(linmod9a.xy, newdata = etit[, c(1, 3, 4, 5, 6, 6)]))
+> 
+> # linmod.formula, logical response
+> data.logical.response <- data.frame(etit[1:6,c("age","sibsp","parch")], response=c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE))
+> linmod9b.form <- linmod(response~., data=data.logical.response)
+> print(linmod9b.form)
+Call: linmod.formula(formula = response ~ ., data = data.logical.response)
+
+ (Intercept)          age        sibsp        parch 
+ 1.102508872 -0.007261985 -0.182883049 -0.569470942 
+> lm9b.form <- lm(response~., data=data.logical.response)
+> check.lm(linmod9b.form, lm9b.form, newdata=data.logical.response[2,,drop=FALSE])
+check linmod9b.form vs lm9b.form
+> 
+> # linmod.formula, factor response (not allowed)
+> data.fac.response <- data.frame(etit[1:6,c("age","sibsp","parch")], response=factor(c("a", "a", "b", "a", "b", "b")))
+> expect.err(try(linmod(response~., data=data.fac.response)), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(response ~ ., data = data.fac.response))
+> # lm.formula
+> expect.err(try(lm(response~., data=data.fac.response)),
++               "(converted from warning) using type = \"numeric\" with a factor response will be ignored")
+Error in model.response(mf, "numeric") : 
+  (converted from warning) using type = "numeric" with a factor response will be ignored
+Got expected error from try(lm(response ~ ., data = data.fac.response))
+> 
+> # linmod.formula, string response (not allowed)
+> data.string.response <- data.frame(etit[1:6,c("age","sibsp","parch")], response=c("a", "a", "b", "a", "b", "b"))
+> expect.err(try(linmod(response~., data=data.string.response)), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(response ~ ., data = data.string.response))
+> # lm.formula
+> expect.err(try(lm(response~., data=data.string.response)),
++               "(converted from warning) NAs introduced by coercion")
+Error in storage.mode(v) <- "double" : 
+  (converted from warning) NAs introduced by coercion
+Got expected error from try(lm(response ~ ., data = data.string.response))
+> 
+> # linmod.default, logical response
+> linmod9b.xy <- linmod(etit[1:6,c("age","sibsp","parch")], c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE))
+> print(linmod9b.xy)
+Call: linmod.default(x = etit[1:6, c("age", "sibsp", "parch")], y = c(TRUE,
+      TRUE, FALSE, TRUE, FALSE, FALSE))
+
+ (Intercept)          age        sibsp        parch 
+ 1.102508872 -0.007261985 -0.182883049 -0.569470942 
+> # lm.fit, logical response (lousy error message from lm.fit)
+> expect.err(try(lm.fit(etit[1:6,c("age","sibsp","parch")], c(TRUE, TRUE, FALSE, TRUE, FALSE, FALSE))),
++               "INTEGER() can only be applied to a 'integer', not a 'NULL'")
+Error in lm.fit(etit[1:6, c("age", "sibsp", "parch")], c(TRUE, TRUE, FALSE,  : 
+  INTEGER() can only be applied to a 'integer', not a 'NULL'
+Got expected error from try(lm.fit(etit[1:6, c("age", "sibsp", "parch")], c(TRUE, TRUE,     FALSE, TRUE, FALSE, FALSE)))
+> # linmod.default, factor response
+> expect.err(try(linmod(etit[1:6,c("age","sibsp","parch")], factor(c("a",
++               "a", "b", "a", "b", "b")))), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(etit[1:6, c("age", "sibsp", "parch")], factor(c("a",     "a", "b", "a", "b", "b"))))
+> # linmod.default, string response
+> expect.err(try(linmod(etit[1:6,c("age","sibsp","parch")], c("a",
++               "a", "b", "a", "b", "b"))), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(etit[1:6, c("age", "sibsp", "parch")], c("a", "a",     "b", "a", "b", "b")))
+> # lm.fit, string and factor responses (lousy error messages from lm.fit)
+> expect.err(try(lm.fit(etit[1:6,c("age","sibsp","parch")], factor(c("a",
++               "a", "b", "a", "b", "b")))), "INTEGER() can only be applied to a 'integer', not a 'NULL'")
+Error in lm.fit(etit[1:6, c("age", "sibsp", "parch")], factor(c("a", "a",  : 
+  INTEGER() can only be applied to a 'integer', not a 'NULL'
+Got expected error from try(lm.fit(etit[1:6, c("age", "sibsp", "parch")], factor(c("a",     "a", "b", "a", "b", "b"))))
+> expect.err(try(lm.fit(etit[1:6,c("age","sibsp","parch")], c("a",
++               "a", "b", "a", "b", "b"))), "INTEGER() can only be applied to a 'integer', not a 'NULL'")
+Error in lm.fit(etit[1:6, c("age", "sibsp", "parch")], c("a", "a", "b",  : 
+  INTEGER() can only be applied to a 'integer', not a 'NULL'
+Got expected error from try(lm.fit(etit[1:6, c("age", "sibsp", "parch")], c("a", "a",     "b", "a", "b", "b")))
+> 
+> options(warn=2) # treat warnings as errors
+> expect.err(try(lm(pclass~., data=etit)), "using type = \"numeric\" with a factor response will be ignored")
+Error in model.response(mf, "numeric") : 
+  (converted from warning) using type = "numeric" with a factor response will be ignored
+Got expected error from try(lm(pclass ~ ., data = etit))
+> expect.err(try(linmod(pclass~., data=etit)), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(pclass ~ ., data = etit))
+> 
+> options(warn=1) # print warnings as they occur
+> lm10 <- lm(pclass~., data=etit) # will give warnings
+Warning in model.response(mf, "numeric") :
+  using type = "numeric" with a factor response will be ignored
+Warning in Ops.factor(y, z$residuals) : '-' not meaningful for factors
+> options(warn=2) # treat warnings as errors
+> linmod10.form <- linmod(as.numeric(pclass)~., data=etit)
+> stopifnot(coef(linmod10.form) == coef(lm10))
+> stopifnot(names(coef(linmod10.form)) == names(coef(lm10)))
+> # check.lm(linmod10.form, lm10) # fails because lm10 fitted is all NA
+> 
+> expect.err(try(linmod(pclass~., data=etit)), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(pclass ~ ., data = etit))
+> expect.err(try(linmod(etit[,-1], etit[,1])), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(etit[, -1], etit[, 1]))
+> expect.err(try(linmod(1:10, paste(1:10))), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(1:10, paste(1:10)))
+> 
+> linmod10a.form <- linmod(survived~pclass, data=etit)
+> lm10a <- lm(survived~pclass, data=etit)
+> check.lm(linmod10a.form, lm10a, newdata=etit[3:5,])
+check linmod10a.form vs lm10a
+> 
+> expect.err(try(linmod(etit[,"pclass"], etit[,"age"])), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(etit[, "pclass"], etit[, "age"]))
+> 
+> expect.err(try(linmod(paste(1:10), 1:10)), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(paste(1:10), 1:10))
+> 
+> lm11 <- lm(as.numeric(pclass)~., data=etit)
+> linmod11.form <- linmod(as.numeric(pclass)~., data=etit)
+> check.lm(linmod11.form, lm11, newdata=etit[3:5,])
+check linmod11.form vs lm11
+> 
+> # logical data (not numeric)
+> bool.data <- data.frame(x=rep(c(TRUE, FALSE, TRUE), length.out=10),
++                         y=rep(c(TRUE, FALSE, FALSE), length.out=10))
+> lm12 <- lm(y~x, data=bool.data)
+> linmod12.form <- linmod(y~x, data=bool.data)
+> check.lm(linmod12.form, lm12, newdata=bool.data[3:5,1],
++          check.newdata=FALSE) # needed because predict.lm gives invalid type (list) for variable 'x'
+check linmod12.form vs lm12
+> linmod12.xy <- linmod(bool.data$x, bool.data$y)
+> # hack: delete mismatching names so check.lm() doesn't fail
+> names(lm12$coefficients) <- NULL     # were "(Intercept)" "xTRUE"
+> names(linmod12.xy$coefficients) <- NULL # were "(Intercept)" "V1"
+> check.lm(linmod12.xy, lm12, newdata=bool.data[3:5,1],
++          check.newdata=FALSE, # needed because predict.lm gives invalid 'envir' argument of type 'logical'
++          check.casenames=FALSE)
+check linmod12.xy vs lm12
+> 
+> cat0("==check use of functions in arguments to linmod\n")
+==check use of functions in arguments to linmod
+> 
+> identfunc <- function(x) x
+> lm10 <- lm(        sqrt(survived) ~ I(age^2) + as.numeric(sex), data=identfunc(etit))
+> linmod10 <- linmod(sqrt(survived) ~ I(age^2) + as.numeric(sex), data=identfunc(etit))
+> print(summary(lm10))
+
+Call:
+lm(formula = sqrt(survived) ~ I(age^2) + as.numeric(sex), data = identfunc(etit))
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-0.6959 -0.2665 -0.2302  0.3427  0.8261 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(>|t|)  
+(Intercept)      1.101e+00  4.223e-01   2.608   0.0198 *
+I(age^2)        -5.389e-05  1.190e-04  -0.453   0.6571  
+as.numeric(sex) -3.881e-01  2.508e-01  -1.547   0.1426  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.4855 on 15 degrees of freedom
+Multiple R-squared:  0.1736,	Adjusted R-squared:  0.06346 
+F-statistic: 1.576 on 2 and 15 DF,  p-value: 0.2392
+
+> print(summary(linmod10))
+Call: linmod.formula(formula = sqrt(survived) ~ I(age^2) + as.numeric(sex),
+      data = identfunc(etit))
+
+                     Estimate       StdErr    t.value    p.value
+(Intercept)      1.101499e+00 0.4223245953  2.6081808 0.01977424
+I(age^2)        -5.389047e-05 0.0001189838 -0.4529226 0.65708686
+as.numeric(sex) -3.880912e-01 0.2507927081 -1.5474582 0.14258876
+> check.lm(linmod10, lm10, newdata=etit[3:5,])
+check linmod10 vs lm10
+> set.seed(2020)
+> plotmo(lm10,     pt.col="green", do.par=2)
+ plotmo grid:    age  sex
+                32.5 male
+> set.seed(2020)
+> plotmo(linmod10, pt.col="green", do.par=0)
+ plotmo grid:    age  sex
+                32.5 male
+> par(org.par)
+> 
+> cat0("==data.frame with strings\n")
+==data.frame with strings
+> 
+> df.with.string <-
++     data.frame(1:5,
++                c(1,2,-1,4,5),
++                c("a", "b", "a", "a", "b"),
++                stringsAsFactors=FALSE)
+> colnames(df.with.string) <- c("num1", "num2", "string")
+> 
+> linmod30.form <- linmod(num1~num2, df.with.string)
+> lm30       <- lm(num1~num2, df.with.string)
+> check.lm(linmod30.form, lm30, check.newdata=FALSE)
+check linmod30.form vs lm30
+> 
+> linmod31.form <- linmod(num1~., df.with.string)
+> lm31       <- lm(num1~., df.with.string)
+> check.lm(linmod31.form, lm31, check.newdata=FALSE)
+check linmod31.form vs lm31
+> 
+> expect.err(try(linmod(string~., df.with.string)), "'y' is not numeric or logical")
+Error in check.linmod.y(x, y) : 'y' is not numeric or logical
+Got expected error from try(linmod(string ~ ., df.with.string))
+> 
+> vec <- c(1,2,3,4,3)
+> expect.err(try(linmod(df.with.string, vec)), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(df.with.string, vec))
+> expect.err(try(linmod(etit$pclass, etit$survived)), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(etit$pclass, etit$survived))
+> 
+> cat0("==x is singular\n")
+==x is singular
+> 
+> set.seed(1)
+> x2 <- matrix(rnorm(6), nrow=2)
+> y2 <- c(1,2)
+> expect.err(try(linmod(y2~x2)), "'x' is singular (it has 4 columns but its rank is 2)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 4 columns but its rank is 2)
+  colnames(x): (Intercept) x21 x22 x23
+Got expected error from try(linmod(y2 ~ x2))
+> 
+> x3 <- matrix(1:10, ncol=2)
+> y3 <- c(1,2,9,4,5)
+> expect.err(try(linmod(y3~x3)), "'x' is singular (it has 3 columns but its rank is 2)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 3 columns but its rank is 2)
+  colnames(x): (Intercept) x31 x32
+Got expected error from try(linmod(y3 ~ x3))
+> 
+> expect.err(try(linmod(trees[1,1:2], trees[1,3])), "'x' is singular (it has 3 columns but its rank is 1)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 3 columns but its rank is 1)
+  colnames(x): (Intercept) Girth Height
+Got expected error from try(linmod(trees[1, 1:2], trees[1, 3]))
+> 
+> x2a <- matrix(1:6, nrow=3)
+> y2a <- c(1,2,3)
+> expect.err(try(linmod(y2a~x2a)), "'x' is singular (it has 3 columns but its rank is 2)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 3 columns but its rank is 2)
+  colnames(x): (Intercept) x2a1 x2a2
+Got expected error from try(linmod(y2a ~ x2a))
+> 
+> cat0("==perfect fit (residuals are zero)\n")
+==perfect fit (residuals are zero)
+> 
+> set.seed(1)
+> x2b <- matrix(rnorm(6), nrow=3)
+> y2b <- c(1,2,3)
+> data.x2b <- data.frame(x2b, y2b)
+> colnames(data.x2b) <- c("x1", "x2", "y")
+> linmod.x2b <- linmod(y~., data=data.x2b)
+> print(summary(linmod.x2b)) # will have "Residual degrees-of-freedom is zero" comment
+Call: linmod.formula(formula = y ~ ., data = data.x2b)
+
+               Estimate StdErr t.value p.value
+(Intercept)  2.28088400    Inf       0       0
+x1          -0.05211945    Inf       0       0
+x2          -0.82338760    Inf       0       0
+> lm.x2b <- lm(y~., data=data.x2b)
+> print(summary(lm.x2b)) # will have "ALL 3 residuals are 0" comment
+
+Call:
+lm(formula = y ~ ., data = data.x2b)
+
+Residuals:
+ALL 3 residuals are 0: no residual degrees of freedom!
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)  2.28088        NaN     NaN      NaN
+x1          -0.05212        NaN     NaN      NaN
+x2          -0.82339        NaN     NaN      NaN
+
+Residual standard error: NaN on 0 degrees of freedom
+Multiple R-squared:      1,	Adjusted R-squared:    NaN 
+F-statistic:   NaN on 2 and 0 DF,  p-value: NA
+
+> check.lm(linmod.x2b, lm.x2b, newdata=data.x2b[1:2,]+1, check.sigma=FALSE)
+check linmod.x2b vs lm.x2b
+> 
+> x2c <- 1:10
+> y2c <- 11:20
+> data.x2c <- data.frame(x2c, y2c)
+> colnames(data.x2c) <- c("x", "y")
+> linmod.x2c <- linmod(y~., data=data.x2c)
+> print(summary(linmod.x2c))
+Call: linmod.formula(formula = y ~ ., data = data.x2c)
+
+            Estimate StdErr t.value p.value
+(Intercept)       10      0     Inf       0
+x                  1      0     Inf       0
+> lm.x2c <- lm(y~., data=data.x2c)
+> options(warn=1) # print warnings as they occur
+> print(summary(lm.x2c)) # will have "essentially perfect fit: summary may be unreliable" comment
+Warning in summary.lm(lm.x2c) :
+  essentially perfect fit: summary may be unreliable
+
+Call:
+lm(formula = y ~ ., data = data.x2c)
+
+Residuals:
+       Min         1Q     Median         3Q        Max 
+-3.635e-15 -3.541e-16  3.225e-16  9.411e-16  1.721e-15 
+
+Coefficients:
+             Estimate Std. Error   t value Pr(>|t|)    
+(Intercept) 1.000e+01  1.100e-15 9.088e+15   <2e-16 ***
+x           1.000e+00  1.773e-16 5.639e+15   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.611e-15 on 8 degrees of freedom
+Multiple R-squared:      1,	Adjusted R-squared:      1 
+F-statistic: 3.18e+31 on 1 and 8 DF,  p-value: < 2.2e-16
+
+> options(warn=2) # treat warnings as errors
+> check.lm(linmod.x2c, lm.x2c, newdata=data.x2c[1:2,]+1, check.sigma=FALSE)
+check linmod.x2c vs lm.x2c
+> 
+> par(mfrow=c(2,2)) # all plots on same page so can compare
+> plot(linmod.x2b, main="linmod.x2b\nall residuals are zero")
+> plot(lm.x2b, which=1, main="lm.x2b")
+> plot(linmod.x2c, main="linmod.x2c")
+> plot(lm.x2c, which=1, main="lm.x2c")
+> par(org.par)
+> 
+> cat0("==nrow(x) does not match length(y)\n")
+==nrow(x) does not match length(y)
+> 
+> x4 <- matrix(1:10, ncol=2)
+> y4 <- c(1,2,9,4)
+> expect.err(try(linmod(x4, y4)), "nrow(x) is 5 but length(y) is 4")
+Error in check.linmod.y(x, y) : nrow(x) is 5 but length(y) is 4
+Got expected error from try(linmod(x4, y4))
+> 
+> x5 <- matrix(1:10, ncol=2)
+> y5 <- c(1,2,9,4,5,9)
+> expect.err(try(linmod(x5, y5)), "nrow(x) is 5 but length(y) is 6")
+Error in check.linmod.y(x, y) : nrow(x) is 5 but length(y) is 6
+Got expected error from try(linmod(x5, y5))
+> 
+> cat0("==y has multiple columns\n")
+==y has multiple columns
+> 
+> vec <- c(1,2,3,4,3)
+> y2 <- cbind(c(1,2,3,4,9), vec^2)
+> expect.err(try(linmod(vec, y2)), "nrow(x) is 5 but length(y) is 10")
+Error in check.linmod.y(x, y) : nrow(x) is 5 but length(y) is 10
+Got expected error from try(linmod(vec, y2))
+> expect.err(try(linmod(y2~vec)), "nrow(x) is 5 but length(y) is 10")
+Error in check.linmod.y(x, y) : nrow(x) is 5 but length(y) is 10
+Got expected error from try(linmod(y2 ~ vec))
+> 
+> cat0("==NA in x\n")
+==NA in x
+> 
+> x <- tr[,1:2]
+> y <- tr[,3]
+> x[2,2] <- NA
+> expect.err(try(linmod(x, y)), "NA in 'x'")
+Error in check.linmod.x(x) : NA in 'x'
+Got expected error from try(linmod(x, y))
+> 
+> x <- tr[,1:2]
+> y <- tr[,3]
+> y[9] <- NA
+> expect.err(try(linmod(x, y)), "NA in 'y'")
+Error in check.linmod.y(x, y) : NA in 'y'
+Got expected error from try(linmod(x, y))
+> 
+> # Following added Sep 2020 (prior to this, predict.linmod gave an incorrect error message)
+> cat0("==test formulas that use functions on rhs variables, like Volume~sqrt(Girth)\n")
+==test formulas that use functions on rhs variables, like Volume~sqrt(Girth)
+> 
+> linmod.sqrt1 <- linmod(Volume~sqrt(as.numeric(Girth)), data=tr)
+> cat0("==print(summary(linmod.sqrt1))\n")
+==print(summary(linmod.sqrt1))
+> print(summary(linmod.sqrt1))
+Call: linmod.formula(formula = Volume ~ sqrt(as.numeric(Girth)), data = tr)
+
+                          Estimate   StdErr   t.value      p.value
+(Intercept)             -103.40058 7.706018 -13.41816 5.733634e-14
+sqrt(as.numeric(Girth))   36.94188 2.117135  17.44900 6.396229e-17
+> lm.sqrt1 <- lm(Volume~sqrt(as.numeric(Girth)), data=tr)
+> check.lm(linmod.sqrt1, lm.sqrt1)
+check linmod.sqrt1 vs lm.sqrt1
+> stopifnot(almost.equal(predict(linmod.sqrt1, newdata=data.frame(Girth=10, Height=80)),
++                        predict(lm.sqrt1,     newdata=data.frame(Girth=10, Height=80))))
+> stopifnot(almost.equal(predict(linmod.sqrt1, newdata=as.matrix(tr[1:3,])),
++                        predict(lm.sqrt1,     newdata=tr[1:3,])))
+> par(mfrow=c(2,2)) # all plots on same page so can compare
+> plotmo(linmod.sqrt1, do.par=FALSE)
+> plotmo(lm.sqrt1,     do.par=FALSE)
+> par(org.par)
+> 
+> linmod.sqrt2 <- linmod(Volume~sqrt(Girth)+Height+Girth, data=tr)
+> cat0("==print(summary(linmod.sqrt2))\n")
+==print(summary(linmod.sqrt2))
+> print(summary(linmod.sqrt2))
+Call: linmod.formula(formula = Volume ~ sqrt(Girth) + Height + Girth, data =
+      tr)
+
+                Estimate      StdErr   t.value      p.value
+(Intercept)  132.4266671 33.03008713  4.009274 4.318421e-04
+sqrt(Girth) -106.5505058 18.19173301 -5.857084 3.085730e-06
+Height         0.4030722  0.08863082  4.547765 1.026574e-04
+Girth         19.0489443  2.45495604  7.759383 2.410443e-08
+> lm.sqrt2 <- lm(Volume~sqrt(Girth)+Height+Girth, data=tr)
+> check.lm(linmod.sqrt2, lm.sqrt2)
+check linmod.sqrt2 vs lm.sqrt2
+> stopifnot(almost.equal(predict(linmod.sqrt2, newdata=data.frame(Girth=10, Height=80)),
++                        predict(lm.sqrt2,     newdata=data.frame(Girth=10, Height=80))))
+> stopifnot(almost.equal(predict(linmod.sqrt2, newdata=as.matrix(tr[1:3,])),
++                        predict(lm.sqrt2,     newdata=tr[1:3,])))
+> par(mfrow=c(2,2)) # all plots on same page so can compare
+> plotmo(linmod.sqrt2, do.par=FALSE)
+ plotmo grid:    Girth Height
+                  12.9     76
+> plotmo(lm.sqrt2,     do.par=FALSE)
+ plotmo grid:    Girth Height
+                  12.9     76
+> par(org.par)
+> 
+> lm.sqrt.as.numeric <- lm(survived~sqrt(age)+as.numeric(pclass), data=etit)
+> linmod.sqrt.as.numeric <- linmod(survived~sqrt(age)+as.numeric(pclass), data=etit)
+> check.lm(linmod.sqrt.as.numeric, lm.sqrt.as.numeric, newdata=etit[3:5,])
+check linmod.sqrt.as.numeric vs lm.sqrt.as.numeric
+> expect.err(try(predict(linmod.sqrt.as.numeric, newdata=data.frame(age=30))), # pclass missing
++            "object 'pclass' not found")
+Error in eval(predvars, data, env) : object 'pclass' not found
+Got expected error from try(predict(linmod.sqrt.as.numeric, newdata = data.frame(age = 30)))
+> par(mfrow=c(2,2)) # all plots on same page so can compare
+> plotmo(linmod.sqrt.as.numeric, do.par=FALSE)
+ plotmo grid:    age pclass
+                32.5    3rd
+> plotmo(lm.sqrt.as.numeric,     do.par=FALSE)
+ plotmo grid:    age pclass
+                32.5    3rd
+> par(org.par)
+> 
+> y.age    <- etit[,"age"]
+> x.pclass <- etit[,"pclass"]
+> x.sex    <- etit[,"sex"]
+> linmod.y.age.sex.pclass <- linmod(y.age ~ as.numeric(x.pclass) + x.sex)
+> lm.y.age.sex.pclass     <- lm(    y.age ~ as.numeric(x.pclass) + x.sex)
+> stopifnot(identical(linmod.y.age.sex.pclass$coef, lm.y.age.sex.pclass$coef))
+> options(warn=1) # print warnings as they occur to test stop() in linmod.R::process.newdata.formula
+> # TODO following says variable 'as.numeric(x.pclass)' may be missing
+> #      it should say  variable 'x.pclass' may be missing
+> expect.err(try(predict(linmod.y.age.sex.pclass, newdata=etit[3:5,1,drop=FALSE])),
++            "newdata has 3 rows but model.frame returned 18 rows (variable 'as.numeric(x.pclass)' may be missing from newdata)")
+Warning: 'newdata' had 3 rows but variables found have 18 rows
+Error in process.newdata.formula(object, newdata) : 
+  newdata has 3 rows but model.frame returned 18 rows (variable 'as.numeric(x.pclass)' may be missing from newdata)
+Got expected error from try(predict(linmod.y.age.sex.pclass, newdata = etit[3:5, 1, drop = FALSE]))
+> options(warn=2) # back to treating warnings as errors
+> 
+> cat0("==misc tests with different kinds of data\n")
+==misc tests with different kinds of data
+> 
+> data3 <- data.frame(s=c("a", "b", "a", "c", "a"), num=c(1,5,1,9,2), y=c(1,3,2,5,3), stringsAsFactors=F)
+> stopifnot(sapply(data3, class) == c("character", "numeric", "numeric"))
+> a40 <- linmod(y~., data=data3)
+> print(summary(a40))
+Call: linmod.formula(formula = y ~ ., data = data3)
+
+                 Estimate    StdErr       t.value   p.value
+(Intercept) -1.390219e-15 1.2247449 -1.135109e-15 1.0000000
+sb          -4.500000e+00 3.2787193 -1.372487e+00 0.4008582
+sc          -8.500000e+00 6.6895441 -1.270640e+00 0.4244770
+num          1.500000e+00 0.8660254  1.732051e+00 0.3333333
+> stopifnot(almost.equal(a40$coefficients, c(0, -4.5, -8.5, 1.5), max=0.001))
+> stopifnot(almost.equal(predict(a40, newdata=data3[2:3,]),
++                        c(3.0, 1.5), max=0.001))
+> 
+> data4 <- data.frame(s=c("a", "b", "a", "c", "a"), num=c(1,5,1,9,2), y=c(1,3,2,5,3), stringsAsFactors=T)
+> stopifnot(sapply(data4, class) == c("factor", "numeric", "numeric"))
+> expect.err(try(linmod(data4[,1:2], data4[,3])), "non-numeric column in 'x'")
+Error in check.linmod.x(x) : non-numeric column in 'x'
+Got expected error from try(linmod(data4[, 1:2], data4[, 3]))
+> 
+> # following gives no error (and matches lm) even though col 1 of data3 is character not factor
+> a41 <- linmod(y~., data=data4)
+> print(summary(a41))
+Call: linmod.formula(formula = y ~ ., data = data4)
+
+                 Estimate    StdErr       t.value   p.value
+(Intercept) -1.390219e-15 1.2247449 -1.135109e-15 1.0000000
+sb          -4.500000e+00 3.2787193 -1.372487e+00 0.4008582
+sc          -8.500000e+00 6.6895441 -1.270640e+00 0.4244770
+num          1.500000e+00 0.8660254  1.732051e+00 0.3333333
+> stopifnot(almost.equal(predict(a41, newdata=data3[2:3,]),
++                        c(3.0, 1.5), max=0.001))
+> 
+> data5 <- data.frame(s=c("a", "b", "c", "a", "a"), num=c(1,9,4,2,6), y=c(1,2,3,5,3), stringsAsFactors=F)
+> stopifnot(almost.equal(predict(a41, newdata=data5[1:3,1:2]),
++                         c(1.5, 9.0, -2.5), max=0.001))
+> 
+> data6 <- data.frame(s=c("a", "b", "c", "a9", "a"),
++                     num=c(1,9,4,2,6),
++                     num2=c(1,9,4,2,7),
++                     y=c(1,2,3,5,3), stringsAsFactors=T)
+> expect.err(try(predict(a41, newdata=data6[1:3,1])), "object 's' not found")
+Error in eval(predvars, data, env) : object 's' not found
+Got expected error from try(predict(a41, newdata = data6[1:3, 1]))
+> expect.err(try(predict(a41, newdata=data6[1:3,c(1,1)])), "object 'num' not found")
+Error in eval(predvars, data, env) : object 'num' not found
+Got expected error from try(predict(a41, newdata = data6[1:3, c(1, 1)]))
+> 
+> expect.err(try(predict(a41, newdata=data.frame(s=1, num=2, y=3))), "variable 's' is not a factor")
+Error in model.frame.default(terms, newdata, na.action = na.pass, xlev = object$xlevels) : 
+  (converted from warning) variable 's' is not a factor
+Got expected error from try(predict(a41, newdata = data.frame(s = 1, num = 2, y = 3)))
+> 
+> expect.err(try(predict(a41, newdata=1:9)),
++            "object 's' not found")
+Error in eval(predvars, data, env) : object 's' not found
+Got expected error from try(predict(a41, newdata = 1:9))
+> 
+> expect.err(try(predict(a41, newdata=data.frame())), "'newdata' is empty")
+Error in predict.linmod(a41, newdata = data.frame()) : 'newdata' is empty
+Got expected error from try(predict(a41, newdata = data.frame()))
+> 
+> # perfect fit (residuals are all zero)
+> linmod.data6 <- linmod(y~s+num, data=data6)
+> print(summary(linmod.data6))
+Call: linmod.formula(formula = y ~ s + num, data = data6)
+
+            Estimate StdErr t.value p.value
+(Intercept)      0.6    Inf       0       0
+sa9              3.6    Inf       0       0
+sb              -2.2    Inf       0       0
+sc               0.8    Inf       0       0
+num              0.4    Inf       0       0
+> lm.data6 <- lm(y~s+num, data=data6)
+> print(summary(lm.data6))
+
+Call:
+lm(formula = y ~ s + num, data = data6)
+
+Residuals:
+ALL 5 residuals are 0: no residual degrees of freedom!
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)      0.6        NaN     NaN      NaN
+sa9              3.6        NaN     NaN      NaN
+sb              -2.2        NaN     NaN      NaN
+sc               0.8        NaN     NaN      NaN
+num              0.4        NaN     NaN      NaN
+
+Residual standard error: NaN on 0 degrees of freedom
+Multiple R-squared:      1,	Adjusted R-squared:    NaN 
+F-statistic:   NaN on 4 and 0 DF,  p-value: NA
+
+> check.lm(linmod.data6, lm.data6, newdata=data6[2,,drop=FALSE], check.sigma=FALSE)
+check linmod.data6 vs lm.data6
+> 
+> expect.err(try(linmod(y~., data=data6)), "'x' is singular (it has 6 columns but its rank is 5)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 6 columns but its rank is 5)
+  colnames(x): (Intercept) sa9 sb sc num num2
+Got expected error from try(linmod(y ~ ., data = data6))
+> 
+> tr.na <- trees
+> tr.na[9,3] <- NA
+> expect.err(try(linmod(Volume~.,data=tr.na)), "NA in 'y'")
+Error in check.linmod.y(x, y) : NA in 'y'
+Got expected error from try(linmod(Volume ~ ., data = tr.na))
+> expect.err(try(linmod(tr.na[,1:2], tr.na[,3])), "NA in 'y'")
+Error in check.linmod.y(x, y) : NA in 'y'
+Got expected error from try(linmod(tr.na[, 1:2], tr.na[, 3]))
+> 
+> tr.na <- trees
+> tr.na[10,1] <- NA
+> expect.err(try(linmod(Volume~.,data=tr.na)), "NA in 'x'")
+Error in check.linmod.x(x) : NA in 'x'
+Got expected error from try(linmod(Volume ~ ., data = tr.na))
+> expect.err(try(linmod(tr.na[,1:2], tr.na[,3])), "NA in 'x'")
+Error in check.linmod.x(x) : NA in 'x'
+Got expected error from try(linmod(tr.na[, 1:2], tr.na[, 3]))
+> 
+> a42 <- linmod(trees[,1:2], trees[, 3])
+> newdata1 <- data.frame(Girth=20)
+> expect.err(try(predict(a42, newdata=newdata1)), "ncol(newdata) is 1 but should be 2")
+Error in predict.linmod(a42, newdata = newdata1) : 
+  ncol(newdata) is 1 but should be 2
+Got expected error from try(predict(a42, newdata = newdata1))
+> newdata3 <- data.frame(Girth=20, extra1=21, extra2=22)
+> expect.err(try(predict(a42, newdata=newdata3)), "ncol(newdata) is 3 but should be 2")
+Error in predict.linmod(a42, newdata = newdata3) : 
+  ncol(newdata) is 3 but should be 2
+Got expected error from try(predict(a42, newdata = newdata3))
+> expect.err(try(predict(a42, newdata=data.frame())), "'newdata' is empty")
+Error in predict.linmod(a42, newdata = data.frame()) : 'newdata' is empty
+Got expected error from try(predict(a42, newdata = data.frame()))
+> newdata.with.NA <- data.frame(Girth=20, Height=NA)
+> expect.err(try(predict(a42, newdata=newdata.with.NA)), "NA in 'newdata'")
+Error in predict.linmod(a42, newdata = newdata.with.NA) : NA in 'newdata'
+Got expected error from try(predict(a42, newdata = newdata.with.NA))
+> 
+> a43 <- linmod(Volume~.,data=trees)
+> expect.err(try(predict(a43, newdata=newdata.with.NA)), "NA in 'newdata'")
+Error in process.newdata.formula(object, newdata) : NA in 'newdata'
+Got expected error from try(predict(a43, newdata = newdata.with.NA))
+> lm43 <- lm(Volume~.,data=trees)
+> # message from predict.lm could be better
+> expect.err(try(predict(lm43, newdata=newdata.with.NA)),
++               "variable 'Height' was fitted with type \"numeric\" but type \"logical\" was supplied")
+Error : variable 'Height' was fitted with type "numeric" but type "logical" was supplied
+Got expected error from try(predict(lm43, newdata = newdata.with.NA))
+> 
+> y6 <- 1:5
+> x6 <- data.frame()
+> options(warn=1) # print warnings as they occur
+> expect.err(try(linmod(x6, y6)), "'x' is empty")
+Warning in cbind(`(Intercept)` = 1, xmat) :
+  number of rows of result is not a multiple of vector length (arg 1)
+Error in check.linmod.x(x) : 'x' is empty
+Got expected error from try(linmod(x6, y6))
+> options(warn=2) # treat warnings as errors
+> 
+> y7 <- data.frame()
+> x7 <- 1:5
+> expect.err(try(linmod(x7, y7)), "'y' is empty")
+Error in check.linmod.y(x, y) : 'y' is empty
+Got expected error from try(linmod(x7, y7))
+> 
+> # duplicated column names
+> data7 <- matrix(1:25, ncol=5)
+> colnames(data7) <- c("y", "x1", "x1", "x3", "x4")
+> expect.err(try(linmod(data7[,-1], data7[,1])), "column name \"x1\" in 'x' is duplicated")
+Error in check.linmod.x(x) : column name "x1" in 'x' is duplicated
+Got expected error from try(linmod(data7[, -1], data7[, 1]))
+> 
+> colnames(data7) <- c("y", "x1", "x2", "x2", "x4")
+> expect.err(try(linmod(data7[,-1], data7[,1])), "column name \"x2\" in 'x' is duplicated")
+Error in check.linmod.x(x) : column name "x2" in 'x' is duplicated
+Got expected error from try(linmod(data7[, -1], data7[, 1]))
+> 
+> colnames(data7) <- c("y", "x1", "x2", "x2", "x2")
+> expect.err(try(linmod(data7[,-1], data7[,1])), "column name \"x2\" in 'x' is duplicated")
+Error in check.linmod.x(x) : column name "x2" in 'x' is duplicated
+Got expected error from try(linmod(data7[, -1], data7[, 1]))
+> 
+> # column name V2 will be created but it clashes with the existing column name
+> colnames(data7) <- c("y", "V2", "", "V3", "V4")
+> expect.err(try(linmod(data7[,-1], data7[,1])), "column name \"V2\" in 'x' is duplicated")
+Error in check.linmod.x(x) : column name "V2" in 'x' is duplicated
+Got expected error from try(linmod(data7[, -1], data7[, 1]))
+> 
+> # missing column names
+> trees1 <- trees
+> colnames(trees1) <- NULL
+> cat0("a52\n")
+a52
+> a52 <- linmod(trees1[,1:2], trees1[,3])
+> print(summary(a52))
+Call: linmod.default(x = trees1[, 1:2], y = trees1[, 3])
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+V1            4.7081605 0.2642646 17.816084 8.223304e-17
+V2            0.3392512 0.1301512  2.606594 1.449097e-02
+> 
+> trees1 <- trees
+> colnames(trees1) <- c("", "Height", "Volume") # was Girth Height Volume
+> cat0("linmod.form.Volume.trees1\n")
+linmod.form.Volume.trees1
+> linmod.form.Volume.trees1 <- linmod(trees1[,1:2], trees1[,3])
+> print(summary(linmod.form.Volume.trees1))
+Call: linmod.default(x = trees1[, 1:2], y = trees1[, 3])
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+V1            4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> cat0("linmod.form.Volume.trees1.formula\n")
+linmod.form.Volume.trees1.formula
+> expect.err(try(linmod(Volume~., data=trees1)), "attempt to use zero-length variable name")
+Error in terms.formula(formula, data = data) : 
+  attempt to use zero-length variable name
+Got expected error from try(linmod(Volume ~ ., data = trees1))
+> 
+> # very long names to test formatting in summary.linmod
+> trees1 <- trees
+> colnames(trees1) <- c("Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name",
++                       "Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name",
++                       "Volume.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name")
+> cat0("a55\n")
+a55
+> a55 <- linmod(Volume.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name~
++               Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name+
++               Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name,
++               data=trees1)
+> print(summary(a55))
+Call: linmod.formula(formula =
+      Volume.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name
+      ~
+      Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name
+      +
+      Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name,
+      data = trees1)
+
+                                                                                          Estimate
+(Intercept)                                                                            -57.9876589
+Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name    4.7081605
+Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name   0.3392512
+                                                                                          StdErr
+(Intercept)                                                                            8.6382259
+Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name  0.2642646
+Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name 0.1301512
+                                                                                         t.value
+(Intercept)                                                                            -6.712913
+Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name  17.816084
+Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name  2.606594
+                                                                                            p.value
+(Intercept)                                                                            2.749507e-07
+Girth.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name  8.223304e-17
+Height.a.very.long.name.in.fact.an.exceptionally.exceptionally.exceptionally.long.name 1.449097e-02
+> 
+> # intercept-only model
+> intonly.form <- linmod(Volume~1, data=trees)
+> print(summary(intonly.form))
+Call: linmod.formula(formula = Volume ~ 1, data = trees)
+
+            Estimate   StdErr  t.value      p.value
+(Intercept) 30.17097 2.952324 10.21939 2.753323e-11
+> stopifnot(length(coef(intonly.form)) == 1)
+> try(plotmo(intonly.form)) # Error in plotmo(intonly.form) : x is empty
+Error in plotmo(intonly.form) : x is empty
+> plotres(intonly.form)
+> expect.err(try(plotmo(intonly.form)), "x is empty")
+Error in plotmo(intonly.form) : x is empty
+Got expected error from try(plotmo(intonly.form))
+> expect.err(try(linmod(rep(1, length.out=nrow(trees)), trees$Volume)),
++               "'x' is singular (it has 2 columns but its rank is 1)")
+Error in do.linmod.fit(x, y) : 
+  'x' is singular (it has 2 columns but its rank is 1)
+  colnames(x): (Intercept) V1
+Got expected error from try(linmod(rep(1, length.out = nrow(trees)), trees$Volume))
+> 
+> # various tests for bad args
+> expect.err(try(linmod(trees[,1:2])), "no 'y' argument")
+Error in as.matrix(y) : no 'y' argument
+Got expected error from try(linmod(trees[, 1:2]))
+> 
+> # test stop.if.dot.arg.used
+> expect.err(try(linmod(Volume~., data=trees, nonesuch=99)),
++               "unused argument (nonesuch = 99)")
+Error in stop.if.dot.arg.used(...) : unused argument (nonesuch = 99)
+Got expected error from try(linmod(Volume ~ ., data = trees, nonesuch = 99))
+> expect.err(try(linmod(trees[,1:2], trees[,3], nonesuch=linmod)),
++               "unused argument (nonesuch = function (...)")
+Error in stop.if.dot.arg.used(...) : 
+  unused argument (nonesuch = function (...) 
+UseMethod("linmod"))
+Got expected error from try(linmod(trees[, 1:2], trees[, 3], nonesuch = linmod))
+> expect.err(try(summary(linmod(trees[,1:2], trees[,3]), nonesuch=linmod)),
++               "unused argument (nonesuch = function (...)")
+Error in stop.if.dot.arg.used(...) : 
+  unused argument (nonesuch = function (...) 
+UseMethod("linmod"))
+Got expected error from try(summary(linmod(trees[, 1:2], trees[, 3]), nonesuch = linmod))
+> expect.err(try(print(linmod(trees[,1:2], trees[,3]), nonesuch=linmod)),
++               "unused argument (nonesuch = function (...)")
+Error in stop.if.dot.arg.used(...) : 
+  unused argument (nonesuch = function (...) 
+UseMethod("linmod"))
+Got expected error from try(print(linmod(trees[, 1:2], trees[, 3]), nonesuch = linmod))
+> expect.err(try(predict(linmod.form.Volume.tr, nonesuch=99)),
++               "unused argument (nonesuch = 99)")
+Error in stop.if.dot.arg.used(...) : unused argument (nonesuch = 99)
+Got expected error from try(predict(linmod.form.Volume.tr, nonesuch = 99))
+> 
+> # check partial matching on type argument
+> stopifnot(identical(predict(linmod.form.Volume.tr, type="r"),    predict(linmod.form.Volume.tr)))
+> stopifnot(identical(predict(linmod.form.Volume.tr, type="resp"), predict(linmod.form.Volume.tr)))
+> expect.err(try(predict(linmod.form.Volume.tr, type="nonesuch")), "'arg' should be \"response\"")
+Error in match.arg(type, "response") : 'arg' should be "response"
+Got expected error from try(predict(linmod.form.Volume.tr, type = "nonesuch"))
+> 
+> # test additional method functions (see linmod.methods.R)
+> 
+> check.lm(linmod.form.Volume.tr, lm.Volume.tr, newdata=trees[3,1:2])
+check linmod.form.Volume.tr vs lm.Volume.tr
+> stopifnot(almost.equal(coef(linmod.form.Volume.tr), coef(lm.Volume.tr)))
+> stopifnot(identical(names(coef(linmod.form.Volume.tr)), names(coef(lm.Volume.tr))))
+> stopifnot(almost.equal(fitted(linmod.form.Volume.tr), fitted(lm.Volume.tr)))
+> stopifnot(identical(names(fitted(linmod.form.Volume.tr)), names(fitted(lm.Volume.tr))))
+> stopifnot(identical(na.action(linmod.form.Volume.tr), na.action(lm.Volume.tr)))
+> stopifnot(almost.equal(residuals(linmod.form.Volume.tr), residuals(lm.Volume.tr)))
+> stopifnot(identical(names(residuals(linmod.form.Volume.tr)), names(residuals(lm.Volume.tr))))
+> stopifnot(identical(names(case.names(linmod.form.Volume.tr)), names(case.names(lm.Volume.tr))))
+> stopifnot(identical(variable.names(linmod.form.Volume.tr), variable.names(lm.Volume.tr)))
+> stopifnot(identical(nobs(linmod.form.Volume.tr), nobs(lm.Volume.tr)))
+> stopifnot(identical(weights(linmod.form.Volume.tr), weights(lm.Volume.tr)))
+> stopifnot(almost.equal(df.residual(linmod.form.Volume.tr), df.residual(lm.Volume.tr)))
+> stopifnot(identical(names(df.residual(linmod.form.Volume.tr)), names(df.residual(lm.Volume.tr))))
+> stopifnot(almost.equal(deviance(linmod.form.Volume.tr), deviance(lm.Volume.tr)))
+> stopifnot(identical(names(deviance(linmod.form.Volume.tr)), names(deviance(lm.Volume.tr))))
+> stopifnot(identical(weights(linmod.form.Volume.tr), weights(lm.Volume.tr)))
+> stopifnot(identical(model.frame(linmod.form.Volume.tr), model.frame(lm.Volume.tr)))
+> stopifnot(identical(model.matrix(linmod.form.Volume.tr), model.matrix(lm.Volume.tr)))
+> stopifnot(identical(model.matrix(linmod.form.Volume.tr, data=tr[1:2,]),
++                     model.matrix(lm.Volume.tr,          data=tr[1:2,])))
+> stopifnot(almost.equal(logLik(linmod.form.Volume.tr), logLik(lm.Volume.tr)))
+> expect.err(try(logLik(linmod.form.Volume.tr, REML=TRUE)), "!REML is not TRUE")
+Error in logLik.linmod(linmod.form.Volume.tr, REML = TRUE) : 
+  !REML is not TRUE
+Got expected error from try(logLik(linmod.form.Volume.tr, REML = TRUE))
+> library(sandwich) # for estfun.lm
+> stopifnot(almost.equal(estfun(linmod.form.Volume.tr), estfun(lm.Volume.tr)))
+> 
+> linmod.form.Volume.tr.update <- update(linmod.form.Volume.tr, formula.=Volume~Height)
+> lm.Volume.tr.update          <- update(lm.Volume.tr, formula.=Volume~Height)
+> check.lm(linmod.form.Volume.tr.update, lm.Volume.tr.update)
+check linmod.form.Volume.tr.update vs lm.Volume.tr.update
+> 
+> check.lm(linmod.xy.Volume.tr, lm.Volume.tr, newdata=trees[3,1:2])
+check linmod.xy.Volume.tr vs lm.Volume.tr
+> stopifnot(almost.equal(coef(linmod.xy.Volume.tr), coef(lm.Volume.tr)))
+> stopifnot(identical(names(coef(linmod.xy.Volume.tr)), names(coef(lm.Volume.tr))))
+> stopifnot(almost.equal(fitted(linmod.xy.Volume.tr), fitted(lm.Volume.tr)))
+> stopifnot(identical(names(fitted(linmod.xy.Volume.tr)), names(fitted(lm.Volume.tr))))
+> stopifnot(identical(na.action(linmod.xy.Volume.tr), na.action(lm.Volume.tr)))
+> stopifnot(almost.equal(residuals(linmod.xy.Volume.tr), residuals(lm.Volume.tr)))
+> stopifnot(identical(names(residuals(linmod.xy.Volume.tr)), names(residuals(lm.Volume.tr))))
+> stopifnot(identical(case.names(linmod.xy.Volume.tr), case.names(lm.Volume.tr)))
+> stopifnot(identical(variable.names(linmod.xy.Volume.tr), variable.names(lm.Volume.tr)))
+> stopifnot(identical(nobs(linmod.xy.Volume.tr), nobs(lm.Volume.tr)))
+> stopifnot(identical(weights(linmod.xy.Volume.tr), weights(lm.Volume.tr)))
+> stopifnot(almost.equal(df.residual(linmod.xy.Volume.tr), df.residual(lm.Volume.tr)))
+> stopifnot(identical(names(df.residual(linmod.xy.Volume.tr)), names(df.residual(lm.Volume.tr))))
+> stopifnot(almost.equal(deviance(linmod.xy.Volume.tr), deviance(lm.Volume.tr)))
+> stopifnot(identical(names(deviance(linmod.xy.Volume.tr)), names(deviance(lm.Volume.tr))))
+> stopifnot(identical(weights(linmod.xy.Volume.tr), weights(lm.Volume.tr)))
+> expect.err(try(model.frame(linmod.xy.Volume.tr)),  "model.frame cannot be used on linmod models built without a formula")
+Error in model.frame.linmod(linmod.xy.Volume.tr) : 
+  model.frame cannot be used on linmod models built without a formula
+Got expected error from try(model.frame(linmod.xy.Volume.tr))
+> expect.err(try(model.matrix(linmod.xy.Volume.tr)),
++               "model.frame cannot be used on linmod models built without a formula")
+Error in model.frame.linmod(object) : 
+  model.frame cannot be used on linmod models built without a formula
+Got expected error from try(model.matrix(linmod.xy.Volume.tr))
+> stopifnot(almost.equal(logLik(linmod.xy.Volume.tr), logLik(lm.Volume.tr)))
+> 
+> par(mfrow=c(2,2))
+> plot(linmod.form.Volume.tr)
+> plot(lm.Volume.tr, which=1, main="lm.Volume.tr")
+> plot(linmod.xy.Volume.tr)
+> plot(linmod.form.Volume.tr, xlim=c(0,80), ylim=c(-10,10), pch=20, main="linmod.form.Volume.tr: test plot args")
+> par(org.par)
+> 
+> cat0("==test one predictor model\n")
+==test one predictor model
+> 
+> linmod.onepred.form <- linmod(Volume~Girth, data=tr) # one predictor
+> lm.onepred.form <- lm(Volume~Girth, data=tr)
+> check.lm(linmod.onepred.form, lm.onepred.form, newdata=trees[3,1:2])
+check linmod.onepred.form vs lm.onepred.form
+> linmod.onepred.xy <- linmod(tr[,1,drop=FALSE], tr[,3]) # one predictor
+> print(summary(linmod.onepred.xy))
+Call: linmod.default(x = tr[, 1, drop = FALSE], y = tr[, 3])
+
+              Estimate   StdErr   t.value      p.value
+(Intercept) -36.943459 3.365145 -10.97827 7.621449e-12
+Girth         5.065856 0.247377  20.47829 8.644334e-19
+> check.lm(linmod.onepred.xy, lm.onepred.form, newdata=trees[3,1,drop=FALSE])
+check linmod.onepred.xy vs lm.onepred.form
+> 
+> par(mfrow=c(2,2))
+> plot(linmod.onepred.form)
+> plot(lm.onepred.form, which=1, main="lm.onepred.form")
+> plot(linmod.onepred.xy)
+> par(org.par)
+> plotres(linmod.onepred.form)
+> plotmo(linmod.onepred.form, pt.col=2)
+> 
+> cat0("==test no intercept model\n")
+==test no intercept model
+> # no intercept models are only supported with the formula interface (not x,y interface)
+> 
+> linmod.noint <- linmod(Volume~.-1, data=trees) # no intercept
+> print(summary(linmod.noint))
+Call: linmod.formula(formula = Volume ~ . - 1, data = trees)
+
+         Estimate    StdErr   t.value      p.value
+Girth   5.0440083 0.4118733 12.246506 5.519859e-13
+Height -0.4773192 0.0734721 -6.496605 4.118004e-07
+> lm.noint <- lm(Volume~.-1, data=trees) # no intercept
+> check.lm(linmod.noint, lm.noint)
+check linmod.noint vs lm.noint
+> linmod.noint.keep <- linmod(Volume~.-1, data=trees, keep=TRUE)
+> print(summary(linmod.noint.keep))
+Call: linmod.formula(formula = Volume ~ . - 1, data = trees, keep = TRUE)
+
+         Estimate    StdErr   t.value      p.value
+Girth   5.0440083 0.4118733 12.246506 5.519859e-13
+Height -0.4773192 0.0734721 -6.496605 4.118004e-07
+> 
+> check.lm(linmod.noint, lm.noint)
+check linmod.noint vs lm.noint
+> stopifnot(class(linmod.noint.keep$data)   == class(linmod.form.Volume.trees.keep$data))
+> stopifnot(all(dim(linmod.noint.keep$data) == dim(linmod.form.Volume.trees.keep$data)))
+> stopifnot(all(linmod.noint.keep$data == linmod.form.Volume.trees.keep$data))
+> stopifnot(class(linmod.noint.keep$y)   == class(linmod.form.Volume.trees.keep$y))
+> stopifnot(all(dim(linmod.noint.keep$data) == dim(linmod.form.Volume.trees.keep$data)))
+> stopifnot(all(linmod.noint.keep$data == linmod.form.Volume.trees.keep$data))
+> 
+> # check method functions in no-intercept model
+> stopifnot(almost.equal(coef(linmod.noint), coef(lm.noint)))
+> stopifnot(identical(names(coef(linmod.noint)), names(coef(lm.noint))))
+> stopifnot(almost.equal(fitted(linmod.noint), fitted(lm.noint)))
+> stopifnot(identical(names(fitted(linmod.noint)), names(fitted(lm.noint))))
+> stopifnot(identical(na.action(linmod.noint), na.action(lm.noint)))
+> stopifnot(almost.equal(residuals(linmod.noint), residuals(lm.noint)))
+> stopifnot(identical(names(residuals(linmod.noint)), names(residuals(lm.noint))))
+> stopifnot(identical(case.names(linmod.noint), case.names(lm.noint)))
+> stopifnot(identical(variable.names(linmod.noint), variable.names(lm.noint)))
+> stopifnot(identical(nobs(linmod.noint), nobs(lm.noint)))
+> stopifnot(identical(weights(linmod.noint), weights(lm.noint)))
+> stopifnot(almost.equal(df.residual(linmod.noint), df.residual(lm.noint)))
+> stopifnot(identical(names(df.residual(linmod.noint)), names(df.residual(lm.noint))))
+> stopifnot(almost.equal(deviance(linmod.noint), deviance(lm.noint)))
+> stopifnot(identical(names(deviance(linmod.noint)), names(deviance(lm.noint))))
+> stopifnot(identical(weights(linmod.noint), weights(lm.noint)))
+> stopifnot(identical(model.frame(linmod.noint), model.frame(lm.noint)))
+> stopifnot(identical(model.matrix(linmod.noint), model.matrix(lm.noint)))
+> stopifnot(identical(model.matrix(linmod.noint, data=tr[1:2,]),
++                     model.matrix(lm.noint,     data=tr[1:2,])))
+> stopifnot(almost.equal(logLik(linmod.noint), logLik(lm.noint)))
+> stopifnot(almost.equal(estfun(linmod.noint), estfun(lm.noint)))
+> 
+> # check error messages with bad newdata in no-intercept model
+> expect.err(try(predict(linmod.noint, newdata=NA)),
++               "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.noint, newdata = NA))
+> expect.err(try(predict(linmod.noint, newdata=data.frame(Height=c(1,NA), Girth=c(3,4)))),
++               "NA in 'newdata'")
+Error in process.newdata.formula(object, newdata) : NA in 'newdata'
+Got expected error from try(predict(linmod.noint, newdata = data.frame(Height = c(1,     NA), Girth = c(3, 4))))
+> expect.err(try(predict(linmod.noint, newdata=trees[0,])), "'newdata' is empty")
+Error in predict.linmod(linmod.noint, newdata = trees[0, ]) : 
+  'newdata' is empty
+Got expected error from try(predict(linmod.noint, newdata = trees[0, ]))
+> expect.err(try(predict(linmod.noint, newdata=trees[3:5,"Height"])), "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.noint, newdata = trees[3:5, "Height"]))
+> # check that extra fields in predict newdata are ok with (formula) models without intercept
+> stopifnot(almost.equal(predict(linmod.noint, newdata=data.frame(Girth=10, Height=80, extra=99)),
++                        predict(lm.noint,  newdata=data.frame(Girth=10, Height=80, extra=99))))
+> 
+> par(mfrow=c(2,2))
+> plot(linmod.noint)
+> plot(lm.noint, which=1, main="lm.noint")
+> par(org.par)
+> 
+> plotres(linmod.noint)
+> plotmo(linmod.noint)
+ plotmo grid:    Girth Height
+                  12.9     76
+> 
+> cat0("==test one predictor no intercept model\n")
+==test one predictor no intercept model
+> # no intercept models are only supported with the formula interface (not x,y interface)
+> 
+> linmod.onepred.noint <- linmod(Volume~Girth-1, data=trees) # one predictor, no intercept
+> print(summary(linmod.onepred.noint))
+Call: linmod.formula(formula = Volume ~ Girth - 1, data = trees)
+
+      Estimate    StdErr  t.value    p.value
+Girth 2.420943 0.1253311 19.31637 1.7813e-18
+> lm.onepred.noint <- lm(Volume~Girth-1, data=trees) # one predictor, no intercept
+> check.lm(linmod.onepred.noint, lm.onepred.noint)
+check linmod.onepred.noint vs lm.onepred.noint
+> linmod.onepred.noint.keep <- linmod(Volume~.-1, data=trees, keep=TRUE)
+> print(summary(linmod.onepred.noint.keep))
+Call: linmod.formula(formula = Volume ~ . - 1, data = trees, keep = TRUE)
+
+         Estimate    StdErr   t.value      p.value
+Girth   5.0440083 0.4118733 12.246506 5.519859e-13
+Height -0.4773192 0.0734721 -6.496605 4.118004e-07
+> 
+> check.lm(linmod.onepred.noint, lm.onepred.noint)
+check linmod.onepred.noint vs lm.onepred.noint
+> stopifnot(class(linmod.onepred.noint.keep$data)   == class(linmod.form.Volume.trees.keep$data))
+> stopifnot(all(dim(linmod.onepred.noint.keep$data) == dim(linmod.form.Volume.trees.keep$data)))
+> stopifnot(all(linmod.onepred.noint.keep$data == linmod.form.Volume.trees.keep$data))
+> stopifnot(class(linmod.onepred.noint.keep$y)   == class(linmod.form.Volume.trees.keep$y))
+> stopifnot(all(dim(linmod.onepred.noint.keep$data) == dim(linmod.form.Volume.trees.keep$data)))
+> stopifnot(all(linmod.onepred.noint.keep$data == linmod.form.Volume.trees.keep$data))
+> 
+> # check method functions in one predictor no-intercept model
+> stopifnot(almost.equal(coef(linmod.onepred.noint), coef(lm.onepred.noint)))
+> stopifnot(identical(names(coef(linmod.onepred.noint)), names(coef(lm.onepred.noint))))
+> stopifnot(almost.equal(fitted(linmod.onepred.noint), fitted(lm.onepred.noint)))
+> stopifnot(identical(names(fitted(linmod.onepred.noint)), names(fitted(lm.onepred.noint))))
+> stopifnot(identical(na.action(linmod.onepred.noint), na.action(lm.onepred.noint)))
+> stopifnot(almost.equal(residuals(linmod.onepred.noint), residuals(lm.onepred.noint)))
+> stopifnot(identical(names(residuals(linmod.onepred.noint)), names(residuals(lm.onepred.noint))))
+> stopifnot(identical(case.names(linmod.onepred.noint), case.names(lm.onepred.noint)))
+> stopifnot(identical(variable.names(linmod.onepred.noint), variable.names(lm.onepred.noint)))
+> stopifnot(identical(nobs(linmod.onepred.noint), nobs(lm.onepred.noint)))
+> stopifnot(identical(weights(linmod.onepred.noint), weights(lm.onepred.noint)))
+> stopifnot(almost.equal(df.residual(linmod.onepred.noint), df.residual(lm.onepred.noint)))
+> stopifnot(identical(names(df.residual(linmod.onepred.noint)), names(df.residual(lm.onepred.noint))))
+> stopifnot(almost.equal(deviance(linmod.onepred.noint), deviance(lm.onepred.noint)))
+> stopifnot(identical(names(deviance(linmod.onepred.noint)), names(deviance(lm.onepred.noint))))
+> stopifnot(identical(weights(linmod.onepred.noint), weights(lm.onepred.noint)))
+> stopifnot(identical(model.frame(linmod.onepred.noint), model.frame(lm.onepred.noint)))
+> stopifnot(identical(model.matrix(linmod.onepred.noint), model.matrix(lm.onepred.noint)))
+> stopifnot(identical(model.matrix(linmod.onepred.noint, data=tr[1:2,]),
++                     model.matrix(lm.onepred.noint,     data=tr[1:2,])))
+> stopifnot(almost.equal(logLik(linmod.onepred.noint), logLik(lm.onepred.noint)))
+> stopifnot(almost.equal(estfun(linmod.onepred.noint), estfun(lm.onepred.noint)))
+> 
+> # check error messages with bad newdata in one predictor no-intercept model
+> expect.err(try(predict(linmod.onepred.noint, newdata=99)), "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.onepred.noint, newdata = 99))
+> expect.err(try(predict(linmod.onepred.noint, newdata=data.frame(Girth=NA))), "NA in 'newdata'")
+Error in process.newdata.formula(object, newdata) : NA in 'newdata'
+Got expected error from try(predict(linmod.onepred.noint, newdata = data.frame(Girth = NA)))
+> expect.err(try(predict(linmod.onepred.noint, newdata=trees[0,1])), "'newdata' is empty")
+Error in predict.linmod(linmod.onepred.noint, newdata = trees[0, 1]) : 
+  'newdata' is empty
+Got expected error from try(predict(linmod.onepred.noint, newdata = trees[0, 1]))
+> expect.err(try(predict(linmod.onepred.noint, newdata=trees[3:5,"Height"])), "object 'Girth' not found")
+Error in eval(predvars, data, env) : object 'Girth' not found
+Got expected error from try(predict(linmod.onepred.noint, newdata = trees[3:5, "Height"]))
+> # check that extra fields in predict newdata are ok with (formula) models without intercept
+> stopifnot(almost.equal(predict(linmod.onepred.noint, newdata=data.frame(Girth=10, extra=99)),
++                        predict(lm.onepred.noint,     newdata=data.frame(Girth=10, extra=99))))
+> 
+> par(mfrow=c(2,2))
+> plot(linmod.onepred.noint)
+> plot(lm.onepred.noint, which=1, main="lm.onepred.noint")
+> par(org.par)
+> 
+> plotres(linmod.onepred.noint)
+> plotmo(linmod.onepred.noint)
+> 
+> expect.err(try(linmod(Volume~nonesuch, data=trees)), "object 'nonesuch' not found")
+Error in eval(predvars, data, env) : object 'nonesuch' not found
+Got expected error from try(linmod(Volume ~ nonesuch, data = trees))
+> expect.err(try(linmod(Volume~0, data=trees)),   "'x' is empty") # no predictor
+Error in check.linmod.x(x) : 'x' is empty
+Got expected error from try(linmod(Volume ~ 0, data = trees))
+> expect.err(try(linmod(Volume~-1, data=trees)), "'x' is empty") # no predictor, no intercept
+Error in check.linmod.x(x) : 'x' is empty
+Got expected error from try(linmod(Volume ~ -1, data = trees))
+> 
+> cat0("==check model with many variables\n")
+==check model with many variables
+> 
+> set.seed(2018)
+> p <- 300 # number of variables
+> n <- floor(1.1 * p)
+> bigdat <- as.data.frame(matrix(rnorm(n * (p+1)), ncol=p+1))
+> colnames(bigdat) <- c("y", paste0("var", 1:p))
+> lm.bigdat <- lm(y~., data=bigdat)
+> linmod.bigdat <- linmod(y~., data=bigdat)
+> check.lm(linmod.form.Volume.tr, lm.Volume.tr)
+check linmod.form.Volume.tr vs lm.Volume.tr
+> print(linmod.bigdat)
+Call: linmod.formula(formula = y ~ ., data = bigdat)
+
+  (Intercept)          var1          var2          var3          var4 
+-0.0074874141 -0.0156168166 -0.0323375299 -0.0680410620 -0.1784176655 
+         var5          var6          var7          var8          var9 
+ 0.0970839766 -0.2420079781  0.0068052116  0.0605142551  0.1563114625 
+        var10         var11         var12         var13         var14 
+-0.0705547201  0.0661388031  0.0753290388 -0.0595687675 -0.1972523829 
+        var15         var16         var17         var18         var19 
+-0.0928371617  0.1400015667  0.0349750202  0.0990295749 -0.0806465990 
+        var20         var21         var22         var23         var24 
+-0.0005353688 -0.1384821496 -0.0405121324 -0.0181462061 -0.2133498970 
+        var25         var26         var27         var28         var29 
+-0.0186244683 -0.2593737746 -0.0589964475 -0.0537252842 -0.0594401821 
+        var30         var31         var32         var33         var34 
+ 0.0934989343  0.0244371962  0.1403544230  0.2619465745  0.0159354057 
+        var35         var36         var37         var38         var39 
+-0.0210109954 -0.0328618036 -0.1371912460 -0.0649163643  0.0595217563 
+        var40         var41         var42         var43         var44 
+-0.0682175594 -0.1103821881 -0.0508841621 -0.1392364303 -0.0103981103 
+        var45         var46         var47         var48         var49 
+-0.1196682294 -0.1534327142 -0.0754141872  0.1426175022  0.0011406008 
+        var50         var51         var52         var53         var54 
+ 0.0379811394  0.0320275730 -0.0532598495 -0.1410085314  0.1519143039 
+        var55         var56         var57         var58         var59 
+-0.0228233810  0.3170130760 -0.1044797851 -0.0035954154  0.1479556565 
+        var60         var61         var62         var63         var64 
+ 0.0122428193 -0.0253431378 -0.0180440355 -0.1794590898  0.0131447015 
+        var65         var66         var67         var68         var69 
+-0.1720319639  0.1526605311  0.0771868987 -0.2418787630  0.0447156252 
+        var70         var71         var72         var73         var74 
+-0.1105368627  0.0567936200  0.0424605198 -0.0881098654  0.0092876782 
+        var75         var76         var77         var78         var79 
+-0.0716540798 -0.1255361536 -0.0071680571 -0.1208344391 -0.0735928839 
+        var80         var81         var82         var83         var84 
+ 0.2324224976 -0.1849522151  0.0694052039  0.1390729406 -0.0617270270 
+        var85         var86         var87         var88         var89 
+ 0.0850926211  0.1221016487  0.0233354163  0.0075718550 -0.0032554103 
+        var90         var91         var92         var93         var94 
+ 0.1209443561  0.2292860177  0.1347583831  0.0781827877 -0.1541547464 
+        var95         var96         var97         var98         var99 
+ 0.1337171223 -0.1163422961 -0.0966724692 -0.2182129213 -0.1204830968 
+       var100        var101        var102        var103        var104 
+-0.0619465323 -0.1113710701  0.0594579753  0.0955361014 -0.0519687498 
+       var105        var106        var107        var108        var109 
+-0.0346599073  0.2181197633  0.0332996851 -0.0969131172  0.1736014017 
+       var110        var111        var112        var113        var114 
+-0.1714974837 -0.0056002152  0.1393566962 -0.0972988693  0.0475762687 
+       var115        var116        var117        var118        var119 
+ 0.2364360899 -0.0985131354 -0.0894394214 -0.2355018204  0.0025381197 
+       var120        var121        var122        var123        var124 
+-0.1427340796 -0.0565016310 -0.0455466677  0.1579742783  0.1290270638 
+       var125        var126        var127        var128        var129 
+ 0.0735269010 -0.0074354274 -0.0202350963  0.0921409434  0.0578351619 
+       var130        var131        var132        var133        var134 
+ 0.0457446540 -0.0497481279 -0.0716169797 -0.0834890066  0.0078486400 
+       var135        var136        var137        var138        var139 
+ 0.0569885547 -0.0880888941  0.0931535379  0.0029921816  0.0215558011 
+       var140        var141        var142        var143        var144 
+ 0.0379439385  0.1288009147 -0.0627699322  0.1471235930  0.0418985129 
+       var145        var146        var147        var148        var149 
+ 0.1581333558  0.2109672906 -0.1305882685  0.1715603371 -0.0674028658 
+       var150        var151        var152        var153        var154 
+-0.1809329622 -0.0618254790 -0.0644645613 -0.0185217288  0.0963509748 
+       var155        var156        var157        var158        var159 
+ 0.0669555139  0.1341679917  0.0014091507  0.1912096659  0.1049270995 
+       var160        var161        var162        var163        var164 
+ 0.1407325985 -0.0149350788 -0.1567496204  0.0881458138 -0.0429862791 
+       var165        var166        var167        var168        var169 
+ 0.0080105136 -0.0374778798  0.1385838635 -0.0734288141 -0.1266495195 
+       var170        var171        var172        var173        var174 
+ 0.0071467393 -0.0255859731  0.1516581037 -0.2106472762 -0.0308347530 
+       var175        var176        var177        var178        var179 
+ 0.0076295054  0.1793572809  0.1064141211  0.0906223259  0.0435110825 
+       var180        var181        var182        var183        var184 
+-0.1264325305 -0.0968032660  0.1430811907  0.0307419406 -0.0319429988 
+       var185        var186        var187        var188        var189 
+ 0.0461719964 -0.2385322379  0.0850810205  0.3949689631  0.1245166753 
+       var190        var191        var192        var193        var194 
+ 0.1720563316  0.2144640136  0.0501975420  0.1174708714 -0.1943912402 
+       var195        var196        var197        var198        var199 
+ 0.0202300723  0.0210580247  0.0726236855  0.1064539412 -0.0767767634 
+       var200        var201        var202        var203        var204 
+-0.0624521254  0.0028300645 -0.1715330103  0.2115665862  0.0338181429 
+       var205        var206        var207        var208        var209 
+ 0.0167958834 -0.0590878112 -0.1653100651 -0.0740487318 -0.0043391023 
+       var210        var211        var212        var213        var214 
+ 0.3393487726  0.2223498489  0.0213281741  0.2230110595 -0.1228075434 
+       var215        var216        var217        var218        var219 
+-0.0104634410  0.0326754989 -0.4439139348 -0.1087432871 -0.0107897918 
+       var220        var221        var222        var223        var224 
+-0.0296175151  0.1091241015  0.0909297736 -0.3485310127  0.0832890933 
+       var225        var226        var227        var228        var229 
+-0.0042697108  0.0593458113 -0.0182956931  0.0572344159 -0.1231669279 
+       var230        var231        var232        var233        var234 
+ 0.0492497234 -0.2862525037  0.1834105207  0.2081280243  0.1641204059 
+       var235        var236        var237        var238        var239 
+ 0.2472694582  0.0683823801  0.1891842675 -0.0489319878  0.1490499844 
+       var240        var241        var242        var243        var244 
+-0.0095798604  0.0721964545 -0.0126839937 -0.2221525719 -0.0829084901 
+       var245        var246        var247        var248        var249 
+-0.0318090335 -0.0425994225  0.0033944363  0.0984076551 -0.2148911884 
+       var250        var251        var252        var253        var254 
+-0.1875432344 -0.1735721485  0.2886948591  0.1467087046 -0.0834815473 
+       var255        var256        var257        var258        var259 
+-0.0635576566 -0.0346030600 -0.1224921370 -0.2423169128 -0.0021922047 
+       var260        var261        var262        var263        var264 
+-0.0818789537 -0.0707600938 -0.3301726263 -0.2602526557 -0.1427837485 
+       var265        var266        var267        var268        var269 
+-0.1315034492  0.1292166855  0.0265412839  0.1111883441  0.1302021867 
+       var270        var271        var272        var273        var274 
+-0.0923837589 -0.0680064479 -0.1776069310 -0.0374118346  0.0877037245 
+       var275        var276        var277        var278        var279 
+-0.0016240717  0.1670149940  0.1542172653 -0.0108006893  0.1334885400 
+       var280        var281        var282        var283        var284 
+ 0.1637485211  0.0649039066 -0.0277897733  0.1978208690  0.0984930229 
+       var285        var286        var287        var288        var289 
+-0.1113854013  0.0770616839 -0.0634971052  0.1652137421 -0.0984475187 
+       var290        var291        var292        var293        var294 
+ 0.1166070472 -0.0682754836  0.1016526112 -0.2976518291 -0.1119627963 
+       var295        var296        var297        var298        var299 
+ 0.2734232937 -0.1054927068 -0.2151298321  0.0208265210  0.0882009038 
+       var300 
+ 0.1604547308 
+> print(summary(linmod.bigdat))
+Call: linmod.formula(formula = y ~ ., data = bigdat)
+
+                 Estimate    StdErr      t.value   p.value
+(Intercept) -0.0074874141 0.1800205 -0.041592015 0.9671090
+var1        -0.0156168166 0.2371393 -0.065855031 0.9479451
+var2        -0.0323375299 0.2074053 -0.155914683 0.8771805
+var3        -0.0680410620 0.2135121 -0.318675467 0.7522565
+var4        -0.1784176655 0.2765676 -0.645114193 0.5239245
+var5         0.0970839766 0.2705479  0.358842112 0.7223126
+var6        -0.2420079781 0.2227204 -1.086599878 0.2861632
+var7         0.0068052116 0.2638035  0.025796522 0.9795963
+var8         0.0605142551 0.2672763  0.226410883 0.8224702
+var9         0.1563114625 0.2173700  0.719103064 0.4778324
+var10       -0.0705547201 0.2298045 -0.307020683 0.7610215
+var11        0.0661388031 0.2511706  0.263322181 0.7941642
+var12        0.0753290388 0.2012531  0.374300073 0.7109041
+var13       -0.0595687675 0.3550150 -0.167792238 0.8679114
+var14       -0.1972523829 0.2246975 -0.877857612 0.3872362
+var15       -0.0928371617 0.2113127 -0.439335409 0.6636749
+var16        0.1400015667 0.2435983  0.574723062 0.5699107
+var17        0.0349750202 0.1917603  0.182389223 0.8565463
+var18        0.0990295749 0.2216047  0.446874974 0.6582850
+var19       -0.0806465990 0.1909595 -0.422323087 0.6759040
+var20       -0.0005353688 0.2338494 -0.002289374 0.9981890
+var21       -0.1384821496 0.2015467 -0.687097048 0.4974799
+var22       -0.0405121324 0.2477545 -0.163517220 0.8712455
+var23       -0.0181462061 0.2375000 -0.076405072 0.9396215
+var24       -0.2133498970 0.2363631 -0.902636318 0.3741555
+var25       -0.0186244683 0.2254941 -0.082594047 0.9347418
+var26       -0.2593737746 0.2564927 -1.011232508 0.3202685
+var27       -0.0589964475 0.2340174 -0.252102832 0.8027398
+var28       -0.0537252842 0.2245610 -0.239245826 0.8125978
+var29       -0.0594401821 0.2027951 -0.293104596 0.7715294
+var30        0.0934989343 0.2367895  0.394860933 0.6958348
+var31        0.0244371962 0.3424643  0.071356924 0.9436035
+var32        0.1403544230 0.2135245  0.657322481 0.5161571
+var33        0.2619465745 0.2640503  0.992032890 0.3293872
+var34        0.0159354057 0.2044152  0.077956052 0.9383984
+var35       -0.0210109954 0.2844938 -0.073853956 0.9416337
+var36       -0.0328618036 0.2399793 -0.136936018 0.8920276
+var37       -0.1371912460 0.2537454 -0.540664966 0.5928674
+var38       -0.0649163643 0.1799295 -0.360787712 0.7208731
+var39        0.0595217563 0.2022310  0.294325542 0.7706057
+var40       -0.0682175594 0.2554638 -0.267034184 0.7913327
+var41       -0.1103821881 0.2331126 -0.473514393 0.6393915
+var42       -0.0508841621 0.2752612 -0.184857767 0.8546273
+var43       -0.1392364303 0.2495550 -0.557938843 0.5811682
+var44       -0.0103981103 0.2209398 -0.047063086 0.9627856
+var45       -0.1196682294 0.3048932 -0.392492323 0.6975645
+var46       -0.1534327142 0.2572114 -0.596523861 0.5554538
+var47       -0.0754141872 0.2600154 -0.290037393 0.7738514
+var48        0.1426175022 0.2254117  0.632697751 0.5318886
+var49        0.0011406008 0.2120596  0.005378679 0.9957453
+var50        0.0379811394 0.2310918  0.164355174 0.8705918
+var51        0.0320275730 0.2767792  0.115715247 0.9086758
+var52       -0.0532598495 0.2458433 -0.216641439 0.8300046
+var53       -0.1410085314 0.1977205 -0.713171114 0.4814399
+var54        0.1519143039 0.2314816  0.656269545 0.5168246
+var55       -0.0228233810 0.2350910 -0.097083173 0.9233282
+var56        0.3170130760 0.3614265  0.877116184 0.3876321
+var57       -0.1044797851 0.2183847 -0.478420881 0.6359379
+var58       -0.0035954154 0.2751337 -0.013067882 0.9896631
+var59        0.1479556565 0.2123298  0.696820184 0.4914637
+var60        0.0122428193 0.2293630  0.053377487 0.9577972
+var61       -0.0253431378 0.2313604 -0.109539665 0.9135290
+var62       -0.0180440355 0.1981508 -0.091062144 0.9280693
+var63       -0.1794590898 0.1901054 -0.943998047 0.3529695
+var64        0.0131447015 0.2083418  0.063092011 0.9501261
+var65       -0.1720319639 0.2428857 -0.708283494 0.4844239
+var66        0.1526605311 0.2147799  0.710776774 0.4829003
+var67        0.0771868987 0.3130362  0.246575008 0.8069742
+var68       -0.2418787630 0.2493599 -0.969998540 0.3400684
+var69        0.0447156252 0.2115566  0.211364798 0.8340810
+var70       -0.1105368627 0.1705161 -0.648248782 0.5219242
+var71        0.0567936200 0.2117084  0.268263375 0.7903957
+var72        0.0424605198 0.2223151  0.190992539 0.8498623
+var73       -0.0881098654 0.2502169 -0.352133982 0.7272839
+var74        0.0092876782 0.1725946  0.053812095 0.9574539
+var75       -0.0716540798 0.2042502 -0.350815262 0.7282627
+var76       -0.1255361536 0.2032681 -0.617588945 0.5416660
+var77       -0.0071680571 0.2245031 -0.031928539 0.9747478
+var78       -0.1208344391 0.2171811 -0.556376521 0.5822217
+var79       -0.0735928839 0.2758883 -0.266748816 0.7915503
+var80        0.2324224976 0.2178554  1.066865690 0.2948340
+var81       -0.1849522151 0.2494518 -0.741434562 0.4643923
+var82        0.0694052039 0.2244402  0.309236945 0.7593522
+var83        0.1390729406 0.2408728  0.577370810 0.5681449
+var84       -0.0617270270 0.2172721 -0.284100080 0.7783524
+var85        0.0850926211 0.2263187  0.375985799 0.7096640
+var86        0.1221016487 0.2563207  0.476362843 0.6373855
+var87        0.0233354163 0.1872097  0.124648512 0.9016619
+var88        0.0075718550 0.1673231  0.045252884 0.9642159
+var89       -0.0032554103 0.1788632 -0.018200555 0.9856035
+var90        0.1209443561 0.2560722  0.472305640 0.6402436
+var91        0.2292860177 0.1858306  1.233844321 0.2271674
+var92        0.1347583831 0.2565987  0.525171749 0.6034562
+var93        0.0781827877 0.2780298  0.281202951 0.7805515
+var94       -0.1541547464 0.2788393 -0.552844434 0.5846067
+var95        0.1337171223 0.2598042  0.514684249 0.6106743
+var96       -0.1163422961 0.2154543 -0.539986000 0.5933295
+var97       -0.0966724692 0.1949970 -0.495763812 0.6237974
+var98       -0.2182129213 0.2123535 -1.027592541 0.3126367
+var99       -0.1204830968 0.2005145 -0.600869627 0.5525946
+var100      -0.0619465323 0.1976115 -0.313476390 0.7561624
+var101      -0.1113710701 0.2468408 -0.451185779 0.6552116
+var102       0.0594579753 0.2864292  0.207583470 0.8370051
+var103       0.0955361014 0.2438856  0.391725115 0.6981251
+var104      -0.0519687498 0.1991270 -0.260982906 0.7959502
+var105      -0.0346599073 0.2657151 -0.130440121 0.8971189
+var106       0.2181197633 0.2335975  0.933741705 0.3581471
+var107       0.0332996851 0.2262542  0.147178175 0.8840098
+var108      -0.0969131172 0.2404953 -0.402973070 0.6899235
+var109       0.1736014017 0.2382727  0.728582793 0.4720999
+var110      -0.1714974837 0.2789115 -0.614881303 0.5434281
+var111      -0.0056002152 0.2405138 -0.023284378 0.9815829
+var112       0.1393566962 0.2713318  0.513602510 0.6114211
+var113      -0.0972988693 0.2237430 -0.434868813 0.6668767
+var114       0.0475762687 0.2010286  0.236664132 0.8145811
+var115       0.2364360899 0.1812356  1.304578743 0.2022950
+var116      -0.0985131354 0.1918563 -0.513473612 0.6115102
+var117      -0.0894394214 0.2173996 -0.411405563 0.6837999
+var118      -0.2355018204 0.2043250 -1.152584287 0.2584937
+var119       0.0025381197 0.2468950  0.010280159 0.9918682
+var120      -0.1427340796 0.2098195 -0.680270750 0.5017283
+var121      -0.0565016310 0.2247369 -0.251412320 0.8032684
+var122      -0.0455466677 0.2003293 -0.227358982 0.8217399
+var123       0.1579742783 0.2883202  0.547912675 0.5879449
+var124       0.1290270638 0.2496442  0.516843926 0.6091846
+var125       0.0735269010 0.2161412  0.340180001 0.7361728
+var126      -0.0074354274 0.2214263 -0.033579687 0.9734424
+var127      -0.0202350963 0.2301697 -0.087913801 0.9305495
+var128       0.0921409434 0.1946116  0.473460579 0.6394294
+var129       0.0578351619 0.1972534  0.293202402 0.7714554
+var130       0.0457446540 0.1811477  0.252526816 0.8024152
+var131      -0.0497481279 0.2395549 -0.207669049 0.8369389
+var132      -0.0716169797 0.2264069 -0.316319726 0.7540255
+var133      -0.0834890066 0.2330487 -0.358247063 0.7227531
+var134       0.0078486400 0.2177636  0.036042020 0.9714958
+var135       0.0569885547 0.2341690  0.243365105 0.8094359
+var136      -0.0880888941 0.2153686 -0.409014568 0.6855340
+var137       0.0931535379 0.2469843  0.377163735 0.7087980
+var138       0.0029921816 0.2751486  0.010874785 0.9913978
+var139       0.0215558011 0.2147867  0.100359093 0.9207499
+var140       0.0379439385 0.2406773  0.157654833 0.8758214
+var141       0.1288009147 0.2085225  0.617683396 0.5416046
+var142      -0.0627699322 0.2098144 -0.299168892 0.7669448
+var143       0.1471235930 0.2412491  0.609841087 0.5467163
+var144       0.0418985129 0.2434882  0.172076181 0.8645729
+var145       0.1581333558 0.2214480  0.714088092 0.4808812
+var146       0.2109672906 0.2233900  0.944389874 0.3527727
+var147      -0.1305882685 0.2529765 -0.516207076 0.6096237
+var148       0.1715603371 0.2701917  0.634957851 0.5304342
+var149      -0.0674028658 0.2036219 -0.331019746 0.7430096
+var150      -0.1809329622 0.2498705 -0.724106996 0.4748015
+var151      -0.0618254790 0.2176185 -0.284100247 0.7783522
+var152      -0.0644645613 0.2754214 -0.234057917 0.8165845
+var153      -0.0185217288 0.2208211 -0.083876614 0.9337309
+var154       0.0963509748 0.2313142  0.416537290 0.6800839
+var155       0.0669555139 0.1933443  0.346302031 0.7316158
+var156       0.1341679917 0.2524602  0.531442178 0.5991599
+var157       0.0014091507 0.2640273  0.005337141 0.9957781
+var158       0.1912096659 0.1695380  1.127827842 0.2686376
+var159       0.1049270995 0.2414864  0.434505156 0.6671377
+var160       0.1407325985 0.2455352  0.573166587 0.5709501
+var161      -0.0149350788 0.2301044 -0.064905660 0.9486945
+var162      -0.1567496204 0.2009329 -0.780109241 0.4416476
+var163       0.0881458138 0.1865732  0.472446196 0.6401445
+var164      -0.0429862791 0.1842946 -0.233247688 0.8172076
+var165       0.0080105136 0.2145006  0.037344952 0.9704659
+var166      -0.0374778798 0.2318411 -0.161653296 0.8726999
+var167       0.1385838635 0.2867304  0.483324640 0.6324945
+var168      -0.0734288141 0.3050426 -0.240716561 0.8114685
+var169      -0.1266495195 0.2501795 -0.506234633 0.6165190
+var170       0.0071467393 0.2711878  0.026353468 0.9791559
+var171      -0.0255859731 0.1960230 -0.130525331 0.8970520
+var172       0.1516581037 0.2794876  0.542629017 0.5915315
+var173      -0.2106472762 0.2586949 -0.814269164 0.4221271
+var174      -0.0308347530 0.1917615 -0.160797399 0.8733679
+var175       0.0076295054 0.3046328  0.025044924 0.9801907
+var176       0.1793572809 0.2037214  0.880404570 0.3858783
+var177       0.1064141211 0.2557243  0.416128313 0.6803797
+var178       0.0906223259 0.1983712  0.456832105 0.6511953
+var179       0.0435110825 0.2579405  0.168686498 0.8672143
+var180      -0.1264325305 0.2161180 -0.585016152 0.5630615
+var181      -0.0968032660 0.2302398 -0.420445421 0.6772593
+var182       0.1430811907 0.2453891  0.583078722 0.5643475
+var183       0.0307419406 0.2604510  0.118033506 0.9068549
+var184      -0.0319429988 0.2463878 -0.129645214 0.8977422
+var185       0.0461719964 0.2008406  0.229893732 0.8197882
+var186      -0.2385322379 0.2385500 -0.999925395 0.3256175
+var187       0.0850810205 0.2238337  0.380108258 0.7066348
+var188       0.3949689631 0.2554732  1.546028733 0.1329419
+var189       0.1245166753 0.2747638  0.453177206 0.6537938
+var190       0.1720563316 0.1879732  0.915323611 0.3675705
+var191       0.2144640136 0.2413709  0.888524686 0.3815695
+var192       0.0501975420 0.2506340  0.200282260 0.8426578
+var193       0.1174708714 0.1746616  0.672562616 0.5065496
+var194      -0.1943912402 0.3087673 -0.629571991 0.5339036
+var195       0.0202300723 0.1915222  0.105627803 0.9166049
+var196       0.0210580247 0.2176811  0.096737972 0.9235999
+var197       0.0726236855 0.2177147  0.333572658 0.7411020
+var198       0.1064539412 0.2261034  0.470819639 0.6412918
+var199      -0.0767767634 0.2594113 -0.295965345 0.7693656
+var200      -0.0624521254 0.2431441 -0.256852333 0.7991064
+var201       0.0028300645 0.2063768  0.013713095 0.9891528
+var202      -0.1715330103 0.2434880 -0.704482359 0.4867518
+var203       0.2115665862 0.2486851  0.850740856 0.4018833
+var204       0.0338181429 0.2280774  0.148274859 0.8831521
+var205       0.0167958834 0.2489778  0.067459374 0.9466790
+var206      -0.0590878112 0.1959422 -0.301557386 0.7651414
+var207      -0.1653100651 0.2678547 -0.617163149 0.5419429
+var208      -0.0740487318 0.2976417 -0.248784829 0.8052807
+var209      -0.0043391023 0.2286282 -0.018978862 0.9849879
+var210       0.3393487726 0.2358674  1.438726974 0.1609341
+var211       0.2223498489 0.2661974  0.835281675 0.4103882
+var212       0.0213281741 0.2315918  0.092093805 0.9272568
+var213       0.2230110595 0.2581936  0.863735666 0.3948210
+var214      -0.1228075434 0.2065047 -0.594696099 0.5566586
+var215      -0.0104634410 0.2454306 -0.042632989 0.9662863
+var216       0.0326754989 0.1978876  0.165121515 0.8699940
+var217      -0.4439139348 0.3244134 -1.368358977 0.1817084
+var218      -0.1087432871 0.2499652 -0.435033655 0.6667585
+var219      -0.0107897918 0.2111081 -0.051110265 0.9595881
+var220      -0.0296175151 0.2005449 -0.147685200 0.8836133
+var221       0.1091241015 0.2479581  0.440090806 0.6631341
+var222       0.0909297736 0.2382558  0.381647734 0.7055049
+var223      -0.3485310127 0.2994113 -1.164054343 0.2538897
+var224       0.0832890933 0.2243884  0.371182680 0.7131995
+var225      -0.0042697108 0.3003295 -0.014216755 0.9887544
+var226       0.0593458113 0.2310813  0.256817880 0.7991327
+var227      -0.0182956931 0.1938017 -0.094404189 0.9254374
+var228       0.0572344159 0.2343684  0.244207074 0.8087900
+var229      -0.1231669279 0.2605563 -0.472707582 0.6399602
+var230       0.0492497234 0.2111087  0.233290802 0.8171745
+var231      -0.2862525037 0.1914503 -1.495179287 0.1456712
+var232       0.1834105207 0.1939787  0.945519089 0.3522060
+var233       0.2081280243 0.1632040  1.275263095 0.2123381
+var234       0.1641204059 0.2272942  0.722061495 0.4760391
+var235       0.2472694582 0.1902445  1.299745561 0.2039253
+var236       0.0683823801 0.2231440  0.306449594 0.7614518
+var237       0.1891842675 0.2214505  0.854295987 0.3999433
+var238      -0.0489319878 0.2340164 -0.209096383 0.8358349
+var239       0.1490499844 0.2429465  0.613509393 0.5443221
+var240      -0.0095798604 0.2533123 -0.037818383 0.9700916
+var241       0.0721964545 0.1969929  0.366492592 0.7166580
+var242      -0.0126839937 0.2087745 -0.060754522 0.9519715
+var243      -0.2221525719 0.1983111 -1.120222514 0.2718109
+var244      -0.0829084901 0.2055738 -0.403302790 0.6896837
+var245      -0.0318090335 0.2292748 -0.138737596 0.8906165
+var246      -0.0425994225 0.2283779 -0.186530377 0.8533276
+var247       0.0033944363 0.2129927  0.015936864 0.9873939
+var248       0.0984076551 0.2343675  0.419886173 0.6776632
+var249      -0.2148911884 0.2120962 -1.013177766 0.3193544
+var250      -0.1875432344 0.2503294 -0.749185930 0.4597794
+var251      -0.1735721485 0.2906428 -0.597200849 0.5550079
+var252       0.2886948591 0.2512542  1.149015262 0.2599386
+var253       0.1467087046 0.2485217  0.590325564 0.5595449
+var254      -0.0834815473 0.2384597 -0.350086644 0.7288036
+var255      -0.0635576566 0.2733631 -0.232502667 0.8177807
+var256      -0.0346030600 0.3391339 -0.102033634 0.9194322
+var257      -0.1224921370 0.1991311 -0.615133252 0.5432640
+var258      -0.2423169128 0.2163175 -1.120191176 0.2718240
+var259      -0.0021922047 0.2169919 -0.010102701 0.9920085
+var260      -0.0818789537 0.2213754 -0.369864799 0.7141707
+var261      -0.0707600938 0.2111357 -0.335140308 0.7399315
+var262      -0.3301726263 0.2521985 -1.309177801 0.2007530
+var263      -0.2602526557 0.2351244 -1.106872336 0.2774464
+var264      -0.1427837485 0.2547866 -0.560405290 0.5795071
+var265      -0.1315034492 0.2038109 -0.645222811 0.5238552
+var266       0.1292166855 0.1857550  0.695629819 0.4921980
+var267       0.0265412839 0.2291648  0.115817440 0.9085955
+var268       0.1111883441 0.2630197  0.422737718 0.6756049
+var269       0.1302021867 0.2400981  0.542287436 0.5917637
+var270      -0.0923837589 0.2552903 -0.361877334 0.7200673
+var271      -0.0680064479 0.2072222 -0.328181232 0.7451325
+var272      -0.1776069310 0.2287416 -0.776452095 0.4437692
+var273      -0.0374118346 0.2277425 -0.164272515 0.8706562
+var274       0.0877037245 0.2180473  0.402223481 0.6904689
+var275      -0.0016240717 0.2913139 -0.005574988 0.9955900
+var276       0.1670149940 0.2327284  0.717639018 0.4787213
+var277       0.1542172653 0.2293724  0.672344500 0.5066864
+var278      -0.0108006893 0.2634879 -0.040991220 0.9675838
+var279       0.1334885400 0.2086489  0.639775940 0.5273407
+var280       0.1637485211 0.2134740  0.767065523 0.4492427
+var281       0.0649039066 0.1972117  0.329107849 0.7444393
+var282      -0.0277897733 0.2630854 -0.105630223 0.9166030
+var283       0.1978208690 0.1913322  1.033913324 0.3097222
+var284       0.0984930229 0.2972660  0.331329592 0.7427780
+var285      -0.1113854013 0.2238975 -0.497483952 0.6225990
+var286       0.0770616839 0.2067096  0.372801690 0.7120070
+var287      -0.0634971052 0.2337652 -0.271627762 0.7878326
+var288       0.1652137421 0.2168261  0.761964380 0.4522341
+var289      -0.0984475187 0.2827889 -0.348130788 0.7302565
+var290       0.1166070472 0.1940659  0.600863259 0.5525988
+var291      -0.0682754836 0.2270118 -0.300757444 0.7657452
+var292       0.1016526112 0.2081493  0.488363972 0.6289646
+var293      -0.2976518291 0.2175924 -1.367932916 0.1818403
+var294      -0.1119627963 0.2411543 -0.464278710 0.6459147
+var295       0.2734232937 0.2291048  1.193442092 0.2423685
+var296      -0.1054927068 0.2409970 -0.437734561 0.6648217
+var297      -0.2151298321 0.3031934 -0.709546479 0.4836518
+var298       0.0208265210 0.2160796  0.096383564 0.9238789
+var299       0.0882009038 0.2477594  0.355994206 0.7244217
+var300       0.1604547308 0.2218983  0.723100206 0.4754104
+> expect.err(try(predict(linmod.bigdat, newdata=bigdat[,1:(p-3)])), "object 'var297' not found")
+Error in eval(predvars, data, env) : object 'var297' not found
+Got expected error from try(predict(linmod.bigdat, newdata = bigdat[, 1:(p - 3)]))
+> plot(linmod.bigdat)
+> # plotmo(linmod.bigdat) # works, but commented out because slow(ish)
+> # plotres(linmod.bigdat) # ditto
+> 
+> cat0("==check use of matrix as data in linmod.form\n")
+==check use of matrix as data in linmod.form
+> # linmod.form allows a matrix, lm doesn't TODO is this inconsistency what we want?
+> tr.mat <- as.matrix(tr)
+> cat0("class(tr.mat)=", class(tr.mat), "\n") # class(tr.mat)=matrix
+class(tr.mat)=matrixarray
+> expect.err(try(lm(Volume~., data=tr.mat)), "'data' must be a data.frame, not a matrix or an array")
+Error in model.frame.default(formula = Volume ~ ., data = tr.mat, drop.unused.levels = TRUE) : 
+  'data' must be a data.frame, not a matrix or an array
+Got expected error from try(lm(Volume ~ ., data = tr.mat))
+> linmod.form.Volume.mat.tr <- linmod(Volume~., data=tr.mat)
+> check.lm(linmod.form.Volume.mat.tr, linmod.form.Volume.tr)
+check linmod.form.Volume.mat.tr vs linmod.form.Volume.tr
+> cat0("==print(summary(linmod.form.Volume.mat.tr))\n")
+==print(summary(linmod.form.Volume.mat.tr))
+> print(summary(linmod.form.Volume.mat.tr))
+Call: linmod.formula(formula = Volume ~ ., data = tr.mat)
+
+               Estimate    StdErr   t.value      p.value
+(Intercept) -57.9876589 8.6382259 -6.712913 2.749507e-07
+Girth         4.7081605 0.2642646 17.816084 8.223304e-17
+Height        0.3392512 0.1301512  2.606594 1.449097e-02
+> plotres(linmod.form.Volume.mat.tr)
+> 
+> tr.mat.no.colnames <- as.matrix(tr)
+> colnames(tr.mat.no.colnames) <- NULL
+> expect.err(try(linmod(Volume~., data=tr.mat.no.colnames)), "object 'Volume' not found")
+Error in eval(predvars, data, env) : object 'Volume' not found
+Got expected error from try(linmod(Volume ~ ., data = tr.mat.no.colnames))
+> linmod.form.Volume.mat.tr.no.colnames <- linmod(V3~., data=tr.mat.no.colnames)
+> check.lm(linmod.form.Volume.mat.tr.no.colnames, linmod.form.Volume.tr,
++          check.coef.names=FALSE, check.newdata=FALSE) # no check.newdata else object 'V1' not found
+check linmod.form.Volume.mat.tr.no.colnames vs linmod.form.Volume.tr
+> 
+> # Check what happens when we change the original data used to build the model.
+> # Use plotres as an example function that must figure out residuals from predict().
+> 
+> pr <- function(model, main=deparse(substitute(model)))
++ {
++     plotres(model, which=3, main=main) # which=3 for just the residuals plot
++ }
+> cat0("==linmod.formula: change data used to build the model\n")
+==linmod.formula: change data used to build the model
+> 
+> trees1 <- trees
+> linmod.trees1 <- linmod(Volume~., data=trees1)
+> # delete the saved residuals and fitted.values so plotres has to use the saved
+> # call etc. to get the x and y used to build the model, and rely on predict()
+> linmod.trees1$residuals <- NULL
+> linmod.trees1$fitted.values <- NULL
+> par(mfrow=c(3,3))
+> pr(linmod.trees1)
+> trees1 <- trees[, 3:1]                      # change column order in original data
+> pr(linmod.trees1, "change col order")
+> trees1 <- trees[1:3, ]                      # change number of rows in original data
+> pr(linmod.trees1, "change nbr rows")        # TODO wrong residuals! (lm has the same issue)
+> cat("call$data now refers to the changed data:\n") # lm has the same problem if called with model=FALSE
+call$data now refers to the changed data:
+> print(eval(linmod.trees1$call$data))
+  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+> cat("model.frame now returns the changed data:\n")
+model.frame now returns the changed data:
+> print(model.frame(linmod.trees1))
+  Volume Girth Height
+1   10.3   8.3     70
+2   10.3   8.6     65
+3   10.2   8.8     63
+> trees1 <- trees[nrow(tr):1, ]               # change row order (but keep same nbr of rows)
+> pr(linmod.trees1, "change row order")
+> colnames(trees1) <- c("x1", "x2", "x3")     # change column names in original data
+> expect.err(try(pr(linmod.trees1,
++               "change colnames")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Volume' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.trees1, "change colnames"))
+> trees1 <- "garbage"
+> expect.err(try(pr(linmod.trees1,
++               "trees1=\"garbage\"")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Volume' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.trees1, "trees1=\"garbage\""))
+> trees1 <- 1:1000
+> expect.err(try(pr(linmod.trees1,
++               "trees1=1:1000")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Volume' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.trees1, "trees1=1:1000"))
+> trees1 <- NULL                              # original data no longer available
+> expect.err(try(pr(linmod.trees1,
++               "trees1=NULL")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Volume' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.trees1, "trees1=NULL"))
+> remove(trees1)
+> expect.err(try(pr(linmod.trees1,
++               "remove(trees1)")), "cannot get the original model predictors")
+Error in eval(expr, envir, enclos) : object 'trees1' not found
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Volume' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.trees1, "remove(trees1)"))
+> 
+> # similar to above, but don't delete the saved residuals and fitted.values
+> trees1 <- trees
+> linmod2.trees1 <- linmod(Volume~., data=trees1)
+> trees1 <- trees[1:3, ]                      # change number of rows in original data
+> expect.err(try(plotmo(linmod2.trees1)), "plotmo_y returned the wrong length (got 3 but expected 31)")
+Error : plotmo_y returned the wrong length (got 3 but expected 31)
+Got expected error from try(plotmo(linmod2.trees1))
+> 
+> par(org.par)
+> 
+> cat0("==linmod.formula(keep=TRUE): change data used to build the model\n")
+==linmod.formula(keep=TRUE): change data used to build the model
+> par(mfrow=c(3,3))
+> trees1 <- trees
+> linmod.trees1.keep <- linmod(Volume~., data=trees1, keep=TRUE)
+> # delete the saved residuals and fitted.values so plotres has to use the saved
+> # call etc. to get the x and y used to build the model, and rely on predict()
+> linmod.trees1.keep$residuals <- NULL
+> linmod.trees1.keep$fitted.values <- NULL
+> pr(linmod.trees1.keep)
+> trees1 <- trees[, 3:1]                      # change column order in original data
+> pr(linmod.trees1.keep, "change col order")
+> trees1 <- trees[1:3, ]                      # change number of rows in original data
+> pr(linmod.trees1.keep, "change nbr rows")
+> trees1 <- trees[nrow(tr):1, ]               # change row order (but keep same nbr of rows)
+> pr(linmod.trees1.keep, "change row order")
+> colnames(trees1) <- c("x1", "x2", "x3")     # change column names in original data
+> pr(linmod.trees1.keep, "change colnames")
+> trees1 <- NULL                              # original data no longer available
+> pr(linmod.trees1.keep, "trees1=NULL")
+> remove(trees1)
+> pr(linmod.trees1.keep, "remove(trees1)")
+> par(org.par)
+> 
+> cat0("==linmod.default: change data used to build the model\n")
+==linmod.default: change data used to build the model
+> trees1 <- trees
+> x1 <- trees1[,1:2]
+> y1 <- trees1[,3]
+> linmod.xy <- linmod(x1, y1)
+> # delete the saved residuals and fitted.values so plotres has to use the saved
+> # call etc. to get the x1 and y1 used to build the model, and rely on predict()
+> linmod.xy$residuals <- NULL
+> linmod.xy$fitted.values <- NULL
+> par(mfrow=c(3,3))
+> pr(linmod.xy)
+> x1 <- trees1[,2:1]                 # change column order in original x1
+> pr(linmod.xy, "change col order")
+> x1 <- trees1[1:3, 1:2]                      # change number of rows in original x1
+> expect.err(try(pr(linmod.xy, "change nbr rows")),
++               "plotmo_y returned the wrong length (got 31 but expected 3)") # TODO different behaviour to linmod.trees1
+Error : plotmo_y returned the wrong length (got 31 but expected 3)
+Got expected error from try(pr(linmod.xy, "change nbr rows"))
+> cat("call$x1 now refers to the changed x1:\n") # lm has the same problem if called with model=FALSE
+call$x1 now refers to the changed x1:
+> print(eval(linmod.xy$call$x1))
+NULL
+> x1 <- trees1[nrow(tr):1, 1:2]               # change row order (but keep same nbr of rows)
+> pr(linmod.xy, "change row order")
+> x1 <- trees1[,1:2]
+> colnames(x1) <- c("x1", "x2")     # change column names in original x1
+> pr(linmod.xy, "change colnames")
+> x1 <- "garbage"
+> expect.err(try(pr(linmod.xy, "x1=\"garbage\"")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: no formula in getCall(object)
+
+(3) getCall(object)$x: garbage
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.xy, "x1=\"garbage\""))
+> x1 <- 1:1000
+> expect.err(try(pr(linmod.xy, "x1=1:1000")), "ncol(newdata) is 1 but should be 2")
+
+stats::predict(linmod.object, data.frame[3,1], type="response")
+
+Error in predict.linmod(structure(list(coefficients = c(`(Intercept)` = -57.987658918381,  : 
+  ncol(newdata) is 1 but should be 2
+Got expected error from try(pr(linmod.xy, "x1=1:1000"))
+> x1 <- NULL                              # original x1 no longer available
+> expect.err(try(pr(linmod.xy, "x1=NULL")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: no formula in getCall(object)
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.xy, "x1=NULL"))
+> remove(x1)
+> expect.err(try(pr(linmod.xy, "remove(x1)")), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: no formula in getCall(object)
+
+(3) getCall(object)$x: object 'x1' not found
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.xy, "remove(x1)"))
+> 
+> # similar to above, but don't delete the saved residuals and fitted.values
+> trees1 <- trees
+> x1 <- trees1[,1:2]
+> y1 <- trees1[,3]
+> linmod.xy <- linmod(x1, y1)
+> x1 <- trees1[1:3, 1:2]                      # change number of rows in original x1
+> expect.err(try(plotmo(linmod2.x1)), "object 'linmod2.x1' not found") # TODO error message misleading?
+Error : object 'linmod2.x1' not found
+Got expected error from try(plotmo(linmod2.x1))
+> 
+> par(org.par)
+> 
+> cat0("==linmod.default(keep=TRUE): change data used to build the model\n")
+==linmod.default(keep=TRUE): change data used to build the model
+> par(mfrow=c(3,3))
+> trees1 <- trees
+> x1 <- trees1[,1:2]
+> linmod.xy <- linmod(x1, y1, keep=TRUE)
+> # delete the saved residuals and fitted.values so plotres has to use the saved
+> # call etc. to get the x1 and y1 used to build the model, and rely on predict()
+> linmod.xy$residuals <- NULL
+> linmod.xy$fitted.values <- NULL
+> pr(linmod.xy.keep)
+> x1 <- trees1[, 2:1]                 # change column order in original x1
+> pr(linmod.xy.keep, "change col order")
+> x1 <- trees1[1:3, 1:2]                      # change number of rows in original x1
+> pr(linmod.xy.keep, "change nbr rows")
+> x1 <- trees1[nrow(tr):1, 1:2]               # change row order (but keep same nbr of rows)
+> pr(linmod.xy.keep, "change row order")
+> x1 <- trees1[,1:2]
+> colnames(x1) <- c("x1", "x2")     # change column names in original x1
+> pr(linmod.xy.keep, "change colnames")
+> x1 <- NULL                              # original x1 no longer available
+> pr(linmod.xy.keep, "x1=NULL")
+> remove(x1)
+> pr(linmod.xy.keep, "remove(x1)")
+> par(org.par)
+> 
+> cat("==test processing a model created in a function with local data\n")
+==test processing a model created in a function with local data
+> 
+> # pr <- function(model, main=deparse(substitute(model)))
+> # {
+> #     plotmo(model, degree1=1, degree2=0, pt.col=2, do.par=FALSE, main=main)
+> # }
+> pr <- function(model, main=deparse(substitute(model)))
++ {
++     plotres(model, which=3, main=main) # which=3 for just the residuals plot
++ }
+> lm.form.func <- function(keep=FALSE)
++ {
++     local.tr <- trees[1:20,]
++     lm(Volume~., data=local.tr, model=keep)
++ }
+> linmod.form.func <- function(keep=FALSE)
++ {
++     local.tr <- trees[1:20,]
++     model <- linmod(Volume~., data=local.tr, keep=keep)
++     # delete the saved residuals and fitted.values so plotres has to use the saved
++     # call etc. to get the x and y used to build the model, and rely on predict()
++     model$residuals <- NULL
++     model$fitted.values <- NULL
++     model
++ }
+> linmod.xy.func <- function(keep)
++ {
++     xx <- trees[1:20,1:2]
++     yy <- trees[1:20,3]
++     model <- linmod(xx, yy, keep=keep)
++     # delete the saved residuals and fitted.values so plotres has to use the saved
++     # call etc. to get the x and y used to build the model, and rely on predict()
++     model$residuals <- NULL
++     model$fitted.values <- NULL
++     model
++ }
+> par(mfrow=c(3,2))
+> 
+> lm.form <- lm.form.func(keep=FALSE)
+> pr(lm.form)
+> 
+> lm.form.keep <- lm.form.func(keep=TRUE)
+> pr(lm.form.keep)
+> 
+> linmod.form <- linmod.form.func(keep=FALSE)
+> pr(linmod.form)
+> 
+> linmod.form.keep <- linmod.form.func(keep=TRUE)
+> pr(linmod.form.keep)
+> 
+> linmod.xy <- linmod.xy.func(keep=FALSE)
+> expect.err(try(pr(linmod.xy)), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: no formula in getCall(object)
+
+(3) getCall(object)$x: object 'xx' not found
+
+Error : cannot get the original model predictors
+Got expected error from try(pr(linmod.xy))
+> 
+> linmod.xy.keep <- linmod.xy.func(keep=TRUE)
+> pr(linmod.xy.keep)
+> 
+> par(org.par)
+> 
+> # test xlevels (predict with newdata using a string to represent a factor)
+> data(iris)
+> linmod.Sepal.Length <- linmod(Sepal.Length~Species,data=iris)
+> lm.Sepal.Length     <- lm(Sepal.Length~Species,data=iris)
+> predict.linmod <- predict(linmod.Sepal.Length, newdata=data.frame(Species="setosa"))
+> predict.lm     <- predict(lm.Sepal.Length,     newdata=data.frame(Species="setosa"))
+> stopifnot(all.equal(predict.linmod, predict.lm))
+> 
+> source("test.epilog.R")

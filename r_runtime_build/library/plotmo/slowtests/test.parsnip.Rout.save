@@ -1,0 +1,889 @@
+> # test.parsnip.R: test the parsnip package with earth and other models
+> # Stephen Milborrow Sep 2020 Petaluma
+> 
+> source("test.prolog.R")
+> options(warn=1) # print warnings as they occur
+> library(earth)
+Loading required package: Formula
+Loading required package: plotmo
+Loading required package: plotrix
+> cat("loading parsnip libraries\n") # these libraries take several seconds to load
+loading parsnip libraries
+> library(tidymodels, quietly=TRUE, verbose=FALSE)
+── Attaching packages ────────────────────────────────────── tidymodels 1.4.1 ──
+✔ broom        1.0.11     ✔ recipes      1.3.1 
+✔ dials        1.4.2      ✔ rsample      1.3.1 
+✔ dplyr        1.1.4      ✔ tailor       0.1.0 
+✔ ggplot2      4.0.1      ✔ tidyr        1.3.2 
+✔ infer        1.1.0      ✔ tune         2.0.1 
+✔ modeldata    1.5.1      ✔ workflows    1.3.0 
+✔ parsnip      1.4.0      ✔ workflowsets 1.1.1 
+✔ purrr        1.2.0      ✔ yardstick    1.3.2 
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ purrr::discard() masks scales::discard()
+✖ dplyr::filter()  masks stats::filter()
+✖ dplyr::lag()     masks stats::lag()
+✖ recipes::step()  masks stats::step()
+> library(timetk)
+> library(lubridate)
+
+Attaching package: 'lubridate'
+
+The following objects are masked from 'package:base':
+
+    date, intersect, setdiff, union
+
+> cat("loaded parsnip libraries\n")
+loaded parsnip libraries
+> cat("parsnip version:", as.character(packageVersion("parsnip")[[1]]), "\n")
+parsnip version: 1.4.0 
+> 
+> vdata <- data.frame(
++     resp    = 1:23,
++     bool = c(F, F, F, F, F, T, T, T, T, T, T, T, T, F, F, T, T, T, T, T, T, T, T),
++     ord  = ordered(c("ORD1", "ORD1", "ORD1",
++                      "ORD1", "ORD1", "ORD1",
++                      "ORD1", "ORD3", "ORD1",
++                      "ORD2", "ORD2", "ORD2", "ORD2",
++                      "ORD2", "ORD2", "ORD2",
++                      "ORD3", "ORD3", "ORD3",
++                      "ORD2", "ORD2", "ORD2", "ORD2"),
++                    levels=c("ORD1", "ORD3", "ORD2")),
++     fac  = as.factor(c("FAC1", "FAC1", "FAC1",
++                        "FAC2", "FAC2", "FAC2",
++                        "FAC3", "FAC1", "FAC1",
++                        "FAC1", "FAC2", "FAC2", "FAC2",
++                        "FAC2", "FAC2", "FAC2",
++                        "FAC3", "FAC3", "FAC3",
++                        "FAC1", "FAC3", "FAC3", "FAC3")),
++     str  = c("STR1", "STR1", "STR1", # WILL BE TREATED LIKE A FACTOR
++              "STR1", "STR1", "STR1",
++              "STR2", "STR2", "STR2",
++              "STR3", "STR3", "STR2", "STR3",
++              "STR2", "STR3", "STR2",
++              "STR3", "STR3", "STR3",
++              "STR3", "STR3", "STR3", "STR3"),
++     num  = c(1, 9, 2, 3, 14, 5, 6, 4, 5, 6.5, 3, 6, 5,
++              3, 4, 5, 6, 4, 5, 16.5, 3, 16, 15),
++     sqrt_num  = sqrt(
++            c(1, 9, 2, 3, 14, 5, 6, 4, 5, 6.5, 3, 6, 5,
++              3, 4, 5, 6, 4, 5, 16.5, 3, 16, 15)),
++     int  = c(1L, 1L, 3L, 3L, 4L, 4L, 3L, 5L, 3L, 6L, 7L, 8L, 10L,
++              13L, 14L, 3L, 13L, 5L, 13L, 16L, 17L, 18L, 11L),
++     date = as.Date(
++            c("2018-08-01", "2018-08-02", "2018-08-03",
++              "2018-08-04", "2018-08-05", "2018-08-06",
++              "2018-08-07", "2018-08-08", "2018-08-08",
++              "2018-08-10", "2018-08-10", "2018-08-11", "2018-08-11",
++              "2018-08-11", "2018-08-12", "2018-08-13",
++              "2018-08-10", "2018-08-15", "2018-08-17",
++              "2018-08-04", "2018-08-19", "2018-08-03", "2018-08-18")),
++     date_num = as.numeric(as.Date(
++            c("2018-08-01", "2018-08-02", "2018-08-03",
++              "2018-08-04", "2018-08-05", "2018-08-06",
++              "2018-08-07", "2018-08-08", "2018-08-08",
++              "2018-08-10", "2018-08-10", "2018-08-11", "2018-08-11",
++              "2018-08-11", "2018-08-12", "2018-08-13",
++              "2018-08-10", "2018-08-15", "2018-08-17",
++              "2018-08-04", "2018-08-19", "2018-08-03", "2018-08-18"))))
+> 
+> set.seed(2020)
+> splits <- initial_time_split(vdata, prop=.9)
+> 
+> #--- lm ----------------------------------------------------------------------
+> 
+> lm1 <- lm(resp~num+fac:int+date+ord+str, data=training(splits))
+> cat("lm1:\n")
+lm1:
+> print(summary(lm1))
+
+Call:
+lm(formula = resp ~ num + fac:int + date + ord + str, data = training(splits))
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-3.9119 -0.6559 -0.0438  0.7549  3.1946 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)  
+(Intercept) -1.396e+04  5.559e+03  -2.511   0.0309 *
+num          1.818e-01  1.883e-01   0.966   0.3571  
+date         7.867e-01  3.132e-01   2.512   0.0308 *
+ord.L        1.254e+00  2.009e+00   0.624   0.5465  
+ord.Q        3.783e-01  1.910e+00   0.198   0.8470  
+strSTR2      5.801e-01  2.381e+00   0.244   0.8124  
+strSTR3      3.341e-01  3.136e+00   0.107   0.9173  
+facFAC1:int  6.908e-01  3.066e-01   2.253   0.0479 *
+facFAC2:int  2.891e-01  2.116e-01   1.366   0.2018  
+facFAC3:int  5.818e-01  2.621e-01   2.220   0.0507 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.341 on 10 degrees of freedom
+Multiple R-squared:  0.9176,	Adjusted R-squared:  0.8435 
+F-statistic: 12.38 on 9 and 10 DF,  p-value: 0.0002531
+
+> set.seed(2020)
+> lmpar <- linear_reg(mode = "regression") %>%
++          set_engine("lm") %>%
++          fit(resp~num+fac:int+date+ord+str, data = training(splits))
+> stopifnot(identical(lm1$coeff, lmpar$fit$coeff))
+> 
+> predict.lm1   <- predict(lm1, testing(splits))
+> predict.lmpar <- lmpar %>% predict(testing(splits))
+> stopifnot(all(predict.lm1 == predict.lmpar))
+> 
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> plotmo(lm1,        do.par=2, SHOWCALL=TRUE)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(lm1,       which=c(3,1), do.par=FALSE)
+> plotmo(lmpar,      do.par=2, SHOWCALL=TRUE)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(lmpar,     which=c(3,1), do.par=FALSE)
+> plotmo(lmpar$fit,  do.par=2, SHOWCALL=TRUE)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(lmpar$fit, which=c(3,1), do.par=FALSE)
+> par(org.par)
+> 
+> lmpar.sqrtnum <- linear_reg(mode = "regression") %>%
++          set_engine("lm") %>%
++          fit(resp~sqrt(num), data = training(splits))
+> #$$ TODO
+> # expect.err(try(plotmo(lmpar.sqrtnum)),
+> #            "cannot get the original model predictors")
+> 
+> #--- earth -------------------------------------------------------------------
+> 
+> # note that sqrt(num) is ok, unlike parsnip models for lm and rpart
+> earth1 <- earth(resp~sqrt(num)+int+ord:bool+fac+str+date, degree=2,
++                 data=training(splits), pmethod="none")
+> cat("earth1:\n")
+earth1:
+> print(summary(earth1))
+Call: earth(formula=resp~sqrt(num)+int+ord:bool+fac+str+date,
+            data=training(splits), pmethod="none", degree=2)
+
+                   coefficients
+(Intercept)             7.86702
+ordORD2:boolTRUE       -0.81733
+h(5-int)                0.46965
+h(int-5)             2587.95933
+h(17751-date)          -1.23206
+h(date-17751)           1.48020
+h(int-5) * facFAC2     -0.35097
+h(int-5) * date        -0.14573
+
+Selected 8 of 8 terms, and 4 of 13 predictors (pmethod="none")
+Termination condition: GRSq -Inf at 8 terms
+Importance: int, date, facFAC2, ordORD2:boolTRUE, sqrt(num)-unused, ...
+Number of terms at each degree of interaction: 1 5 2
+GCV 19.29495    RSS 2.170681    GRSq 0.47628    RSq 0.9967358
+> set.seed(2020)
+> earthpar <- mars(mode = "regression", prune_method="none", prod_degree=2) %>%
++             set_engine("earth") %>%
++             fit(resp~sqrt(num)+int+ord:bool+fac+str+date, data = training(splits))
+> cat("earthpar:\n")
+earthpar:
+> print(earthpar)
+parsnip model object
+
+Selected 8 of 8 terms, and 4 of 13 predictors (pmethod="none")
+Termination condition: GRSq -Inf at 8 terms
+Importance: int, date, facFAC2, ordORD2:boolTRUE, sqrt(num)-unused, ...
+Number of terms at each degree of interaction: 1 5 2
+GCV 19.29495    RSS 2.170681    GRSq 0.47628    RSq 0.9967358
+> cat("summary(earthpar$fit)\n")
+summary(earthpar$fit)
+> print(summary(earthpar$fit))
+Call: earth(formula=resp~sqrt(num)+int+ord:bool+fac+str+date, data=data,
+            pmethod=~"none", keepxy=TRUE, degree=~2)
+
+                   coefficients
+(Intercept)             7.86702
+ordORD2:boolTRUE       -0.81733
+h(5-int)                0.46965
+h(int-5)             2587.95933
+h(17751-date)          -1.23206
+h(date-17751)           1.48020
+h(int-5) * facFAC2     -0.35097
+h(int-5) * date        -0.14573
+
+Selected 8 of 8 terms, and 4 of 13 predictors (pmethod="none")
+Termination condition: GRSq -Inf at 8 terms
+Importance: int, date, facFAC2, ordORD2:boolTRUE, sqrt(num)-unused, ...
+Number of terms at each degree of interaction: 1 5 2
+GCV 19.29495    RSS 2.170681    GRSq 0.47628    RSq 0.9967358
+> stopifnot(identical(earth1$coeff, earthpar$fit$coeff))
+> 
+> predict.earth1 <- predict(earth1, testing(splits))
+> predict.earthpar <- earthpar %>% predict(testing(splits))
+> stopifnot(all(predict.earth1 == predict.earthpar))
+> 
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> plotmo(earth1, do.par=2, pt.col=3, SHOWCALL=TRUE)
+ plotmo grid:    num int  ord bool  fac  str       date
+                   5   5 ORD1 TRUE FAC2 STR3 2018-08-09
+> set.seed(2020)
+> plotres(earth1, which=c(1,3), do.par=FALSE, pt.col=3, legend.pos="topleft")
+> par(org.par)
+> 
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> plotmo(earthpar, do.par=2, pt.col=3, SHOWCALL=TRUE)
+ plotmo grid:    num int  ord bool  fac  str       date
+                   5   5 ORD1 TRUE FAC2 STR3 2018-08-09
+> set.seed(2020)
+> plotres(earthpar, which=c(1,3), do.par=FALSE, pt.col=3, legend.pos="topleft")
+> par(org.par)
+> 
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> plotmo(earthpar$fit, do.par=2, pt.col=3, SHOWCALL=TRUE)
+ plotmo grid:    num int  ord bool  fac  str       date
+                   5   5 ORD1 TRUE FAC2 STR3 2018-08-09
+> set.seed(2020)
+> plotres(earthpar$fit, which=c(1,3), do.par=FALSE, pt.col=3, legend.pos="topleft")
+> par(org.par)
+> 
+> #--- rpart -------------------------------------------------------------------
+> 
+> library(rpart)
+
+Attaching package: 'rpart'
+
+The following object is masked from 'package:dials':
+
+    prune
+
+> library(rpart.plot)
+> rpart1 <- rpart(resp~num+fac+int+date+ord+str, data=training(splits),
++                 control=rpart.control(minsplit=1, cp=.0001))
+> cat("\nrpart.rules(rpart1)\n")
+
+rpart.rules(rpart1)
+> print(rpart.rules(rpart1))
+ resp                                                                                               
+    1 when ord is         ORD1 & date <  17748 & num <  5.0         & int <  2                      
+    2 when ord is         ORD1 & date <  17748 & num >=         5.0 & int <  2                      
+    3 when ord is         ORD1 & date <  17748 & num <  2.5         & int >= 2                      
+    4 when ord is         ORD1 & date <  17748 & num >=         2.5 & int >= 2                      
+    5 when ord is         ORD1 & date >= 17748 & num >=        10.0            & fac is FAC2 or FAC3
+    6 when ord is         ORD1 & date >= 17748 & num <  5.5                    & fac is FAC2 or FAC3
+    7 when ord is         ORD1 & date >= 17748 & num is 5.5 to 10.0            & fac is FAC2 or FAC3
+    9 when ord is         ORD1 & date >= 17748                                 & fac is         FAC1
+   14 when ord is ORD3 or ORD2                                                                      
+> 
+> set.seed(2020)
+> # TODO note need of model=TRUE below (needed only for further processing with e.g. plotmo)
+> rpartpar <- decision_tree(mode = "regression", min_n=1, cost_complexity=.0001) %>%
++              set_engine("rpart", model=TRUE) %>%
++              fit(resp~num+fac+int+date+ord+str, data = training(splits))
+> cat("\nrpart.rules(rpartpar$fit)\n")
+
+rpart.rules(rpartpar$fit)
+> print(rpart.rules(rpartpar$fit))
+ resp                                                                                               
+    1 when ord is         ORD1 & date <  17748 & num <  5.0         & int <  2                      
+    2 when ord is         ORD1 & date <  17748 & num >=         5.0 & int <  2                      
+    3 when ord is         ORD1 & date <  17748 & num <  2.5         & int >= 2                      
+    4 when ord is         ORD1 & date <  17748 & num >=         2.5 & int >= 2                      
+    5 when ord is         ORD1 & date >= 17748 & num >=        10.0            & fac is FAC2 or FAC3
+    6 when ord is         ORD1 & date >= 17748 & num <  5.5                    & fac is FAC2 or FAC3
+    7 when ord is         ORD1 & date >= 17748 & num is 5.5 to 10.0            & fac is FAC2 or FAC3
+    9 when ord is         ORD1 & date >= 17748                                 & fac is         FAC1
+   14 when ord is ORD3 or ORD2                                                                      
+> 
+> predict.rpart1   <- predict(rpart1, testing(splits))
+> predict.rpartpar <- rpartpar %>% predict(testing(splits))
+> stopifnot(all(predict.rpart1 == predict.rpartpar))
+> 
+> par(mfrow = c(3, 3), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> plotmo(rpart1,        do.par=2, SHOWCALL=TRUE, trace=0)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(rpart1,       which=c(3,1), do.par=FALSE)
+> plotmo(rpartpar,      do.par=2, SHOWCALL=TRUE, trace=0)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(rpartpar,     which=c(3,1), do.par=FALSE)
+> plotmo(rpartpar$fit,  do.par=2, SHOWCALL=TRUE)
+ plotmo grid:    num  fac int       date  ord  str
+                   5 FAC2   5 2018-08-09 ORD1 STR3
+> plotres(rpartpar$fit, which=c(3,1), do.par=FALSE)
+> par(org.par)
+> 
+> # TODO note that this differs from the above rpart model in that we don't use model=TRUE
+> rpartpar.nosavemodel <- decision_tree(mode = "regression", min_n=1, cost_complexity=.0001) %>%
++              set_engine("rpart") %>%
++              fit(resp~num+fac+int+date+str, data = training(splits))
+> 
+> cat("\nrpart.rules(rpartpar.nosavemodel$fit)\n")
+
+rpart.rules(rpartpar.nosavemodel$fit)
+> options(warn=2)
+> expect.err(try(rpart.rules(rpartpar.nosavemodel$fit)),
++            "Cannot retrieve the data used to build the model")
+Error : (converted from warning) Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.rules with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.
+Got expected error from try(rpart.rules(rpartpar.nosavemodel$fit))
+> options(warn=1)
+> expect.err(try(plotmo(rpartpar.nosavemodel)),
++            "Cannot plot parsnip rpart model: need model=TRUE in call to rpart")
+Error : Cannot plot parsnip rpart model: need model=TRUE in call to rpart
+       Do it like this: set_engine("rpart", model=TRUE)
+Got expected error from try(plotmo(rpartpar.nosavemodel))
+> 
+> rpart.sqrtnum <- decision_tree(mode = "regression", min_n=1, cost_complexity=.0001) %>%
++              set_engine("rpart", model=TRUE) %>%
++              fit(resp~sqrt(num)+fac+int+date+ord+str, data = training(splits))
+> cat("\nrpart.rules(rpart.sqrtnum$fit)\n")
+
+rpart.rules(rpart.sqrtnum$fit)
+> print(rpart.rules(rpart.sqrtnum$fit)) # ok
+ resp                                                                                                    
+    1 when ord is         ORD1 & date <  17748 & sqrt(num) <  2.0        & int <  2                      
+    2 when ord is         ORD1 & date <  17748 & sqrt(num) >=        2.0 & int <  2                      
+    3 when ord is         ORD1 & date <  17748 & sqrt(num) <  1.6        & int >= 2                      
+    4 when ord is         ORD1 & date <  17748 & sqrt(num) >=        1.6 & int >= 2                      
+    5 when ord is         ORD1 & date >= 17748 & sqrt(num) >=        3.1            & fac is FAC2 or FAC3
+    6 when ord is         ORD1 & date >= 17748 & sqrt(num) <  2.3                   & fac is FAC2 or FAC3
+    7 when ord is         ORD1 & date >= 17748 & sqrt(num) is 2.3 to 3.1            & fac is FAC2 or FAC3
+    9 when ord is         ORD1 & date >= 17748                                      & fac is         FAC1
+   14 when ord is ORD3 or ORD2                                                                           
+> #$$ TODO
+> # expect.err(try(plotmo(rpart.sqrtnum)),
+> #            "cannot get the original model predictors")
+> 
+> #-----------------------------------------------------------------------------------
+> # Test fix for github bug report https://github.com/tidymodels/parsnip/issues/341
+> # (fixed Sep 2020)
+> 
+> cat("===m750a first example===\n")
+===m750a first example===
+> set.seed(2020)
+> m750a <- m4_monthly %>%
++     filter(id == "M750") %>%
++     select(-id)
+> print(m750a) # a tibble
+# A tibble: 306 × 2
+   date       value
+   <date>     <dbl>
+ 1 1990-01-01  6370
+ 2 1990-02-01  6430
+ 3 1990-03-01  6520
+ 4 1990-04-01  6580
+ 5 1990-05-01  6620
+ 6 1990-06-01  6690
+ 7 1990-07-01  6000
+ 8 1990-08-01  5450
+ 9 1990-09-01  6480
+10 1990-10-01  6820
+# ℹ 296 more rows
+> set.seed(2020)
+> splits_a <- initial_time_split(m750a, prop = 0.9)
+> earth_m750a <- earth(log(value) ~ as.numeric(date) + month(date, label = TRUE), data = training(splits_a), degree=2)
+> print(summary(earth_m750a))
+Call: earth(formula=log(value)~as.numeric(date)+month(date,label=TRUE),
+            data=training(splits_a), degree=2)
+
+                                                                                     coefficients
+(Intercept)                                                                          1.000000e+01
+h(as.numeric(date)-7639)                                                             0.000000e+00
+h(as.numeric(date)-9100)                                                             0.000000e+00
+h(12022-as.numeric(date))                                                            0.000000e+00
+h(as.numeric(date)-13483)                                                            0.000000e+00
+h(as.numeric(date)-14579)                                                            0.000000e+00
+h(0.370142-month(date, label = TRUE)^7)                                              0.000000e+00
+h(month(date, label = TRUE)^7-0.370142)                                              0.000000e+00
+h(month(date, label = TRUE)^10-0.491049)                                            -3.077492e+12
+h(as.numeric(date)-9100) * h(-0.254544-month(date, label = TRUE)^8)                  0.000000e+00
+h(as.numeric(date)-13483) * h(month(date, label = TRUE)^11- -0.392904)               0.000000e+00
+h(as.numeric(date)-13483) * h(-0.392904-month(date, label = TRUE)^11)                0.000000e+00
+h(0.491049-month(date, label = TRUE)^10) * h(month(date, label = TRUE)^11-0.065484)  0.000000e+00
+h(0.491049-month(date, label = TRUE)^10) * h(0.065484-month(date, label = TRUE)^11)  0.000000e+00
+
+Selected 14 of 17 terms, and 5 of 12 predictors
+Termination condition: RSq changed by less than 0.001 at 17 terms
+Importance: as.numeric(date), month(date, label = TRUE)^10, ...
+Number of terms at each degree of interaction: 1 8 5
+GCV 0.0004725457    RSS 0.1002179    GRSq 0.9834104    RSq 0.9871125
+> set.seed(2020)
+> model_m750a <- mars(mode = "regression", prod_degree=2) %>%
++     set_engine("earth") %>%
++     fit(log(value) ~ as.numeric(date) + month(date, label = TRUE), data = training(splits_a))
+> print(summary(model_m750a$fit))
+Call: earth(formula=log(value)~as.numeric(date)+month(date,label=TRUE),
+            data=data, keepxy=TRUE, degree=~2)
+
+                                                                                     coefficients
+(Intercept)                                                                          1.000000e+01
+h(as.numeric(date)-7639)                                                             0.000000e+00
+h(as.numeric(date)-9100)                                                             0.000000e+00
+h(12022-as.numeric(date))                                                            0.000000e+00
+h(as.numeric(date)-13483)                                                            0.000000e+00
+h(as.numeric(date)-14579)                                                            0.000000e+00
+h(0.370142-month(date, label = TRUE)^7)                                              0.000000e+00
+h(month(date, label = TRUE)^7-0.370142)                                              0.000000e+00
+h(month(date, label = TRUE)^10-0.491049)                                            -3.077492e+12
+h(as.numeric(date)-9100) * h(-0.254544-month(date, label = TRUE)^8)                  0.000000e+00
+h(as.numeric(date)-13483) * h(month(date, label = TRUE)^11- -0.392904)               0.000000e+00
+h(as.numeric(date)-13483) * h(-0.392904-month(date, label = TRUE)^11)                0.000000e+00
+h(0.491049-month(date, label = TRUE)^10) * h(month(date, label = TRUE)^11-0.065484)  0.000000e+00
+h(0.491049-month(date, label = TRUE)^10) * h(0.065484-month(date, label = TRUE)^11)  0.000000e+00
+
+Selected 14 of 17 terms, and 5 of 12 predictors
+Termination condition: RSq changed by less than 0.001 at 17 terms
+Importance: as.numeric(date), month(date, label = TRUE)^10, ...
+Number of terms at each degree of interaction: 1 8 5
+GCV 0.0004725457    RSS 0.1002179    GRSq 0.9834104    RSq 0.9871125
+> stopifnot(identical(earth_m750a$coeff, model_m750a$fit$coeff))
+> predict_earth_m750a <- predict(earth_m750a, newdata=testing(splits_a)[1:3,])
+> predict_m750a <- model_m750a %>% predict(testing(splits_a)[1:3,])
+> stopifnot(max(c(9.238049628, 9.240535151, 9.232361834) - predict_m750a) < 1e-8)
+> stopifnot(max(predict_earth_m750a - predict_m750a) < 1e-20)
+> 
+> par(mfrow = c(2, 2), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> set.seed(2020)
+> plotmo(model_m750a, trace=2, do.par=FALSE, pt.col="green", main="model_m750a", SHOWCALL=TRUE)
+plotmo trace 2: plotmo(object=model_m750a, pt.col="green", do.par=FALSE,
+                       trace=2, main="model_m750a", SHOWCALL=TRUE)
+--get.model.env for object with class _earth
+plotmo parsnip model: will plot model_m750a$fit, not 'model_m750a' itself
+object call is earth(formula=log(value)~as.numeric(date)+month(date,
+                     label=TRUE), data=data, keepxy=TRUE, degree=~2)
+using the environment saved in $terms of the earth model: env(data, weights)
+--plotmo_prolog for _earth object 'model_m750a'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(formula=log(value)~as.numeric(date)+month(date, label=TRUE), data=data,...
+
+get.x.from.model.frame:
+formula(object) is log(value) ~ as.numeric(date) + month(date, label = TRUE)
+naked formula is log(value) ~ date
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is usable and has column names date value
+na.action(object) is "na.fail"
+stats::model.frame(log(value) ~ date, data=object$data, na.action="na.fail")
+x=model.frame[,-1] is usable and has column name date
+plotmo_x returned[275,1]:
+          date
+1   1990-01-01
+2   1990-02-01
+3   1990-03-01
+... 1990-04-01
+275 2012-11-01
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[275,1]:
+    log(value)
+1     8.779940
+2     8.777069
+3     8.795003
+...   8.799953
+275   9.244442
+predict after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.779940
+2     8.777069
+3     8.795003
+...   8.799953
+275   9.244442
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[275,1]:
+    log(value)
+1     8.779940
+2     8.777069
+3     8.795003
+...   8.799953
+275   9.244442
+fitted(object) after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.779940
+2     8.777069
+3     8.795003
+...   8.799953
+275   9.244442
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is usable and has column name log(value)
+plotmo_y returned[275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+plotmo_y after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is usable and has column name log(value)
+got model response from object$y
+plotmo_y returned[275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+plotmo_y after processing with nresponse=1 is [275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+got response name "log(value)" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: date 275
+
+----plotmo_singles for earth object
+singles: 1 date 
+
+----plotmo_pairs for earth object
+no pairs
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable date
+newdata[50,1]:
+          date
+1   1990-01-01
+2   1990-06-20
+3   1990-12-07
+... 1991-05-26
+50  2012-11-01
+stats::predict(earth.object, data.frame[50,1], type="response")
+predict returned[50,1]:
+    log(value)
+1     8.779940
+2     8.797283
+3     8.835027
+...   8.843453
+50    9.244442
+predict after processing with nresponse=1 is [50,1]:
+    log(value)
+1     8.779940
+2     8.797283
+3     8.835027
+...   8.843453
+50    9.244442
+--done get.ylim.by.dummy.plots
+
+ylim c(8.603, 9.289)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+graphics::plot.default(x=Date:1990-01-01 1990-06-20 1990-12...,
+                       y=c(8.78,8.797,8...), type="n", main="model_m750a",
+                       xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=Date:1990-01-01 2012-11-01, ylim=c(8.603,9.289))
+> set.seed(2020)
+> plotmo(model_m750a$fit, trace=1, do.par=FALSE, pt.col="green", main="model_m750a$fit", SHOWCALL=TRUE)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from object$y
+> set.seed(2020)
+> plotmo(earth_m750a, trace=1, do.par=FALSE, pt.col="green", main="earth_m750a", SHOWCALL=TRUE)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from model.frame(log(value) ~ as.numeric(date) + month...,
+                                    data=call$data, na.action="na.fail")
+> par(org.par)
+> 
+> cat("===m750a second example===\n")
+===m750a second example===
+> set.seed(2020)
+> m750b <- m4_monthly %>%
++     filter(id == "M750") %>%
++     select(-id) %>%
++     rename(date2 = date)
+> print(m750b) # tibble
+# A tibble: 306 × 2
+   date2      value
+   <date>     <dbl>
+ 1 1990-01-01  6370
+ 2 1990-02-01  6430
+ 3 1990-03-01  6520
+ 4 1990-04-01  6580
+ 5 1990-05-01  6620
+ 6 1990-06-01  6690
+ 7 1990-07-01  6000
+ 8 1990-08-01  5450
+ 9 1990-09-01  6480
+10 1990-10-01  6820
+# ℹ 296 more rows
+> set.seed(2020)
+> splits_b <- initial_time_split(m750b, prop = 0.9)
+> set.seed(2020)
+> model_m750b <- mars(mode = "regression") %>%
++     set_engine("earth") %>%
++     fit(log(value) ~ as.numeric(date2) + month(date2, label = TRUE), data = training(splits_b))
+> # new data that only contains the feature "date" as a predictor
+> future_data <- m750b %>% future_frame(date2, .length_out = "3 years")
+> print(future_data) # a tibble with a single column of class "Date"
+# A tibble: 36 × 1
+   date2     
+   <date>    
+ 1 2015-07-01
+ 2 2015-08-01
+ 3 2015-09-01
+ 4 2015-10-01
+ 5 2015-11-01
+ 6 2015-12-01
+ 7 2016-01-01
+ 8 2016-02-01
+ 9 2016-03-01
+10 2016-04-01
+# ℹ 26 more rows
+> stopifnot(class(future_data[,1,drop=TRUE]) == "Date")
+> predict_m750a <- model_m750b %>% predict(new_data = future_data)
+> 
+> par(mfrow = c(2, 2), mar = c(3, 3, 3, 1), mgp = c(1.5, 0.5, 0))
+> set.seed(2020)
+> plotmo(model_m750b, trace=2, do.par=FALSE, pt.col="green", main="model_m750b", SHOWCALL=TRUE)
+plotmo trace 2: plotmo(object=model_m750b, pt.col="green", do.par=FALSE,
+                       trace=2, main="model_m750b", SHOWCALL=TRUE)
+--get.model.env for object with class _earth
+plotmo parsnip model: will plot model_m750b$fit, not 'model_m750b' itself
+object call is earth(formula=log(value)~as.numeric(date2)+month(date2,
+                     label=TRUE), data=data, keepxy=TRUE)
+using the environment saved in $terms of the earth model: env(data, weights)
+--plotmo_prolog for _earth object 'model_m750b'
+--plotmo_x for earth object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is earth(formula=log(value)~as.numeric(date2)+month(date2, label=TRUE), data=dat...
+
+get.x.from.model.frame:
+formula(object) is log(value) ~ as.numeric(date2) + month(date2, label = TRUE)
+naked formula is log(value) ~ date2
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+object$data is usable and has column names date2 value
+na.action(object) is "na.fail"
+stats::model.frame(log(value) ~ date2, data=object$data, na.action="na.fail")
+x=model.frame[,-1] is usable and has column name date2
+plotmo_x returned[275,1]:
+         date2
+1   1990-01-01
+2   1990-02-01
+3   1990-03-01
+... 1990-04-01
+275 2012-11-01
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+calling predict.earth with NULL newdata
+stats::predict(earth.object, NULL, type="response")
+predict returned[275,1]:
+    log(value)
+1     8.773349
+2     8.779320
+3     8.797022
+...   8.803553
+275   9.243245
+predict after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.773349
+2     8.779320
+3     8.797022
+...   8.803553
+275   9.243245
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=earth.object)
+fitted(object) returned[275,1]:
+    log(value)
+1     8.773349
+2     8.779320
+3     8.797022
+...   8.803553
+275   9.243245
+fitted(object) after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.773349
+2     8.779320
+3     8.797022
+...   8.803553
+275   9.243245
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for earth object
+
+get.object.y:
+object$y is usable and has column name log(value)
+plotmo_y returned[275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+plotmo_y after processing with nresponse=NULL is [275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for earth object
+
+get.object.y:
+object$y is usable and has column name log(value)
+got model response from object$y
+plotmo_y returned[275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+plotmo_y after processing with nresponse=1 is [275,1]:
+    log(value)
+1     8.759355
+2     8.768730
+3     8.782630
+...   8.791790
+275   9.271435
+got response name "log(value)" from yhat
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: date2 275
+
+----plotmo_singles for earth object
+singles: 1 date2 
+
+----plotmo_pairs for earth object
+no pairs
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable date2
+newdata[50,1]:
+         date2
+1   1990-01-01
+2   1990-06-20
+3   1990-12-07
+... 1991-05-26
+50  2012-11-01
+stats::predict(earth.object, data.frame[50,1], type="response")
+predict returned[50,1]:
+    log(value)
+1     8.773349
+2     8.797894
+3     8.831375
+...   8.848941
+50    9.243245
+predict after processing with nresponse=1 is [50,1]:
+    log(value)
+1     8.773349
+2     8.797894
+3     8.831375
+...   8.848941
+50    9.243245
+--done get.ylim.by.dummy.plots
+
+ylim c(8.603, 9.289)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+graphics::plot.default(x=Date:1990-01-01 1990-06-20 1990-12...,
+                       y=c(8.773,8.798,8...), type="n", main="model_m750b",
+                       xlab="", ylab="", xaxt="s", yaxt="s",
+                       xlim=Date:1990-01-01 2012-11-01, ylim=c(8.603,9.289))
+> set.seed(2020)
+> plotmo(model_m750b$fit, trace=1, do.par=FALSE, pt.col="green", main="model_m750b$fit", SHOWCALL=TRUE)
+stats::predict(earth.object, NULL, type="response")
+stats::fitted(object=earth.object)
+got model response from object$y
+> par(org.par)
+> 
+> #-----------------------------------------------------------------------------------
+> # multiple response earth model
+> 
+> data(etitanic)
+> 
+> etit <- etitanic
+> etit$survived <- factor(ifelse(etitanic$survived == 1, "yes", "no"),
++                         levels = c("yes", "no"))
+> etit$notsurvived <- factor(ifelse(etitanic$survived == 0, "notsurvived", "survived"),
++                         levels = c("notsurvived", "survived"))
+> set.seed(2020)
+> earth_tworesp <- earth(survived + notsurvived ~ ., data=etit, degree=2)
+> print(summary(earth_tworesp))
+Call: earth(formula=survived+notsurvived~., data=etit, degree=2)
+
+                          survived notsurvived
+(Intercept)             0.03829050  0.96170950
+pclass3rd               0.81545352 -0.81545352
+sexmale                 0.57003496 -0.57003496
+h(age-32)               0.00471938 -0.00471938
+pclass2nd * sexmale     0.26568920 -0.26568920
+pclass3rd * sexmale    -0.19310203  0.19310203
+pclass3rd * h(4-sibsp) -0.10222181  0.10222181
+sexmale * h(16-age)    -0.04505232  0.04505232
+
+Selected 8 of 17 terms, and 5 of 6 predictors
+Termination condition: Reached nk 21
+Importance: sexmale, pclass3rd, pclass2nd, age, sibsp, parch-unused
+Number of terms at each degree of interaction: 1 3 4
+
+                  GCV      RSS      GRSq       RSq
+survived    0.1404529 141.7629 0.4197106 0.4389834
+notsurvived 0.1404529 141.7629 0.4197106 0.4389834
+All         0.2809057 283.5258 0.4197106 0.4389834
+> 
+> # TODO following commented out because parsnip (version 0.1.5) says "'+' not meaningful for factors"
+> # set.seed(2020)
+> # mars_tworesp <- mars(mode = "regression", prod_degree=2) %>%
+> #          set_engine("earth") %>%
+> #          fit(survived + notsurvived~., data=etit)
+> # print(summary(mars_tworesp))
+> # print(summary(mars_tworesp$fit))
+> #
+> # stopifnot(identical(earth_tworesp$coeff, mars_tworesp$fit$coeff))
+> #
+> # predict.earth_tworesp <- predict(earth_tworesp, etit[3:6,])
+> # predict.mars_tworesp <-  mars_tworesp %>% predict(etit[3:6,])
+> # stopifnot(all(predict.earth_tworesp == predict.mars_tworesp))
+> #
+> # plotmo(earth_tworesp, trace=0, nresponse=1, SHOWCALL=TRUE)
+> # plotmo(mars_tworesp, trace=0, nresponse=1, SHOWCALL=TRUE)
+> # plotmo(mars_tworesp, trace=0, nresponse=2, SHOWCALL=TRUE)
+> 
+> source("test.epilog.R")

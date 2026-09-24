@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>dfba_sim_data</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dfba_sim_data</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="introduction" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Introduction</h1>
+<p>An important aspect of research is planning a forthcoming empirical study. Some key issues that scientists need to consider are: the nature of the population to be studied, the measure or measures that will be collected per sampled unit, the design of the study, and the planned sample size. The first two of those topics are not really statistical; rather, they involve the nature of the research question and the availability of measurement tools in the scientific field. But the last two issues – the research design and the sample size – <em>are</em> statistical topics. Statistical precision and therefore power grow with the sample size. Determining the statistical power of studies has important ethical and practical implications. When the research subjects are animals or patients, and the number tested was more than necessary to answer the research question, then too many subjects might have been unnecessarily exposed to participation risks. But if too few were tested, then the risks undertaken by the subjects might be wasted because there is not enough evidence to answer the research question. Time and financial resources are limited, so a careful researcher plans future studies so that there is a good chance that the research question is answered. In fact, funding agencies usually require scientists to provide a statistical rationale showing that their research design is feasible. Too few samples compromises the likelihood that the research question can be answered, but too many samples sinks more time and financial resources than needed into one experiment.</p>
+<p>The <code>DFBA</code> package has three functions that are designed to assist researchers in their planning of a forthcoming study where there are two conditions and where there is a univariate continuous measure for each observation. The <code>dfba_bayes_vs_t_power()</code> function and the <code>dfba_power_curve()</code> function deal with frequentist and Bayesian statistical power. These two functions are discussed together in a separate vignette (see the <code>dfba_power_functions</code> vignette). The third function is the <code>dfba_sim_data()</code> function.</p>
+<p>The <code>dfba_sim_data()</code> function creates two data sets from one of nine different probability models. The <code>dfba_sim_data()</code> function has an argument called <code>model</code> for stipulating the model for data generation. The <code>model</code> argument requires a text string from the following list:</p>
+<ul>
+<li><p><code>&quot;normal&quot;</code></p></li>
+<li><p><code>&quot;weibull&quot;</code></p></li>
+<li><p><code>&quot;cauchy&quot;</code></p></li>
+<li><p><code>&quot;lognormal&quot;</code></p></li>
+<li><p><code>&quot;chisquare&quot;</code></p></li>
+<li><p><code>&quot;logistic&quot;</code></p></li>
+<li><p><code>&quot;exponential&quot;</code></p></li>
+<li><p><code>&quot;gumbel&quot;</code></p></li>
+<li><p><code>&quot;pareto&quot;</code></p></li>
+</ul>
+<p>The <code>dfba_sim_data()</code> function is called many times in the Monte Carlo sampling that is used by the <code>dfba_bayes_vs_t_power()</code> and <code>dfba_power_curve()</code> functions. The output from the <code>dfba_sim_data()</code> function has the frequentist <span class="math inline">\(p\)</span>-value from the appropriate <span class="math inline">\(t\)</span>-test and the posterior probability from the corresponding Bayesian distribution-free test for a difference between the two conditions. If the research design has <em>paired</em> scores for the two variates, then the frequentist <span class="math inline">\(t\)</span>-test is the <em>paired</em> <span class="math inline">\(t\)</span>-test, and the Bayesian analysis is the Wilcoxon signed-rank test. If the design has <em>two independent conditions</em>, then the frequentist test is the two-sample <span class="math inline">\(t\)</span>-test, and the Bayesian analysis is the Mann-Whitney <span class="math inline">\(U\)</span> test. Thus, from each call of the <code>dfba_sim_data()</code> function, there are two data sets generated along with the primary results from a frequentist <span class="math inline">\(t\)</span>-test and the corresponding results from a Bayesian distribution-free statistical assessment. However, <em>power is not defined for a single sample</em>. Power estimates are calculated by either the <code>dfba_bayes_vs_t_power()</code> function or the <code>dfba_power_curve()</code> function from the Monte Carlo simulations that repeatedly call the <code>dfba_sim_data()</code> function.</p>
+<p>Besides generating random scores for each of two conditions, the <code>dfba_sim_data()</code> function can also include a block effect – for example, variation among individuals with regard to a variable – specified by the <code>block.max</code> argument. The <code>dfba_sim_data()</code> function generates random scores from a uniform distribution over the interval of <span class="math inline">\([0, \texttt{block.max}]\)</span> where <code>block.max</code> is a non-negative number. The default value for <code>block.max</code> is <span class="math inline">\(0\)</span>. A score for blocking is considered true variability rather than random measurement error. If an experiment is designed such that each participant is tested in both the <em>control</em> condition and in the <em>experimental</em> condition, then the experimental design is a <em>paired</em> (also known by other names including <em>within-block</em>, <em>repeated-measures</em>, <em>matched-samples</em>, and <em>randomized block</em>) design. For a paired design, the variation of blocks cancels out because the same block effect is added to the scores for each condition, thus, the difference scores per block removes the effect of block variation. This feature of paired-design experiments is a key advantage. For many research topics, though, it is either impractical or impossible to use the same block for testing performance in both conditions. If an experiment is designed such that participants are tested in only one of two conditions, then the experimental design is an <em>independent groups</em> (also known by other names including <em>between-block</em>, <em>completely randomized</em>, and <em>between-participants</em>) design. With an independent-grousp design, block variation does not cancel out, so block variability adds to statistical noise. Block variation increases statistical noise for the independent-groups design, thus affecting statistical power.</p>
+<p>Researchers might be wary of using distribution-free methods because of a presumed lack of statistical power. Those concerns are largely unjustified. In fact, in many cases the distribution-free analyses such as the Bayesian Wilcoxon-signed rank test and the Bayesian Mann-Whitney <span class="math inline">\(U\)</span> test outperforms the frequentist <span class="math inline">\(t\)</span>-test (Chechile, 2020). The <code>DFBA</code> power functions provide power estimates across a wide range of data types, so researchers can see for themselves what the relative power may be for a wide variety of data models. Since most researchers cannot be sure that the data in a forthcoming experiment will be from Gaussian distributions, power studies using functions in the <code>DFBA</code> package are prudent experimental design tools. The <code>DFBA</code> functions provide the user with the opportunity to explore Gaussian data as well as eight other probability models to see the relative benefits for the frequentist parametric <span class="math inline">\(t\)</span>-test versus a distribution-free Bayesian analysis. The <code>dfba_sim_data()</code> function is the essential function that interfaces with the other functions in the <code>DFBA</code> package for doing power analyses (even though the <code>dfba_sim_data()</code> function does not <em>itself</em> compute power estimates).</p>
+<p>Since the <code>dfba_sim_data()</code> function is used primarily by the two <code>DFBA</code> power functions, it is not expected that most users will ever need to implement the <code>dfba_sim_data()</code> function directly. Consequently. for those users it may not be necessary to read this vignette further. Such readers can skip to the <code>dfba_power_functions</code> vignette that describes both the <code>dfba_bayes_vs_t_power()</code> function and the <code>dfba_power_curve()</code> function. The rest of the current vignette is primarily reference material. <a href="#nine-models">Nine Probability Models for Data Generation</a> is devoted to describing each of the nine probability models. <a href="#using-sim-data">Using the <code>dfba_sim_data()</code> Function</a> describes the arguments for the function. <a href="#Examples">Examples</a> consists of some selective examples for calling the <code>dfba_sim_data()</code> function to get two vectors of random scores along with the Bayesian posterior probability for a difference between the conditions along with frequentist <span class="math inline">\(p\)</span>-value from a <span class="math inline">\(t\)</span>-test.</p>
+</div>
+<div id="nine-models" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Nine Probability Models for Data Generation</h1>
+<div id="normal-distribution" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Normal Distribution</h2>
+<p>The <em>normal</em> or <em>Gaussian</em> distribution is the familiar symmetric probability-density function that is the basis of parametric statistics. The normal distribution has two population parameters: the mean and the standard deviation. Random values from any normal distribution can be sampled using the <code>stats</code> package <em>via</em> the command <code>rnorm(n, mean = 0, sd = 1)</code>. For example, <code>rnorm(100, 5, 2.2)</code> produces <span class="math inline">\(100\)</span> random values from a normal distribution with the mean of <span class="math inline">\(5\)</span> and the standard deviation of <span class="math inline">\(2.2\)</span>. The normal distribution is important when all values of a continuous variate are composed of some true score plus measurement error, where the measurement errors are composed of the <em>sum of latent independent random perturbations</em>. The normal has the density function:</p>
+<p><span class="math display" id="eq:normaldensity">\[\begin{equation}
+  f(x)=\frac{1}{\sigma \sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{(x-\mu)}{\sigma}\right)^2},
+  \tag{2.1}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(\mu\)</span> is the mean and <span class="math inline">\(\sigma\)</span> is the standard deviation. The support for <span class="math inline">\(x\)</span> is the real line (<em>i.e</em>., <span class="math inline">\(x \in (-\infty,\,\infty)\)</span>). The normal does not have a closed form function for the cumulative probability <span class="math inline">\(F(x)=P(y \le x)\)</span>; however, estimates are easily obtained with the <code>pnorm(x, mean = 0, sd = 1)</code> command.</p>
+<p>In the <code>dfba_sim_data()</code> function with the argument <code>model = &quot;normal&quot;</code>, the control condition variate has a normal distribution with a mean equal to <span class="math inline">\(0\)</span> and a standard deviation equal to the <code>shape1</code> argument for the function; in the experimental condition, the variate has a normal distribution with a mean equal to the <code>delta</code> argument with a standard deviation equal to the <code>shape2</code> input for the <code>dfba_sim_data()</code> function.</p>
+</div>
+<div id="weibull-distribution" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Weibull Distribution</h2>
+<p>The <em>Weibull</em> distribution plays an important role for variates where the underlying process depends on a maximum or a minimum of a latent factor. For example, a system with many components, which are all required for proper functioning, fails when the weakest component breaks down (<em>i.e.</em>, the component with the minimum lifetime). The Weibull probability density function is:</p>
+<p><span class="math display" id="eq:weibulldensity">\[\begin{equation}
+  f(x)=\frac{k}{s}\left(\frac{x}{s}\right)^{k-1}e^{-(\frac{x}{s})^{k}},
+  \tag{2.2}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(s\)</span> is a scale factor and <span class="math inline">\(k\)</span> is a shape parameter and where <span class="math inline">\(x \ge 0\)</span>. Both the <span class="math inline">\(k\)</span> and <span class="math inline">\(s\)</span> parameters must be positive. When the shape parameter <span class="math inline">\(k\)</span> equals <span class="math inline">\(1\)</span>, the Weibull distribution is equivalent to the <em>exponential</em> distribution.</p>
+<p>From the <code>stats</code> package, <span class="math inline">\(n\)</span> random values from a Weibull distribution can be sampled with the command <code>rweibull(n, shape, scale=1)</code>. Consequently, the command <code>rweibull(30, .7)</code> randomly samples <span class="math inline">\(30\)</span> scores from a Weibull distribution with a shape parameter of <span class="math inline">\(.7\)</span> and with a scale factor of <span class="math inline">\(1\)</span>. In the <code>dfba_sim_data()</code> function, the variate for the first (control) condition <code>C</code> has a Weibull distribution with a scale factor <span class="math inline">\(s=1\)</span> and a shape parameter <span class="math inline">\(k\)</span> equal to the value of the input for the function. The variate for the second (experimental) condition <code>E</code> has an offset equal to the <code>delta</code> input for the function plus a value from a Weibull distribution with a scale factor <span class="math inline">\(s=1\)</span> and a shape parameter <span class="math inline">\(k\)</span> equal to the <code>shape2</code> input. The value for the offset is added to the Weibull component of the scores in the experimental condition. The offset parameter and both shape parameter inputs must be positive values.</p>
+</div>
+<div id="cauchy-distribution" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Cauchy Distribution</h2>
+<p>The Cauchy distribution occurs when there is a latent process that is the ratio of two independent normal distributions each with a mean of <span class="math inline">\(0\)</span> (Johnson, Kotz, &amp; Balakrishnan, 1995). The density function distribution is similar in shape to – but has heavier tails than – a normal distribution. This distribution is unusual because it does not have a defined expected value or variance. The density function is</p>
+<p><span class="math display" id="eq:cauchydensity">\[\begin{equation}
+  f(x) = \frac{1}{\pi s\left[1+\left(\frac{x-l}{s}\right)^{2}\right]},
+  \tag{2.3}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(s\)</span> is the scale factor and <span class="math inline">\(l\)</span><a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> is the location parameter (note: when <span class="math inline">\(s=1\)</span> and <span class="math inline">\(l=0\)</span>, the distribution is equivalent to a <span class="math inline">\(t\)</span>-distribution with 1 degree of freedom). The support for the Cauchy distribution is <span class="math inline">\(x \in (-\infty,\infty)\)</span>, and the scale factor must be positive.</p>
+<p>The Cauchy is one of the distributions included in the <code>stats</code> package: for example, the command <code>rcauchy(50, location=0, scale=1)</code> generates <span class="math inline">\(50\)</span> random scores from a Cauchy distribution where the location parameter <span class="math inline">\(l\)</span> equals <span class="math inline">\(0\)</span> and where the scale factor <span class="math inline">\(s\)</span> is <span class="math inline">\(1\)</span>. In the <code>dfba_sim_data()</code> function, the first (control) condition variate has a Cauchy distribution with location <span class="math inline">\(l\)</span> equal to <span class="math inline">\(0\)</span> and scale factor <span class="math inline">\(s\)</span> equal to the value of the <code>shape1</code> argument for the function; in the second (experimental) condition, the variate has a Cauchy distribution with location <span class="math inline">\(l\)</span> equal to the value of the <code>delta</code> input and with a scale factor <span class="math inline">\(s\)</span> equal to the <code>shape2</code> argument for the <code>dfba_sim_data()</code> function. The <code>dfba_sim_data()</code> function thus enables power studies where the variates are Cauchy-distributed and where the location parameters are separated by the amount stipulated with the <code>delta</code> argument and where the scale factor for the experimental condition can be varied to be different from the scale factor for the control condition.</p>
+</div>
+<div id="lognormal-distribution" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> Lognormal Distribution</h2>
+<p>The lognormal distribution is a continuous density function that arises when the variate is the multiplicative product of a number of latent independent positive components (Johnson, Kotz, &amp; Balakrishnan, 1995). The probability density is</p>
+<p><span class="math display" id="eq:lognormaldensity">\[\begin{equation}
+  f(x) = \frac{1}{x \,\sigma \sqrt{2\pi}}e^{\left(-\frac{1}{2}\frac{(\log x- \mu)^{2}}{\sigma^{2}}\right)},
+  \tag{2.4}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(\mu\)</span> and <span class="math inline">\(\sigma\)</span> are the respective mean and standard deviation on the log scale. The lognormal has support for <span class="math inline">\(x\)</span> on the positive real numbers.</p>
+<p>The lognormal is one of the distributions included in the <code>stats</code> package, for example, the command <code>rlnorm(40, meanlog = 0, sdlog = 2)</code> generates <span class="math inline">\(40\)</span> random scores from a lognormal distribution that has the mean and standard deviation on the log scale of, respectively, <span class="math inline">\(0\)</span> and <span class="math inline">\(2\)</span>. In the <code>dfba_sim_data()</code> function, the first (control) condition variate <code>C</code> has a lognormal distribution with a mean and standard deviation on the log scale of respectively <span class="math inline">\(0\)</span> and the <code>shape1</code> argument; the second (experimental) condition variate <code>E</code> has a lognormal distribution with a mean and standard deviation on the log scale of the respective the <code>delta</code> and <code>shape2</code> arguments.</p>
+</div>
+<div id="chi2-distribution" class="section level2" number="2.5">
+<h2><span class="header-section-number">2.5</span> <span class="math inline">\(\chi^2\)</span> Distribution</h2>
+<p>The <span class="math inline">\(\chi^2\)</span> distribution is a continuous density function for a variate that is the sum of squares of independent latent normal variables (Johnson, Kotz, &amp; Balakrishnan, 1995). The probability density is</p>
+<p><span class="math display" id="eq:chisqdensity">\[\begin{equation}
+  f(x) = \frac{1}{2^{k/2}\Gamma(k/2)} x^{k/2 -1}e^{ -\frac{x}{2}},
+  \tag{2.5}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(k\)</span> is the degrees-of-freedom <span class="math inline">\((df)\)</span> parameter and where <span class="math inline">\(\Gamma\)</span> is the gamma function. The <span class="math inline">\(k\)</span> parameter must be non-negative, but it need not be an integer. The support for <span class="math inline">\(x\)</span> is on the non-negative real numbers.</p>
+<p>The <span class="math inline">\(\chi^2\)</span> distribution is included in the <code>stats</code> package, for example: the command <code>rchisq(35, df = 5)</code> generates <span class="math inline">\(35\)</span> scores from a <span class="math inline">\(\chi^2\)</span> distribution with <span class="math inline">\(k = 5\)</span>. For the <code>dfba_sim_data()</code> function, the first (control) condition variable <code>C</code> has a <span class="math inline">\(\chi^2\)</span> distribution where the degrees of freedom are equal to the <code>shape1</code> argument; the second (experimental) condition variate <code>E</code> has a positive offset equal to the <code>delta</code> argument plus a <span class="math inline">\(\chi^2\)</span> component with degrees of freedom equal to the <code>shape2</code> argument.</p>
+</div>
+<div id="logistic-distribution" class="section level2" number="2.6">
+<h2><span class="header-section-number">2.6</span> Logistic Distribution</h2>
+<p>The logistic distribution is often used as an approximation to a normal, although the logistic has heavier tails than that of the normal (Johnson, Kotz, &amp; Balakrishnan, 1995). Unlike the normal, the logistic has a closed-form equation for the cumulative probability. The probability density function <span class="math inline">\(f(x)\)</span> and the cumulative probability <span class="math inline">\(F(x)\)</span> are</p>
+<p><span class="math display" id="eq:logisticdensityandcumulative">\[\begin{equation}
+  \begin{aligned}
+f(x) &amp;= \frac{e^{-(x-\mu)/s}}{s(1+ e^{-(x-\mu)/s})^{2}},\\
+F(x) &amp;= \frac{1}{1+e^{-(x-\mu)/s}},
+  \end{aligned}
+  \tag{2.6}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(\mu\)</span> and <span class="math inline">\(s\)</span> are, respectively, the mean and scale factor of the logistic distribution. The support for <span class="math inline">\(x\)</span> is the whole real line. The logistic distribution is a good approximation of a normal with mean <span class="math inline">\(\mu\)</span> and standard deviation <span class="math inline">\(\sigma\)</span> when the mean of the logistic is <span class="math inline">\(\mu\)</span> and its scale factor <span class="math inline">\(s=\frac{\sqrt{3}\sigma}{\pi}\)</span>.</p>
+<p>The logistic distribution is included in the <code>stats</code> package, for example: the command <code>rlogis(50, location = 0, scale = 3)</code> generates <span class="math inline">\(50\)</span> random scores from a logistic distribution with a mean of <span class="math inline">\(0\)</span> and a scale factor of <span class="math inline">\(3\)</span>. In the <code>dfba_sim_data()</code> function, the first (control) variate <code>C</code> is sampled from a logistic distribution with a mean of <span class="math inline">\(0\)</span> and a scale factor equal to the <code>shape1</code> argument; the second (experimental) variate <code>E</code> is sampled from a logistic distribution with a mean and scale factor that are, respectively, the values of the <code>delta</code> and <code>shape2</code> arguments.</p>
+</div>
+<div id="exponential-distribution" class="section level2" number="2.7">
+<h2><span class="header-section-number">2.7</span> Exponential Distribution</h2>
+<p>The exponential distribution is a special continuous density function that has the property of <em>constant hazard</em> (Chechile, 2003), that is: the probability for a critical event occurring given that it did not occur earlier (the <em>hazard</em>) is a constant. Because of this characteristic, the exponential is described as a <em>memoryless</em> distribution. The probability density function is:</p>
+<p><span class="math display" id="eq:exponentialdensity">\[\begin{equation}
+  f(x) = k e^{-k x},
+  \tag{2.7}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(k\)</span> is a positive constant that is equal to the hazard rate. The support for the distribution for <span class="math inline">\(x \in [0,~\infty)\)</span>.</p>
+<p>The exponential distribution is included in the <code>stats</code> package, for example: command <code>rexp(60, rate = 5)</code> generates <span class="math inline">\(50\)</span> random scores from an exponential distribution with a rate parameter equal to <span class="math inline">\(5\)</span>. In the <code>dfba_sim_data()</code> function, the first (control) variate <code>C</code> is sampled from an exponential distribution with a rate parameter equal to the <code>shape1</code> argument; the second (experimental) variate <code>E</code> is sampled from an exponential distribution with a rate parameter equal to the <code>shape2</code> argument plus an added offset value that is equal to the <code>delta</code> argument.</p>
+</div>
+<div id="gumbel-distribution" class="section level2" number="2.8">
+<h2><span class="header-section-number">2.8</span> Gumbel Distribution</h2>
+<p>The Gumbel distribution, like the Weibull distribution, is a probability model of a system where the process is controlled by the maximum or the minimum of latent factors (Gumbel, 1958). The probability density <span class="math inline">\(f(x)\)</span> and the cumulative probability <span class="math inline">\(F(x)\)</span> are</p>
+<p><span class="math display" id="eq:gumbeldensityandcumulative">\[\begin{equation}
+  \begin{aligned}
+    f(x) &amp;= \frac{1}{s} e^{-\left[(x-\mu)/s\right]+e^{-(x-\mu)/s}}\,,\\
+F(x) &amp;= e^{-e^{-(x-\mu)/s}} ,
+  \end{aligned}
+  \tag{2.8}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(\mu\)</span> is the mode and <span class="math inline">\(s\)</span> is a scale factor. The support for the distribution is for <span class="math inline">\(x \in -(\infty,~\infty)\)</span>. The scale factor must be a positive value.</p>
+<p>The Gumbel distribution is <em>not</em> included in the <code>stats</code> package. However, since the Gumbel distribution has a closed form cumulative probability, random samples from any Gumbel can be obtained <em>via</em> the inverse transform method (Fishman, 1996). For the <code>dfba_sim_data()</code> function, the first (control) variate <code>C</code> is a Gumbel with a mode <span class="math inline">\(\mu\)</span> equal to <span class="math inline">\(0\)</span> and scale factor <span class="math inline">\(s\)</span> equal to the <code>shape1</code> argument; the second (experimental) variate <code>E</code> is a Gumbel with a mode and scale factor that are, respectively, the values of the <code>delta</code> and the <code>shape2</code> arguments.</p>
+</div>
+<div id="pareto-distribution" class="section level2" number="2.9">
+<h2><span class="header-section-number">2.9</span> Pareto Distribution</h2>
+<p>The Pareto distribution arose as a probability model of incomes in economics (Pareto, 1897). Harris (1968) observed that a Pareto distribution can model cases of a mixture of exponentially distributed variates where the component rate parameters <span class="math inline">\(k^{-1}\)</span> have a gamma distribution. The cumulative function for a Pareto distribution is</p>
+<p><span class="math display" id="eq:paretocumulative">\[\begin{equation}
+F(x) = 1-\left(\frac{x_m}{x}\right)^{\alpha},
+\tag{2.9}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(x\ge x_m\)</span> and where <span class="math inline">\(x_m\)</span> is the mode (Arnold, 1983). Pareto observed that the value of <span class="math inline">\(\alpha\)</span> is typically near the value of <span class="math inline">\(1.5\)</span>. However, when <span class="math inline">\(\alpha=1.161\)</span>, the distribution represents a 80-20 law, which stipulates that 20 percent of people receive 80 percent of the income (Hardy, 2010).</p>
+<p>Although the Pareto distribution is not included in the <code>stats</code> package, random values can be easily obtained by the inverse transform method of Monte Carlo sampling (Fishman, 1996). In the <code>dfba_sim_data()</code> function, the first (control) variate <code>C</code> is sampled from a Pareto distribution with <span class="math inline">\(x_m=1\)</span>; the second (experimental) variate <code>E</code> is sampled from a Pareto with <span class="math inline">\(x_m\)</span> equal to the value of the <code>delta</code> argument plus <span class="math inline">\(1\)</span>. The <span class="math inline">\(\alpha\)</span> parameters for the control and experimental conditions are 1.16 times the respective <code>shape1</code> and <code>shape2</code> arguments. Since the default value for both the <code>shape1</code> and <code>shape2</code> arguments is <span class="math inline">\(1\)</span>, the default condition results in random data samples that satisfy the 80-20 law.</p>
+</div>
+</div>
+<div id="using-sim-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Using the <code>dfba_sim_data()</code> Function</h1>
+<p>There are three required arguments for the <code>dfba_sim_data()</code> function: <code>model</code>, <code>design</code> and <code>delta</code>. The <code>model</code> argument is a character string from the following list:</p>
+<ul>
+<li><p><code>normal</code></p></li>
+<li><p><code>weibull</code></p></li>
+<li><p><code>cauchy</code></p></li>
+<li><p><code>lognormal</code></p></li>
+<li><p><code>chisquare</code></p></li>
+<li><p><code>logistic</code></p></li>
+<li><p><code>exponential</code></p></li>
+<li><p><code>gumbel</code></p></li>
+<li><p><code>pareto</code></p></li>
+</ul>
+<p>The <code>design</code> argument must be either the character string <code>paired</code> or the character string <code>independent</code>. The <code>delta</code> argument must be a non-negative value for the separation between the first (experimental) variable and the second (control) variable (corresponding respectively to the values <code>E</code> and <code>C</code>).</p>
+<p>The <code>dfba_sim_data()</code> function also has six optional arguments; listed with their corresponding default values, they are: <code>n = 20</code>, <code>a0 = 1</code>, <code>b0 = 1</code>, <code>shape1 = 1</code>, <code>shape2 = 1</code>, and <code>block.max = 0</code>. The value of the <code>n</code> argument <em>must be an integer greater than or equal to <span class="math inline">\(20\)</span></em>. The reason for the constraint on <code>n</code> is to assure that the Bayesian posterior distribution has sufficient sample size to use the large-<span class="math inline">\(n\)</span> approximation method for either the Bayesian Mann-Whitney analysis or the Bayesian Wilcoxon signed-rank analysis. The <code>a0</code> and <code>b0</code> arguments represent the shape parameters for the prior beta distribution used for the large-<span class="math inline">\(n\)</span> approximation for the two Bayesian methods; the default value of <span class="math inline">\(1\)</span> for each represents a <em>uniform</em> prior. The <code>shape1</code> and <code>shape2</code> arguments are associated with, respectively, the <code>C</code> and <code>E</code> variates. These arguments refer to different distribution shape parameters depending on the <code>model</code> input, for example: given the argument <code>model = &quot;normal&quot;</code>, <code>shape1</code> and <code>shape2</code> define the values of the standard deviations for the normal distributions from which the <code>E</code> and the <code>C</code> variates, respectively, are sampled. (see <a href="#nine-models">above</a> for more details). The last optional argument is <code>block.max</code>. As described <a href="#Introduction">above</a>, the <code>dfba_sim_data()</code> function has the feature of enabling two other <code>DFBA</code> functions – <code>dfba_bayes_vs_t_power()</code> and <code>dfba_power_curve()</code> – to show the effect of block variation on power. In the default value <code>block.max = 0</code>, there is no blocking effect. As the value of the <code>block.max</code> argument increases, there can be reduced power for studies that have independent groups. But as mentioned previously, the <code>dfba_sim_data()</code> function <em>itself does not compute power</em>. Variation of the <code>block.max</code> argument from the default value is an option best employed by way of either the <code>dfba_bayes_vs_t_power()</code> or the <code>dfba_power_curve()</code> function rather than with the <code>dfba_sim_data()</code> function.</p>
+</div>
+<div id="examples" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Examples</h1>
+<p>As an example of <code>dfba_sim_data()</code> function consider the following commands:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>example_A1 <span class="ot">&lt;-</span> <span class="fu">dfba_sim_data</span>(<span class="at">n =</span> <span class="dv">80</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                           <span class="at">model =</span> <span class="st">&quot;normal&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                           <span class="at">design =</span> <span class="st">&quot;paired&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>                           <span class="at">delta =</span> <span class="fl">0.4</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>                           <span class="at">shape2 =</span> <span class="dv">2</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>example_A1</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; Frequentist p-value </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;  0.3475369 </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Bayesian posterior probability </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;  0.5473132</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>example_A1<span class="sc">$</span>E</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt;  [1] -0.73733747  0.12964277  2.75617399 -2.64713360  1.58789238  1.06590074</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;  [7]  2.52619967 -0.20836785  1.14003762  0.93419758 -0.68504006  2.81573561</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; [13]  2.72080523  1.80042730  3.57366691  1.51697285 -2.15318442 -0.74653083</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; [19] -2.04922523 -0.54680127 -0.84073335  0.48423175 -1.42184330  0.71605754</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; [25] -0.90916929  3.93457454  1.83341495  2.22034846  1.16837072  3.76435216</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; [31] -0.87147291 -0.52328946  3.26456448 -0.90139271 -0.01476149 -0.38561586</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; [37] -0.23998574 -0.15822661  1.38837666  0.04533904 -0.61191492  3.08607765</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; [43] -0.02915882  0.04088694  0.19961852  1.82533261  0.25287119  0.32473166</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; [49] -0.96332096 -0.24854054  0.52032088 -0.77778897  1.46299239 -2.63678816</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; [55]  1.01311572 -2.67289965 -0.20195225 -0.65655981 -0.90418956  0.28620644</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt; [61] -3.42871885  2.75316662 -2.92994487 -0.52706080 -1.83184021 -1.10163800</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt; [67]  4.57433309  0.43479124 -2.17260106 -2.88121107  1.30037420  0.36288033</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt; [73] -0.23613675 -1.45872429 -2.57492062 -1.75038459  2.40005761 -0.84253339</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt; [79] -2.36885369  4.13858124</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>example_A1<span class="sc">$</span>C</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt;  [1] -0.626453811  0.183643324 -0.835628612  1.595280802  0.329507772</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;  [6] -0.820468384  0.487429052  0.738324705  0.575781352 -0.305388387</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; [11]  1.511781168  0.389843236 -0.621240581 -2.214699887  1.124930918</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; [16] -0.044933609 -0.016190263  0.943836211  0.821221195  0.593901321</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; [21]  0.918977372  0.782136301  0.074564983 -1.989351696  0.619825748</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt; [26] -0.056128740 -0.155795507 -1.470752384 -0.478150055  0.417941560</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; [31]  1.358679552 -0.102787727  0.387671612 -0.053805041 -1.377059557</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; [36] -0.414994563 -0.394289954 -0.059313397  1.100025372  0.763175748</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; [41] -0.164523596 -0.253361680  0.696963375  0.556663199 -0.688755695</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; [46] -0.707495157  0.364581962  0.768532925 -0.112346212  0.881107726</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; [51]  0.398105880 -0.612026393  0.341119691 -1.129363096  1.433023702</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; [56]  1.980399899 -0.367221476 -1.044134626  0.569719627 -0.135054604</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; [61]  2.401617761 -0.039240003  0.689739362  0.028002159 -0.743273209</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [66]  0.188792300 -1.804958629  1.465554862  0.153253338  2.172611670</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; [71]  0.475509529 -0.709946431  0.610726353 -0.934097632 -1.253633400</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; [76]  0.291446236 -0.443291873  0.001105352  0.074341324 -0.589520946</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">plot</span>(example_A1)</span></code></pre></div>
+<p><img src="data:image/png;base64,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zj777Mj1LFmypHPdddc5JiCN1C3osXUH003Fvqfd90alSpXs9TYt1JHyeIEAAqkL0AJq/qqQEMhGgbPOOsuett56dZO2cGofUTd1795dpk6dKvfee6/861//kkceeUTWr18vbdq0idxyv/rqq6Vnz552Fx1MNGrUKPtay5o3b57owCbtBnDiiSfaW/7a+qfH0Baq6KS3/i+++GLR8kwgIyawkvfff19OPfVUcVuxtPXLa18tR1tY9ba1pkR18jp2jx495LHHHpNevXqJCTrlpZdeEhO02L6XL7/8si1P/3H3NcGMfPzxxzJw4EAZN26caCvl448/LiaQj2yb6EWQYw0bNkyuueYaW4QJdG0/3SZNmiQqMtD6+Gvtnot7DbyOqf6J6qFWJgCVY4891nq99tprYgIz0eO8++67kToleg/oBkHLcOsaxF1b6bXP7Pfff2+vh9ZFzceMGWN/3IoFPbZ2QVADvSswfvx4eeutt2z5er1vv/12tzh+I4BAOgKpx6zsgQACmS4QpFXM9Nm0rVcmmIycjrYcaYueJnPL1OZfccUVkXx98fe//91p27atYwLTyHptRTV/fxwz8CmyTsvVdSa4i6zTF9qipesffPDByHptAdV1ZnBUZJ2+MB/0dr0JIOx6EwTbZdNXNWY7XahVq5ZjgtzIeq86xR/bBJu2PNMVIbKfvvjtt98c00fVtsZu2bLF5n3++ed228MPP9wxQXBke22h1ZZhEyhH1nm9SOVYEydOtMd69dVXvYqKWZfOtY530AK9jum1Tq+xXivzpSKmHibYdMygN8d044i0NiZ6D6RSRiru+j7SlnPTlSKmbqeccoptrd24caN9jwatv7aM67amS0ikPG097dSpk2O+5ETW8QIBBFIXoAXU/HUhIZCNAuaD1J62tlJ5JW3Rql69upggRMzt8khf0a5du9pR7K1bt/baLc86HfAUJJnAIWZAlO6jLZkmuBNzCzpIESlvoy2ZmrQ1MzqVL19etMXNBJd5Rudra647s4DuozMN1KhRQ0xwE11EntfpHCtPIWmuSHatUylWWwE19e/fP2Y3011A9L2hrZDx03zFvwfSKSOZu/n4E3P73ba2a//m6DRp0iTbKqpTWqVybHf2gX79+tk7APp/pUSJEmK6YeSZQSL6eLxGAIHkAgSgyY3YAoFiKfCf//zHnlfdunUTnt+L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gAHy6aefyj/+8Q/p3Lmz3HbbbTJo0KBIfU499VTp0qVLZDlTXmjQd8opp8jixYsLrEpjx461Zs8//7zcfPPNcuihh0qfPn3kpptuSqkOYdS9Z8+eogHjhAkTPI/99ddfy48//mjr57kBKxFAAIEUBHJT2JZNEUAAAU+B3377TSZPnix33nmnDBkyJLLNeeedJz/99JM899xzcv/998sBBxwgvXv3juRn0gvHcUR/CjJddNFFtuXTPaYe/5ZbbpHHH39cLrzwQjnzzDPdLN/fYdRdW671ek2cOFEeffRR2xoafdCXX35ZDj74YOnUqVP0al4jgAACaQnQApoWGzshgEC0gAZA+/btEw1E45MGU08++aToLXpN9957r1x22WWRzdq0aSMffPCBXHvttVK9enVp1qyZvPbaa7J9+3bb2qatgtqS+sknn0T2GTp0qPTr1y+yrC8+/vhjewt748aNMevdhaVLl0rXrl2lTp06UqFCBdsNQFtsNemxWrVqZV/ffffdMUHys88+KyeccILdp0WLFjbQthv+9x8973vuuUeOPfZYOfzww2XYsGHWInqboK/1tvwjjzxiHZ566qnIbunUXb1vv/12adq0qZQrV04aNGhgW6f1XBOlyy+/XFasWCHTpk2L2UTPUVtGtZW7VKlSNi/V8j/77DN7fTZs2BBTtppq0Oumbdu2yfXXXy9169a1wfkFF1wgy5cvd7Nly5Yt0rdvXznssMOkatWq0q5dO/nyyy8j+bxAAIGiIUAAWjSuE7VEIKMFKlasaINEbTnTIEZbQzWQ0KSBz8UXXyxlypSxy9oiumDBAvta//n2229tQLF69WrR4O/AAw+0y2effbasX79ehg8fLr/88oto31E3aUD2ww8/uIv2tw56mj17tmf/SQ1atN/pmjVrbCut1lMDqUsvvVTmz59vX2vQo0n7bnbr1s2+1u30uHoO2jfz5JNPtn0gJ02aZPP1H23ZfeCBB2yddfv33ntP3n777Uh+qi+0lbht27b2drfum27d9TqMGzfOnqPWvXXr1jJy5Eh56KGHElbp3HPPlUMOOcR+AYjeSLtUrFq1Kub2e6rlu9fn999/jy7aXrN169bZdfpFRlt9NSDVa6P9UjVgbd68ubhfLP74xz/KRx99JPolRPM16ZeY+MDWZvAPAghkroD5D09CAAEE9ltgx44dTq9e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" /><!-- --></p>
+<p>Note that the above commands generate <span class="math inline">\(80\)</span> random samples from the standard normal for the <code>C</code> variate and <span class="math inline">\(80\)</span> random samples for the <code>E</code> variate from a normal distribution with a mean equal to <span class="math inline">\(0.4\)</span> and a standard deviation of <span class="math inline">\(2\)</span>. Repeating the above commands with a different seed draws a second set of <span class="math inline">\(80\)</span> scores for each condition:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>example_A2 <span class="ot">&lt;-</span> <span class="fu">dfba_sim_data</span>(<span class="at">n =</span> <span class="dv">80</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                            <span class="at">model =</span> <span class="st">&quot;normal&quot;</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>                            <span class="at">design =</span> <span class="st">&quot;paired&quot;</span>,</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>                            <span class="at">delta =</span> <span class="fl">0.4</span>,</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>                            <span class="at">shape2 =</span> <span class="dv">2</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>example_A2<span class="sc">$</span>E</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;  [1]  2.39196918 -2.99152981 -0.66674429 -2.34453890 -4.01583956  4.04424504</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;  [7] -0.90678682 -0.16936244 -0.37389921  1.17338995  3.60078170  3.76230991</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; [13] -1.96721278 -2.31691451 -2.62534159 -2.10620980  4.31871415  0.41529174</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; [19] -1.28523040 -0.80232021  2.54891881  0.92119567 -0.22854396 -1.09926019</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; [25] -1.32439666  4.49608061  2.27984016  4.41737423 -0.44274714 -0.30166885</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; [31] -1.65476120 -0.10103825  1.34371893  3.11787964  1.52833721  1.31196018</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; [37]  2.86190733  2.69427370  0.61319608 -1.16663331  2.88239965  0.67771684</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; [43]  3.82126318 -0.46128195 -1.68845916  1.47515905 -0.93917197  1.67761122</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt; [49] -3.04797967 -3.08486016  1.77960835  1.06192635  2.14213542 -3.63249116</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt; [55]  2.82515821  2.80098940  2.46413665  1.97282051  4.62014703 -2.50761969</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt; [61] -0.76620770  1.21944797 -1.21396327  0.57110088  1.89248634 -0.90734612</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt; [67]  1.71421197  1.49981847 -1.21345872 -1.59475943  2.35178128  0.06115364</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; [73]  1.84438356 -1.28883721  2.95458737 -2.28622110  1.93068134  1.32840514</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt; [79]  0.93598656  1.73504537</span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a>example_A2<span class="sc">$</span>C</span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;  [1] -0.896914547  0.184849185  1.587845331 -1.130375674 -0.080251757</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;  [6]  0.132420284  0.707954729 -0.239698024  1.984473937 -0.138787012</span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt; [11]  0.417650751  0.981752777 -0.392695356 -1.039668977  1.782228960</span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt; [16] -2.311069085  0.878604581  0.035806718  1.012828692  0.432265155</span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt; [21]  2.090819205 -1.199925820  1.589638200  1.954651642  0.004937777</span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt; [26] -2.451706388  0.477237303 -0.596558169  0.792203270  0.289636710</span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt; [31]  0.738938604  0.318960401  1.076164354 -0.284157720 -0.776675274</span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt; [36] -0.595660499 -1.725979779 -0.902584480 -0.559061915 -0.246512567</span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt; [41] -0.383586228 -1.959103175 -0.841705060  1.903547467  0.622493930</span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt; [46]  1.990920436 -0.305483725 -0.090844235 -0.184161452 -1.198767765</span></span>
+<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="co">#&gt; [51] -0.838287148  2.066301356 -0.562247053  1.275715512 -1.047572627</span></span>
+<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="co">#&gt; [56] -1.965878241 -0.322971094  0.935862527  1.139229803  1.671618767</span></span>
+<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a><span class="co">#&gt; [61] -1.788242207  2.031242519 -0.703144333  0.158164763  0.506234797</span></span>
+<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a><span class="co">#&gt; [66] -0.819995106 -1.998846995 -0.479292591  0.084179904 -0.895486611</span></span>
+<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a><span class="co">#&gt; [71] -0.921275666  0.330449503 -0.141660809  0.434847762 -0.053722626</span></span>
+<span id="cb6-41"><a href="#cb6-41" tabindex="-1"></a><span class="co">#&gt; [76] -0.907110376  1.303512232  0.771789776  1.052525595 -1.410038341</span></span></code></pre></div>
+<p>As an example with a distribution very different than the normal, consider the following commands:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>example_B1 <span class="ot">&lt;-</span> <span class="fu">dfba_sim_data</span>(<span class="at">n =</span> <span class="dv">100</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>                            <span class="at">model =</span> <span class="st">&quot;cauchy&quot;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>                            <span class="at">design =</span> <span class="st">&quot;paired&quot;</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>                            <span class="at">delta =</span> <span class="fl">0.5</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>example_B1</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; Frequentist p-value </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;  0.9103605 </span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; Bayesian posterior probability </span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;  0.2911831</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>example_B1<span class="sc">$</span>E</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;   [1]   -1.39263889    2.51232669    1.63614785    0.47701225   -1.74300312</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt;   [6]    1.29195003    0.93039956   15.02375500    0.25684386   -2.61894118</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;  [11]    0.42499787   -0.62148240    2.56959890    5.07309228    1.00246836</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;  [16]    0.54110755   -0.74366507    0.83601581    6.36947328   -1.62335831</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;  [21]    0.47435465   72.73310490   20.82227994    1.10608966   -0.47015879</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;  [26]    7.35574602  -27.98571014    1.26340017    1.37415416   -2.72486647</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;  [31]   -3.67267954    0.74694880    0.61212033   -1.57755063    0.27190120</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;  [36]   -2.64162132   -4.66276783  -11.70237908    0.45314101  -41.14565941</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;  [41]   -1.04565497   -2.52772284    1.43239638    1.55267080   -0.63924892</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;  [46]    7.16152714    1.11334873   -0.52096358    0.84233315    0.04676054</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;  [51]   -2.15537644   -5.00881091    2.17617954    7.24239304 -721.33547226</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;  [56]    1.13844383  -10.21155879    0.74099516    1.69158751    1.28935329</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;  [61]    1.74652167    0.15795373    6.36401818   -0.32735191    0.10631988</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;  [66]    4.07253422    0.70318925    2.25944225   -0.68038392    2.28714708</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;  [71]   -1.80263989   -0.04724313    0.01450588    3.31526997    3.03720625</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;  [76]    0.15918611   -1.55240928   -0.55768640   -2.41170041    0.18575031</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;  [81]    1.82086740    1.18540206    0.12733169  -94.81354023    0.09333932</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt;  [86]    1.17590232   -0.45034045   -0.67458889    0.32134102   -6.13067393</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;  [91]   -0.77471045    3.24791285    0.82795500    0.26755719    1.73409762</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;  [96]   -2.91903140    0.86130239   -0.04768216    2.05368834   -0.31229431</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>example_B1<span class="sc">$</span>C</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt;   [1]   1.10251990   2.35383060  -4.29262624  -0.29664256   0.73464686</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt;   [6]  -0.33052199  -0.17557937  -1.80824308  -2.32862439   0.19658244</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt;  [11]   0.75561999   0.61954832  -1.50147326   2.62405381  -0.88250440</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt;  [16] 138.34760311  -1.22737450  -0.02543323   2.52652746  -0.84088155</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt;  [21]  -0.20805599   0.78651704  -1.93735849   0.41625813   1.11450727</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;  [26]   2.67469787   0.04209180   2.58214078  -0.43389224   1.82372681</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;  [31]  17.74417330  -3.09202775  49.27718408   0.66236678  -0.60259133</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;  [36]  -1.70964962  -0.75456222   0.35274134  -1.18049671   3.49417974</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;  [41]  -0.63045697  -2.00824906  -0.81186981  -5.94609241 -10.67930318</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;  [46]  -0.77892393   0.07342868  13.95554098  -1.11779219  -1.44463156</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt;  [51]  14.19927731  -0.46593149   5.07709560   0.96783322   0.22576743</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt;  [56]   0.32306654   1.53568997 -17.06244971  -1.79215906   3.31831965</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt;  [61]  -0.28075465   1.31977477   7.73320790   1.72031518  -1.94941320</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt;  [66]   1.05168352  14.81386093  -0.90243119   0.27102773  -0.41303137</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt;  [71]   1.80651036  -0.55204644   1.91306982   1.73761346  13.43512638</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt;  [76]  -0.35223994  -0.45401782   2.77732059  -0.84154958  -0.12435738</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;  [81]   4.80293716  -1.26837364   3.07749829   1.63591139  -0.95643295</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt;  [86]   0.73954537  -1.27985783   0.40208959   0.97204780   0.48330667</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;  [91]   0.93687401   0.18729283  -2.08605029  -0.40954977  -0.83303134</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt;  [96]  -0.73954011   7.07006090   3.44541936  -0.67561006  -2.92275964</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">plot</span>(example_B1)</span></code></pre></div>
+<p><img src="data:image/png;base64,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j8D9999v3bp1S/np3r27HX/88TZkyBCbMmVKZEUuuugiO+iggyK3ZVu5YMEC++WXX7LtZhMnTvT1Gj16dGLf888/3w499NDE+7gWStYpquy4yoo7n+eee8722msvq1+/vu2www5psy/LtU7nEFVm1Lq0lWEDAgggkKNA1Rz3YzcEEKhAAj/88IO9+eab1rBhQ6tVq5av+cqVK00B2eLFi+2WW26xk046ye65556Us5owYYK9++67KetyefP+++/bEUccYU899ZQ1atQo4yELFy70dVNAHKYvvvjCPvvss/BtLK9RdYoqO5bCYs5k1qxZdswxx1jVqlWtR48e1rZt27QllOVaRzlElRm1Lm1F2IAAAgiUQoAAtBRY7IpARRNQ69ghhxySUu3x48dbr1697N5777WOHTvamWeemdg+fPhw+/PPPxPvc11QAPnrr7/mtHuHDh18sNmsWbOc9i/rTlF1ylfZZa1zeJxaKJcuXWqXX365XX311eHqjK+ludZRDlFlvvbaa6WuR8ZKshEBBBD4PwEewXMrIFBkAl26dLEPPvjANttsM7vwwgtNLWhh2nLLLa1Tp07h28TrkiVL7Pvvv7dly5Yl1pVmQS2vykOpdu3a/pFyppbSGTNm2PLly0tTRE77Zip79erVNn36dFPrYC5p1apVNm3aNNNraVO2ssI6tGvXrrRZp+yf7lpHOUSVGbUupQD3ZubMmb5lveT6ku+T74GS23LNQ8fl6v7XX3/5e3vFihUli0t5n0vZQRCYWoNnz56dcixvEEBgLQTcfywSAghUMoFLL700cL8WgrFjx6Y9s1tvvdXvc+eddyb26dmzZ7DJJpsk3rs/uoHrExpUqVLF77veeusFrtU0cAFsYh/XrzSoXr26316zZs3ABZZ+24EHHhjst99+wd133x24R8mB6wrgl10LbOACoEDlh2mfffYJ6tatG7j+hsGmm27q81Kerl9oMHfu3HC34PXXX/fHutbbxLpwoU2bNsEee+zh36arU1TZLsgKzj33XF8/melHeb344oth1v5V56x6P//888HJJ5/sl7XvBhtsEAwePDhwAXPK/lFvcimrc+fOQY0aNXw99KoyX3nllajs/LqyXOuSDlFlusf+aevhunMEV155ZdCgQQNfTzlo/3HjxqXUM909oJ1yzaO07p9++mlwwAEHJK5ntWrVgjPO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Zh+2IoAAAggggAACCMQsQAAaMyjZIYAAAggggAACCGQWIADN7MNWBBBAAAEEEEAAgZgFCEBjBiU7BBBAAAEEEEAAgcwCBKCZfdiKAAIIIIAAAgggELNA1Vzy+/bbb23ChAmm14kTJ/pDmjRpYrvssov16NHDGjZsmEs27IMAAggggAACCCCAgGVsAf3mm298gNm+fXs7+eSTbcyYMbZo0SKbOXOmPfroozZgwABr3LixnXTSSfbzzz/DiQACCCCAAAIIIIBAVoHIAHTOnDk+4OzVq5fttNNO9tVXX9mSJUtsypQp9vrrr9snn3ySCERfeOEFmzdvnrVt29auv/56W758edZC2QEBBBBAAAEEEECgeAUiH8Hfcssttuuuu9o999xj66+/flqdZs2amX66d+/uH83feOON9swzz1jfvn3THsMGBBBAAAEEEEAAgeIWiAxAb7755lKrbLPNNvbggw+W+jgOQAABBBBAAAEEECgugchH8MVFwNkigAACCCCAAAII5FMgYwCqAUd6DF8ynXLKKabH7eoXSkIAAQQQQAABBBBAoDQCaQPQ1157zTT6/dJLL7UgCFLy/Pjjj23IkCHWtWtXmz9/fso23iCAAAIIIIAAAgggkEkgMgCdPXu29ezZ07bccksbP368ValSJSWPTz/91O68806bNGmSXXbZZSnbeIMAAggggAACCCCAQCaByAD0scces5UrV9rTTz/tg9CSGVSrVs0GDRpk/fr1s/vvv9/vW3If3iOAAAIIIIAAAgggECUQGYB+//33tttuu1n9+vWjjkmsO/roo23FihU2ffr0xDoWEEAAAQQQQAABBBDIJBAZgLZq1crmzp2b6Ti/TX1D1Rqqr+UkIYAAAggggAACCCCQi0BkAKrBRZMnT87asvnyyy/7b0qqXbt2LmWxDwIIIIAAAggggAAC0d8Fr6/fbNGihf9Go2nTpkUyjRgxwm677Tbbb7/9IrezEgEEEEAAAQQQQACBKIHIb0LSY/V33nnH9t13X9t+++39iHh901GdOnX8yPcvvvjCPvjgAzv99NPt8ssvj8qXdQgggAACCCCAAAIIRApEBqDaU/1AFYReccUV9uGHH9qjjz7q5wOtV6+eD0o1+n3gwIGRmbISAQQQQAABBBBAAIF0AmkDUB3QrFkzGzVqlD924cKFftL51q1brzEvaLrMWY8AAggggAACCCCAQEmBjAFo8s5q+dQPCQEEEEAAAQQQQACBtRGIHAW/NhlyLAIIIIAAAggggAACmQQIQDPpsA0BBBBAAAEEEEAgdgEC0NhJyRABBBBAAAEEEEAgk0CpA9BDDjnEbrjhhkx5sg0BBBBAAAEEEEAAgbQCOQ9CCnOYOnWqbbnlluFbXhFAAAEEEEAAgXIVuP76623p0qW+Dv369bOtttqqXOtD4dkFSh2AZs+SPRBAAAEEEEAAgfwIDBs2zC6++OJEYXpKu2zZssR7FgpToNSP4AvzNKgVAggggAACCBSrwHbbbZc49fr16yeWWShcgVK3gP7tb3+jabtwryc1QwABBBBAAAEECl6g1AHoWWedVfAnRQURQAABBBBAAAEECleAR/CFe22oGQIIIIAAAgggUCkFCEAr5WXlpBBAAAEEEEAAgcIVIAAt3GtDzRBAAAEEEEAAgUopQABaKS8rJ4UAAggggAACCBSuQGQA+vbbb9s//vGPlFr//vvvNnfu3JR1L730knXq1CllHW8QQAABBBBAAAEEEMgkEBmAfvrppzZixIiU4y655BLr06dPyroFCxbYhAkTUtbxBgEEEEAAAQQQQACBTAKRAWimA9iGAAIIIIAAAggggMDaCBCAro0exyKAAAIIIIAAAgiUWoAAtNRkHIAAAggggAACCCCwNgIEoGujx7EIIIAAAggggAACpRYgAC01GQcggAACCCCAAAIIrI1A2u+CnzdvnnXp0iWR97Rp02zZsmUp6+bPn5/YzgICCCCAAAIIIIAAArkIRAagLVu2tL333jvl+A4dOqS815s6depYq1at1ljPCgQQQAABBBBAAAEE0glEBqBHHXWU6YeEAAIIIIAAAggggEDcAvQBjVuU/BBAAAEEEEBgnQu88MILWcv4+uuvbcaMGVn3Y4f8C0QGoA8//LCpz2dp0qpVq2z06NH2zjvvlOYw9kUAAQQQQAABBEot0LNnT1u9enXG4+666y57+eWXM+7DxvIRiAxAN910Uzv44IPt9NNPtw8//NCCIEhbOw1M0td2tmnTxkaOHGnNmzdPuy8bEEAAAQQQQAABBBCI7APavXt369atmw0fPtwOOeQQq127tu24446mwUkKMBctWmSTJ0+27777zqZMmWJNmza1m266yXr37o0oAggggAACCCCAAAIZBSIDUB1RvXp1O/fcc23gwIF233332YQJE+y9996zSZMm+RbRJk2aWOfOnW3IkCF25JFHWo0aNTIWxEYEEEAAAQQQQAABBCSQNgANeerXr2/nn39++NYHn1WqVEm8ZwEBBBBAAAEEEEAAgdIIRPYBzZQBwWcmHbYhgAACCCCAAAIIZBModQCaLUO2I4AAAggggAACCCCQSYAANJMO2xBAAAEEEEAAAQRiFyAAjZ2UDBFAAAEEEEAAAQQyCZQqAF28eLF99dVX9ueff9ry5csz5cs2BBBAAAEEEEAAAQQiBXIKQGfOnOmnWtpwww2tY8eONnHiRD/90gUXXGBLliyJzJiVCCCAAAIIIIAAAghECWQNQFesWGH6uitNOH/bbbdZrVq1fD577rmnjRo1ygYPHhyVL+sQQAABBBBAAAEEEIgUyDoP6Lhx42zWrFk+AK1Xr55dccUVPiN961HdunWtf//+zA0aSctKBBBAAAEEEEAAgSiBrC2gU6dOtW233dYUfJZMO++8s82ZM8emT59echPvEUAAAQQQQAABBBCIFMgagLZu3dref/99+/XXX9fIYPTo0Va1alVr1qzZGttYgQACCCCAAAIIIIBAlEDWR/DdunWz5s2bW48ePey8886z1atXm1pFx44dayNHjrRjjz3Wf298VOasy03gscces5dfftkWLVpkO+64o5199tm20UYb5XYweyGAAAIIFKzA77//7v9Wjh8/3o+h2H///e3EE09cJ/X98ssv/diMH3/80TcMnXDCCbbbbrutk7JKZqruek899ZTNnj3bz5RTs2ZN301vv/32s5NOOsnWX3/9kof4p6f33HOPTZo0yRo0aGAHHXSQ7/L33nvv+f3VzW/y5Mk2YcIE0yw8Suutt55tvPHGdsYZZ/juf2tkWmLFDz/84GfvefHFF2277bbzscy1115rslKd2rRpY02aNDFdpxYtWtjJJ59s22+/fYlc1t3bYv77n7UFVCPfn3nmGVu1apUPNjUFU79+/Wzo0KG2xx572LBhw9bdlSmCnC+66CK7+OKLLfxP+uGHH/r/iOraQEIAAQQQqLgCCpoUWGnmmAEDBtjBBx/sg7G99trLN+bEeWbvvvuuD5waN25sp512munp5e67725PP/10nMVE5jV8+HAf2LVv397efvttH1i+8sorvkFFs+Vssskma0zdqK57quNff/3lTdSlr0+fPqa8jj76aFu2bJkPphWM/vHHH95LDWArV660X375xa688kofgKrhJl3SmBW5bLXVVr6Mjz76yAfkr732mh1++OE++NTyww8/bIcddphv+Nlhhx38U990eca5vuj//gc5JheABh9//HHgovVgzJgxgfsPleORlXO3Ll26BB988MFandzNN98cuJs5kG1yuvDCCwP3Hzlwc60mr2YZAQQQQKCCCLjAKnAteIF7erhGjV2LW3D55Zevsb6sK77//nv/t8R1l0vJwj2tDFxLZPDJJ5+krI/zzauvvurLnjt3brDvvvsG9evX99k/99xzQaNGjQLXmBJ06tQpuPXWWxPFLliwwB9z5513+nUusAzczDqBC54D160vcMG6366/j66V0i9vsMEG3sw9kfXvZavtBxxwgM/btW4mjlG59957r3/vWl8D18oaqH7aXz+bb7554AJbv6y4RutUtmtgC1xLdeAC5sDN/JOo77pYWNd//zt06BC4Vt51UfXY8szaAuoujP+Uof6eavbWI/cjjzzS3I3jm8a1nVQ2gSeeeML06U6PFJLTjTfe6M2//fbb5NUsI4AAAghUEIEZM2ZYtWrV7IUXXlijxmp10+//uNKzzz5rp5xyyhqP27fccktzga49+eSTcRW1Rj46D7Va1q5d27cchk/vNH2jC0h997K33nrLz6Cj1kuld955xz9BHTRokH+vFs5PP/3Ut5w+/vjj5oJXc408voVUT1+V1PXv6quvNhdc+pbVzTbbzK/XGBW1iIb7aaVaStWq+eijj/qWV00n6QJl3xL7/PPP+0fud911l7dRy6umlNTxegK5yy67+Ke8evK7LpNiqmL/+58a+aTRPvDAA/3jg59//tnv4cJf3ydDze233357mqNYnU1AnnoEEZXcJzTflyZqG+sQQAABBApbQH0ht9lmm8hK6vd+GKhF7lDKlcqrXbt2kUcpUAv/dkfusJYrVfYWW2xh8+bNMz3+V9/PMLVq1cqfp2bRqV69uh/noG06RvFDmDTIWYOZa9SoYTpGXRfU3U/LVapU8bvVqVPHv2qdHunPnz/fv1+6dKkpmFT5YdI29bk999xzfReEzz//3P89Vewie+WhL9jRo3klrdOA6tBJ28PlMM+4X2WgcqNSsfz9zxqA6lOH+nR88803iU9XuiH0qcM1qdull15q+nRBKr2AbnJ9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+/u5JyD+dwS/B0Kd4nlVY4RSs2bNUk5av/9//fVX/+EkZQNvCkqgakHVhsogkCSgQPP333+3vffe2w9C2m677eyJJ56wV1991b799ltzfcJ8C4j+QJVM2hYGoGolybZPyeN5XzgC48aNs8cee8y+/vrryErlcn1z2Scyc1YWpMDll19us2bNsjFjxvj65XJ9c9mnIE+WSqUVWLRokd/muuak7KPf/2o512BUfTAhFaYAAWhhXpeiqpVGsurTanLSL42FCxfaV199ZUOHDrVLL73Ub9ZIWDfAyG666Sa79tprbf311ze1gJRMekS7YsUKvzqXfUoez/v8C+geSB7VrFkP1NJ10kknmRt84kc+R9Uql+ubyz5RebMuvwJR94C64SSn8P++RsF36dLFb8rl+uayT3I5LBe+gGZEUCr5NyB8H/4NKPwzKc4arvmXuzgdOOtyFNBjFD0ySf7RI9NGjRqZAkk9dg9Thw4dbNttt7WPP/7Yr2rSpIlvJQ23h69u4ILVrVs3533C43gtP4Fu3bql3AO33nqrn15LgYO6X4wfP97/uIFo5gao+eXly5cb90D5XbO4S466B5LLUMvnRRddZFdddZVdcskliU3cAwmKolpo3LixP189KUtO4Xt9iCUVrgAtoIV7bYqmZgo077rrrpTz1S8WBaSa101/XJKT5gBcunSpX6X95s2b51vKwk+92qDH73vssUfO+/gd+adcBdTKnTx/q+bzc1Oq2LRp02y33XZLqdsPP/xg//rXv2z69OnGPZBCU6HfRN0D4Qkp+FSr5+23327nnHNOuNq/cg+kcBTNG113pbC7VXjieq9uV2EjRLie1wITKLyB+dQIgf8VcH3//HRKmvcvTJqGyY2ED9zE836VplZx/6UCNzl9uEvgghK/7vHHH895n8TBLBSUgAs0A9ffN+VHc74ee+yxfp17xOan4uIeKKjLFntlhg0bFrinIcH9998fmTe/ByJZKv1KzfXsZj1JmZZNJ+0+vAZuZHylP/+KfoJVdAIFFhNTHQQSAjvuuKPpW1A02KBevXr+W5E0PdMHH3xgehyvpG/A0DQ9ahGrXbu2HymtR/Dvv/++f4Sf6z4+M/4peAENRtM1v/POOxN15R5IUFS6hTlz5vhp1dx8jzZ48OA1zq9Pnz7+25G4B9agKYoVbgJ631XnySefNHXhuOeee+zi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" /><!-- --></p>
+<p>As with the previous example, repeating these commands with a different starting seed results in two different random scores for paired Cauchy variates.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>example_B2 <span class="ot">&lt;-</span> <span class="fu">dfba_sim_data</span>(<span class="at">n =</span> <span class="dv">100</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>                            <span class="at">model =</span> <span class="st">&quot;cauchy&quot;</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>                            <span class="at">design =</span> <span class="st">&quot;paired&quot;</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>                            <span class="at">delta =</span> <span class="fl">0.5</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>example_B2<span class="sc">$</span>E</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;   [1]  1.231039e+00  4.822881e+00  4.389775e-01 -9.597813e-02  1.764190e+00</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt;   [6] -2.717543e+00  1.715058e-01  7.278421e+00  9.993489e-01  9.278128e-01</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt;  [11]  5.776155e-01 -5.899310e-01  2.879434e+00 -3.701513e+00 -1.113842e-01</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt;  [16] -1.627588e-01  7.728193e-02  8.619926e-01  3.502999e-01 -4.040561e+00</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt;  [21]  6.163465e-01  1.470841e+00  4.335672e-01  1.247760e-01  1.444890e+00</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt;  [26] -4.556848e-01 -4.499709e+00  1.923836e+00 -9.357222e-01  2.265352e+00</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt;  [31]  1.256286e+00  2.408186e-01  5.717904e-01  3.856534e-01  2.031410e+00</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;  [36] -1.245426e+00 -8.954369e+00 -1.443718e-01  1.158063e+00  3.561885e+00</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt;  [41]  1.127824e+00  1.751699e+00 -1.821464e+00  1.877294e+00  6.092095e+00</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt;  [46] -6.328349e-01 -1.213392e+00  1.988059e+00  1.533664e+01  1.801053e+00</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt;  [51]  1.144243e+00  2.638391e+00  1.882284e-01  3.392492e+00 -3.279043e-01</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt;  [56]  1.741467e+00  5.111861e-03  1.100947e+00  7.542938e-01  1.806607e+00</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt;  [61] -4.823711e-02  3.263398e-01  6.422095e-01 -4.486686e-01  1.848459e+00</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt;  [66] -1.446642e+00  7.735345e-01  4.228188e-01  5.428301e-01 -7.648460e+00</span></span>
+<span id="cb11-23"><a href="#cb11-23" tabindex="-1"></a><span class="co">#&gt;  [71]  3.920843e-01  8.286522e-01  1.543346e+00  1.581401e-01  3.222311e+00</span></span>
+<span id="cb11-24"><a href="#cb11-24" tabindex="-1"></a><span class="co">#&gt;  [76] -2.543375e-01  2.453450e+00  9.657548e-01 -1.454877e+00 -6.687467e+00</span></span>
+<span id="cb11-25"><a href="#cb11-25" tabindex="-1"></a><span class="co">#&gt;  [81]  3.262620e-01 -3.861250e+00  3.532966e-01 -3.259340e-01  8.897068e-01</span></span>
+<span id="cb11-26"><a href="#cb11-26" tabindex="-1"></a><span class="co">#&gt;  [86] -6.163003e-02  7.808741e-01 -5.088356e-01  7.076853e-01  7.490537e-01</span></span>
+<span id="cb11-27"><a href="#cb11-27" tabindex="-1"></a><span class="co">#&gt;  [91]  8.426706e-01  3.812900e+00  4.211861e-01  1.069697e+00 -1.038526e+02</span></span>
+<span id="cb11-28"><a href="#cb11-28" tabindex="-1"></a><span class="co">#&gt;  [96]  1.234029e+00  1.225208e+00  1.126431e+00  1.662443e+00  9.350540e-01</span></span>
+<span id="cb11-29"><a href="#cb11-29" tabindex="-1"></a></span>
+<span id="cb11-30"><a href="#cb11-30" tabindex="-1"></a>example_B2<span class="sc">$</span>C</span>
+<span id="cb11-31"><a href="#cb11-31" tabindex="-1"></a><span class="co">#&gt;   [1]    0.65634786   -1.35501351   -4.26394344    0.58316746   -0.17828774</span></span>
+<span id="cb11-32"><a href="#cb11-32" tabindex="-1"></a><span class="co">#&gt;   [6]   -0.17946910    0.42960529   -0.57686664    9.91942932   -6.31583937</span></span>
+<span id="cb11-33"><a href="#cb11-33" tabindex="-1"></a><span class="co">#&gt;  [11]   -5.98774837    0.93254957   -0.93603240    0.63823928    3.26083375</span></span>
+<span id="cb11-34"><a href="#cb11-34" tabindex="-1"></a><span class="co">#&gt;  [16]   -0.49556224   -0.07428251    0.85857558    5.70953592    0.24001040</span></span>
+<span id="cb11-35"><a href="#cb11-35" tabindex="-1"></a><span class="co">#&gt;  [21]   -1.79356668    2.71191838   -0.56255042    0.51151135    1.92171947</span></span>
+<span id="cb11-36"><a href="#cb11-36" tabindex="-1"></a><span class="co">#&gt;  [26]   28.34100330    0.50654872    2.07518260   -0.11789894    0.44161475</span></span>
+<span id="cb11-37"><a href="#cb11-37" tabindex="-1"></a><span class="co">#&gt;  [31]    0.03272988    0.56890129   -0.67871723   -0.43699346  -22.27289880</span></span>
+<span id="cb11-38"><a href="#cb11-38" tabindex="-1"></a><span class="co">#&gt;  [36]   -2.36786977   -0.53177166    1.24716447   -1.72504774    0.51138575</span></span>
+<span id="cb11-39"><a href="#cb11-39" tabindex="-1"></a><span class="co">#&gt;  [41]   -0.05746675    1.34954628    0.37817039    0.56292291   -0.17763152</span></span>
+<span id="cb11-40"><a href="#cb11-40" tabindex="-1"></a><span class="co">#&gt;  [46]   -0.75149043   -0.07968836    1.94879322 -161.58632951   -0.67777639</span></span>
+<span id="cb11-41"><a href="#cb11-41" tabindex="-1"></a><span class="co">#&gt;  [51]    0.02233742    0.04619510   -1.53912291   -0.22444953    1.17384226</span></span>
+<span id="cb11-42"><a href="#cb11-42" tabindex="-1"></a><span class="co">#&gt;  [56]   -0.67109223   -0.79662763   -0.03487904   -2.67298247   -1.28764014</span></span>
+<span id="cb11-43"><a href="#cb11-43" tabindex="-1"></a><span class="co">#&gt;  [61]   -0.88146307   -0.37076171   -2.41160461    1.06690534   -0.47412584</span></span>
+<span id="cb11-44"><a href="#cb11-44" tabindex="-1"></a><span class="co">#&gt;  [66]    5.02634933    2.72762030    8.22767128    0.82028557    0.21015696</span></span>
+<span id="cb11-45"><a href="#cb11-45" tabindex="-1"></a><span class="co">#&gt;  [71]    1.17608458    1.47525153    0.13327918    0.65540973    0.64958580</span></span>
+<span id="cb11-46"><a href="#cb11-46" tabindex="-1"></a><span class="co">#&gt;  [76]   -0.96625441    1.27309215   -0.44080158    3.16690936   -4.30292473</span></span>
+<span id="cb11-47"><a href="#cb11-47" tabindex="-1"></a><span class="co">#&gt;  [81]    1.97244393   -1.66692710    0.07886089    3.11429671    0.72642988</span></span>
+<span id="cb11-48"><a href="#cb11-48" tabindex="-1"></a><span class="co">#&gt;  [86]   -0.48396807   -0.08972656    1.61724576   -1.11160867    1.81991733</span></span>
+<span id="cb11-49"><a href="#cb11-49" tabindex="-1"></a><span class="co">#&gt;  [91]   -0.07315583    2.98227544    2.52568571   -5.20772070    8.75714527</span></span>
+<span id="cb11-50"><a href="#cb11-50" tabindex="-1"></a><span class="co">#&gt;  [96]    0.71118400    4.28025666    0.30086180    0.37897874    5.24501729</span></span></code></pre></div>
+</div>
+<div id="references" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> References</h1>
+<p>Arnold, B. C. (1983). <em>Pareto Distribution</em>. Fairland, MD: International Cooperative Publishing House.</p>
+<p>Chechile, R. A. (2003). Mathematical tools for hazard function analysis. <em>Journal of Mathematical Psychology</em>, <strong>47</strong>, 478-494.</p>
+<p>Fishman, G. S. (1996). <em>Monte Carlo: Concepts, Algorithms, and Applications</em>, Springer, New York.</p>
+<p>Gumbel, E. J. (1958). <em>Statistics of Extremes</em>, Columbia University Press, New York.</p>
+<p>Hardy, M. (2010). Pareto’s Law. <em>Mathematical Intelligencer</em>, <strong>32</strong>, 38-43.</p>
+<p>Harris, C. M. (1968). The Pareto distribution as a queue service discipline. <em>Operations Research</em>, <strong>16</strong>, 307-313.</p>
+<p>Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). <em>Continuous Univariate Distributions</em>, Wiley, New York.</p>
+<p>Pareto, V. (1897). <em>Cours d’Economie Politique</em> Vol. 2, F. Rouge: Lausanna.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>The letter <span class="math inline">\(l\)</span>, not to be confused with the numeral <span class="math inline">\(1\)</span><a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

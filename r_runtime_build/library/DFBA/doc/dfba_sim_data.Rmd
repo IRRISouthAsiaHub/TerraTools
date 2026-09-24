@@ -1,0 +1,324 @@
+---
+title: "dfba_sim_data"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_sim_data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction
+
+An important aspect of research is planning a forthcoming empirical study. Some key issues that scientists need to consider are: the nature of the population to be studied, the measure or measures that will be collected per sampled unit, the design of the study, and the planned sample size. The first two of those topics are not really statistical; rather, they involve the nature of the research question and the availability of measurement tools in the scientific field. But the last two issues -- the research design and the sample size -- *are* statistical topics. Statistical precision and therefore power grow with the sample size. Determining the statistical power of studies has important ethical and practical implications. When the research subjects are animals or patients, and the number tested was more than necessary to answer the research question, then too many subjects might have been unnecessarily exposed to participation risks. But if too few were tested, then the risks undertaken by the subjects might be wasted because there is not enough evidence to answer the research question. Time and financial resources are limited, so a careful researcher plans future studies so that there is a good chance that the research question is answered. In fact, funding agencies usually require scientists to provide a statistical rationale showing that their research design is feasible. Too few samples compromises the likelihood that the research question can be answered, but too many samples sinks more time and financial resources than needed into one experiment.
+
+The `DFBA` package has three functions that are designed to assist researchers in their planning of a forthcoming study where there are two conditions and where there is a univariate continuous measure for each observation. The `dfba_bayes_vs_t_power()` function and the `dfba_power_curve()` function deal with frequentist and Bayesian statistical power. These two functions are discussed together in a separate vignette (see the `dfba_power_functions` vignette). The third function is the `dfba_sim_data()` function.
+
+The `dfba_sim_data()` function creates two data sets from one of nine different probability models. The `dfba_sim_data()` function has an argument called `model` for stipulating the model for data generation. The `model` argument requires a text string from the following list:
+
+-   `"normal"`
+
+-   `"weibull"`
+
+-   `"cauchy"`
+
+-   `"lognormal"`
+
+-   `"chisquare"`
+
+-   `"logistic"`
+
+-   `"exponential"`
+
+-   `"gumbel"`
+
+-   `"pareto"`
+
+The `dfba_sim_data()` function is called many times in the Monte Carlo sampling that is used by the `dfba_bayes_vs_t_power()` and `dfba_power_curve()` functions. The output from the `dfba_sim_data()` function has the frequentist $p$-value from the appropriate $t$-test and the posterior probability from the corresponding Bayesian distribution-free test for a difference between the two conditions. If the research design has *paired* scores for the two variates, then the frequentist $t$-test is the *paired* $t$-test, and the Bayesian analysis is the Wilcoxon signed-rank test. If the design has *two independent conditions*, then the frequentist test is the two-sample $t$-test, and the Bayesian analysis is the Mann-Whitney $U$ test. Thus, from each call of the `dfba_sim_data()` function, there are two data sets generated along with the primary results from a frequentist $t$-test and the corresponding results from a Bayesian distribution-free statistical assessment. However, *power is not defined for a single sample*. Power estimates are calculated by either the `dfba_bayes_vs_t_power()` function or the `dfba_power_curve()` function from the Monte Carlo simulations that repeatedly call the `dfba_sim_data()` function.
+
+Besides generating random scores for each of two conditions, the `dfba_sim_data()` function can also include a block effect -- for example, variation among individuals with regard to a variable -- specified by the `block.max` argument. The `dfba_sim_data()` function generates random scores from a uniform distribution over the interval of $[0, \texttt{block.max}]$ where `block.max` is a non-negative number. The default value for `block.max` is $0$. A score for blocking is considered true variability rather than random measurement error. If an experiment is designed such that each participant is tested in both the *control* condition and in the *experimental* condition, then the experimental design is a *paired* (also known by other names including *within-block*, *repeated-measures*, *matched-samples*, and *randomized block*) design. For a paired design, the variation of blocks cancels out because the same block effect is added to the scores for each condition, thus, the difference scores per block removes the effect of block variation. This feature of paired-design experiments is a key advantage. For many research topics, though, it is either impractical or impossible to use the same block for testing performance in both conditions. If an experiment is designed such that participants are tested in only one of two conditions, then the experimental design is an *independent groups* (also known by other names including *between-block*, *completely randomized*, and *between-participants*) design. With an independent-grousp design, block variation does not cancel out, so block variability adds to statistical noise. Block variation increases statistical noise for the independent-groups design, thus affecting statistical power.
+
+Researchers might be wary of using distribution-free methods because of a presumed lack of statistical power. Those concerns are largely unjustified. In fact, in many cases the distribution-free analyses such as the Bayesian Wilcoxon-signed rank test and the Bayesian Mann-Whitney $U$ test outperforms the frequentist $t$-test (Chechile, 2020). The `DFBA` power functions provide power estimates across a wide range of data types, so researchers can see for themselves what the relative power may be for a wide variety of data models. Since most researchers cannot be sure that the data in a forthcoming experiment will be from Gaussian distributions, power studies using functions in the `DFBA` package are prudent experimental design tools. The `DFBA` functions provide the user with the opportunity to explore Gaussian data as well as eight other probability models to see the relative benefits for the frequentist parametric $t$-test versus a distribution-free Bayesian analysis. The `dfba_sim_data()` function is the essential function that interfaces with the other functions in the `DFBA` package for doing power analyses (even though the `dfba_sim_data()` function does not *itself* compute power estimates).
+
+Since the `dfba_sim_data()` function is used primarily by the two `DFBA` power functions, it is not expected that most users will ever need to implement the `dfba_sim_data()` function directly. Consequently. for those users it may not be necessary to read this vignette further. Such readers can skip to the `dfba_power_functions` vignette that describes both the `dfba_bayes_vs_t_power()` function and the `dfba_power_curve()` function. The rest of the current vignette is primarily reference material. [Nine Probability Models for Data Generation](#nine-models) is devoted to describing each of the nine probability models. [Using the `dfba_sim_data()` Function](#using-sim-data) describes the arguments for the function. [Examples](#Examples) consists of some selective examples for calling the `dfba_sim_data()` function to get two vectors of random scores along with the Bayesian posterior probability for a difference between the conditions along with frequentist $p$-value from a $t$-test.
+
+# Nine Probability Models for Data Generation {#nine-models}
+
+## Normal Distribution
+
+The *normal* or *Gaussian* distribution is the familiar symmetric probability-density function that is the basis of parametric statistics. The normal distribution has two population parameters: the mean and the standard deviation. Random values from any normal distribution can be sampled using the `stats` package *via* the command `rnorm(n, mean = 0, sd = 1)`. For example, `rnorm(100, 5, 2.2)` produces $100$ random values from a normal distribution with the mean of $5$ and the standard deviation of $2.2$. The normal distribution is important when all values of a continuous variate are composed of some true score plus measurement error, where the measurement errors are composed of the *sum of latent independent random perturbations*. The normal has the density function:
+
+
+\begin{equation} 
+  f(x)=\frac{1}{\sigma \sqrt{2\pi}}e^{-\frac{1}{2}\left(\frac{(x-\mu)}{\sigma}\right)^2},
+  (\#eq:normaldensity)
+\end{equation}
+
+where $\mu$ is the mean and $\sigma$ is the standard deviation. The support for $x$ is the real line (*i.e*., $x \in (-\infty,\,\infty)$). The normal does not have a closed form function for the cumulative probability $F(x)=P(y \le x)$; however, estimates are easily obtained with the `pnorm(x, mean = 0, sd = 1)` command.
+
+In the `dfba_sim_data()` function with the argument `model = "normal"`, the control condition variate has a normal distribution with a mean equal to $0$ and a standard deviation equal to the `shape1` argument for the function; in the experimental condition, the variate has a normal distribution with a mean equal to the `delta` argument with a standard deviation equal to the `shape2` input for the `dfba_sim_data()` function.
+
+## Weibull Distribution
+
+The *Weibull* distribution plays an important role for variates where the underlying process depends on a maximum or a minimum of a latent factor. For example, a system with many components, which are all required for proper functioning, fails when the weakest component breaks down (*i.e.*, the component with the minimum lifetime). The Weibull probability density function is:
+
+
+\begin{equation} 
+  f(x)=\frac{k}{s}\left(\frac{x}{s}\right)^{k-1}e^{-(\frac{x}{s})^{k}},
+  (\#eq:weibulldensity)
+\end{equation}
+
+where $s$ is a scale factor and $k$ is a shape parameter and where $x \ge 0$. Both the $k$ and $s$ parameters must be positive. When the shape parameter $k$ equals $1$, the Weibull distribution is equivalent to the *exponential* distribution.
+
+From the `stats` package, $n$ random values from a Weibull distribution can be sampled with the command `rweibull(n, shape, scale=1)`. Consequently, the command `rweibull(30, .7)` randomly samples $30$ scores from a Weibull distribution with a shape parameter of $.7$ and with a scale factor of $1$. In the `dfba_sim_data()` function, the variate for the first (control) condition `C` has a Weibull distribution with a scale factor $s=1$ and a shape parameter $k$ equal to the value of the \pkg{shape1} input for the function. The variate for the second (experimental) condition `E` has an offset equal to the `delta` input for the function plus a value from a Weibull distribution with a scale factor $s=1$ and a shape parameter $k$ equal to the `shape2` input. The value for the offset is added to the Weibull component of the scores in the experimental condition. The offset parameter and both shape parameter inputs must be positive values.
+
+## Cauchy Distribution
+
+The Cauchy distribution occurs when there is a latent process that is the ratio of two independent normal distributions each with a mean of $0$ (Johnson, Kotz, & Balakrishnan, 1995). The density function distribution is similar in shape to -- but has heavier tails than -- a normal distribution. This distribution is unusual because it does not have a defined expected value or variance. The density function is
+
+
+\begin{equation} 
+  f(x) = \frac{1}{\pi s\left[1+\left(\frac{x-l}{s}\right)^{2}\right]},
+  (\#eq:cauchydensity)
+\end{equation}
+
+where $s$ is the scale factor and $l$^[The letter $l$, not to be confused with the numeral $1$] is the location parameter (note: when $s=1$ and $l=0$, the distribution is equivalent to a $t$-distribution with 1 degree of freedom). The support for the Cauchy distribution is $x \in (-\infty,\infty)$, and the scale factor must be positive.
+
+The Cauchy is one of the distributions included in the `stats` package: for example, the command `rcauchy(50, location=0, scale=1)` generates $50$ random scores from a Cauchy distribution where the location parameter $l$ equals $0$ and where the scale factor $s$ is $1$. In the `dfba_sim_data()` function, the first (control) condition variate has a Cauchy distribution with location $l$ equal to $0$ and scale factor $s$ equal to the value of the `shape1` argument for the function; in the second (experimental) condition, the variate has a Cauchy distribution with location $l$ equal to the value of the `delta` input and with a scale factor $s$ equal to the `shape2` argument for the `dfba_sim_data()` function. The `dfba_sim_data()` function thus enables power studies where the variates are Cauchy-distributed and where the location parameters are separated by the amount stipulated with the `delta` argument and where the scale factor for the experimental condition can be varied to be different from the scale factor for the control condition.
+
+## Lognormal Distribution
+
+The lognormal distribution is a continuous density function that arises when the variate is the multiplicative product of a number of latent independent positive components (Johnson, Kotz, & Balakrishnan, 1995). The probability density is
+
+
+\begin{equation}
+  f(x) = \frac{1}{x \,\sigma \sqrt{2\pi}}e^{\left(-\frac{1}{2}\frac{(\log x- \mu)^{2}}{\sigma^{2}}\right)},
+  (\#eq:lognormaldensity)
+\end{equation}
+
+where $\mu$ and $\sigma$ are the respective mean and standard deviation on the log scale. The lognormal has support for $x$ on the positive real numbers.
+
+The lognormal is one of the distributions included in the `stats` package, for example, the command `rlnorm(40, meanlog = 0, sdlog = 2)` generates $40$ random scores from a lognormal distribution that has the mean and standard deviation on the log scale of, respectively, $0$ and $2$. In the `dfba_sim_data()` function, the first (control) condition variate `C` has a lognormal distribution with a mean and standard deviation on the log scale of respectively $0$ and the `shape1` argument; the second (experimental) condition variate `E` has a lognormal distribution with a mean and standard deviation on the log scale of the respective the `delta` and `shape2` arguments.
+
+## $\chi^2$ Distribution
+
+The $\chi^2$ distribution is a continuous density function for a variate that is the sum of squares of independent latent normal variables (Johnson, Kotz, & Balakrishnan, 1995). The probability density is
+
+
+\begin{equation}
+  f(x) = \frac{1}{2^{k/2}\Gamma(k/2)} x^{k/2 -1}e^{ -\frac{x}{2}},
+  (\#eq:chisqdensity)
+\end{equation}
+
+where $k$ is the degrees-of-freedom $(df)$ parameter and where $\Gamma$ is the gamma function. The $k$ parameter must be non-negative, but it need not be an integer. The support for $x$ is on the non-negative real numbers.
+
+The $\chi^2$ distribution is included in the `stats` package, for example: the command `rchisq(35, df = 5)` generates $35$ scores from a $\chi^2$ distribution with $k = 5$. For the `dfba_sim_data()` function, the first (control) condition variable `C` has a $\chi^2$ distribution where the degrees of freedom are equal to the `shape1` argument; the second (experimental) condition variate `E` has a positive offset equal to the `delta` argument plus a $\chi^2$ component with degrees of freedom equal to the `shape2` argument.
+
+## Logistic Distribution
+
+The logistic distribution is often used as an approximation to a normal, although the logistic has heavier tails than that of the normal (Johnson, Kotz, & Balakrishnan, 1995). Unlike the normal, the logistic has a closed-form equation for the cumulative probability. The probability density function $f(x)$ and the cumulative probability $F(x)$ are
+
+
+\begin{equation}
+  \begin{aligned}
+f(x) &= \frac{e^{-(x-\mu)/s}}{s(1+ e^{-(x-\mu)/s})^{2}},\\
+F(x) &= \frac{1}{1+e^{-(x-\mu)/s}},
+  \end{aligned}
+  (\#eq:logisticdensityandcumulative)
+\end{equation}
+
+where $\mu$ and $s$ are, respectively, the mean and scale factor of the logistic distribution. The support for $x$ is the whole real line. The logistic distribution is a good approximation of a normal with mean $\mu$ and standard deviation $\sigma$ when the mean of the logistic is $\mu$ and its scale factor $s=\frac{\sqrt{3}\sigma}{\pi}$.
+
+The logistic distribution is included in the `stats` package, for example: the command `rlogis(50, location = 0, scale = 3)` generates $50$ random scores from a logistic distribution with a mean of $0$ and a scale factor of $3$. In the `dfba_sim_data()` function, the first (control) variate `C` is sampled from a logistic distribution with a mean of $0$ and a scale factor equal to the `shape1` argument; the second (experimental) variate `E` is sampled from a logistic distribution with a mean and scale factor that are, respectively, the values of the `delta` and `shape2` arguments.
+
+## Exponential Distribution
+
+The exponential distribution is a special continuous density function that has the property of *constant hazard* (Chechile, 2003), that is: the probability for a critical event occurring given that it did not occur earlier (the *hazard*) is a constant. Because of this characteristic, the exponential is described as a *memoryless* distribution. The probability density function is:
+
+
+\begin{equation}
+  f(x) = k e^{-k x},
+  (\#eq:exponentialdensity)
+\end{equation}
+
+where $k$ is a positive constant that is equal to the hazard rate. The support for the distribution for $x \in [0,~\infty)$.
+
+The exponential distribution is included in the `stats` package, for example: command `rexp(60, rate = 5)` generates $50$ random scores from an exponential distribution with a rate parameter equal to $5$. In the `dfba_sim_data()` function, the first (control) variate `C` is sampled from an exponential distribution with a rate parameter equal to the `shape1` argument; the second (experimental) variate `E` is sampled from an exponential distribution with a rate parameter equal to the `shape2` argument plus an added offset value that is equal to the `delta` argument.
+
+## Gumbel Distribution
+
+The Gumbel distribution, like the Weibull distribution, is a probability model of a system where the process is controlled by the maximum or the minimum of latent factors (Gumbel, 1958). The probability density $f(x)$ and the cumulative probability $F(x)$ are
+
+
+\begin{equation}
+  \begin{aligned}
+    f(x) &= \frac{1}{s} e^{-\left[(x-\mu)/s\right]+e^{-(x-\mu)/s}}\,,\\
+F(x) &= e^{-e^{-(x-\mu)/s}} ,
+  \end{aligned}
+  (\#eq:gumbeldensityandcumulative)
+\end{equation}
+
+where $\mu$ is the mode and $s$ is a scale factor. The support for the distribution is for $x \in -(\infty,~\infty)$. The scale factor must be a positive value.
+
+The Gumbel distribution is *not* included in the `stats` package. However, since the Gumbel distribution has a closed form cumulative probability, random samples from any Gumbel can be obtained *via* the inverse transform method (Fishman, 1996). For the `dfba_sim_data()` function, the first (control) variate `C` is a Gumbel with a mode $\mu$ equal to $0$ and scale factor $s$ equal to the `shape1` argument; the second (experimental) variate `E` is a Gumbel with a mode and scale factor that are, respectively, the values of the `delta` and the `shape2` arguments.
+
+## Pareto Distribution
+
+The Pareto distribution arose as a probability model of incomes in economics (Pareto, 1897). Harris (1968) observed that a Pareto distribution can model cases of a mixture of exponentially distributed variates where the component rate parameters $k^{-1}$ have a gamma distribution. The cumulative function for a Pareto distribution is
+
+
+
+\begin{equation}
+ F(x) = 1-\left(\frac{x_m}{x}\right)^{\alpha},
+ (\#eq:paretocumulative)
+\end{equation}
+
+where $x\ge x_m$ and where $x_m$ is the mode (Arnold, 1983). Pareto observed that the value of $\alpha$ is typically near the value of $1.5$. However, when $\alpha=1.161$, the distribution represents a 80-20 law, which stipulates that 20 percent of people receive 80 percent of the income (Hardy, 2010).
+
+Although the Pareto distribution is not included in the `stats` package, random values can be easily obtained by the inverse transform method of Monte Carlo sampling (Fishman, 1996). In the `dfba_sim_data()` function, the first (control) variate `C` is sampled from a Pareto distribution with $x_m=1$; the second (experimental) variate `E` is sampled from a Pareto with $x_m$ equal to the value of the `delta` argument plus $1$. The $\alpha$ parameters for the control and experimental conditions are 1.16 times the respective `shape1` and `shape2` arguments. Since the default value for both the `shape1` and `shape2` arguments is $1$, the default condition results in random data samples that satisfy the 80-20 law.
+
+# Using the `dfba_sim_data()` Function {#using-sim-data}
+
+There are three required arguments for the `dfba_sim_data()` function: `model`, `design` and `delta`. The `model` argument is a character string from the following list:
+
+-   `normal`
+
+-   `weibull`
+
+-   `cauchy`
+
+-   `lognormal`
+
+-   `chisquare`
+
+-   `logistic`
+
+-   `exponential`
+
+-   `gumbel`
+
+-   `pareto`
+
+The `design` argument must be either the character string `paired` or the character string `independent`. The `delta` argument must be a non-negative value for the separation between the first (experimental) variable and the second (control) variable (corresponding respectively to the values `E` and `C`).
+
+
+The `dfba_sim_data()` function also has six optional arguments; listed with their corresponding default values, they are: `n = 20`, `a0 = 1`, `b0 = 1`, `shape1 = 1`, `shape2 = 1`, and `block.max = 0`. The value of the `n` argument *must be an integer greater than or equal to $20$*. The reason for the constraint on `n` is to assure that the Bayesian posterior distribution has sufficient sample size to use the large-$n$ approximation method for either the Bayesian Mann-Whitney analysis or the Bayesian Wilcoxon signed-rank analysis. The `a0` and `b0` arguments represent the shape parameters for the prior beta distribution used for the large-$n$ approximation for the two Bayesian methods; the default value of $1$ for each represents a *uniform* prior. The `shape1` and `shape2` arguments are associated with, respectively, the `C` and `E` variates. These arguments refer to different distribution shape parameters depending on the `model` input, for example: given the argument `model = "normal"`, `shape1` and `shape2` define the values of the standard deviations for the normal distributions from which the `E` and the `C` variates, respectively, are sampled. (see [above](#nine-models) for more details). The last optional argument is `block.max`. As described [above](#Introduction), the `dfba_sim_data()` function has the feature of enabling two other `DFBA` functions -- `dfba_bayes_vs_t_power()` and `dfba_power_curve()` --  to show the effect of block variation on power. In the default value `block.max = 0`, there is no blocking effect. As the value of the `block.max` argument increases, there can be reduced power for studies that have independent groups. But as mentioned previously, the `dfba_sim_data()` function *itself does not compute power*. Variation of the `block.max` argument from the default value is an option best employed by way of either the `dfba_bayes_vs_t_power()` or the `dfba_power_curve()` function rather than with the `dfba_sim_data()` function.
+
+# Examples
+
+As an example of `dfba_sim_data()` function consider the following commands:
+
+```{r}
+set.seed(1)
+example_A1 <- dfba_sim_data(n = 80,
+                           model = "normal",
+                           design = "paired",
+                           delta = 0.4,
+                           shape2 = 2)
+
+example_A1
+```
+
+```{r}
+example_A1$E
+```
+
+```{r}
+example_A1$C
+```
+
+```{r fig.height = 4, fig.width = 7}
+plot(example_A1)
+```
+
+Note that the above commands generate $80$ random samples from the standard normal for the `C` variate and $80$ random samples for the `E` variate from a normal distribution with a mean equal to $0.4$ and a standard deviation of $2$. Repeating the above commands with a different seed draws a second set of $80$ scores for each condition: 
+
+```{r}
+set.seed(2)
+
+example_A2 <- dfba_sim_data(n = 80,
+                            model = "normal",
+                            design = "paired",
+                            delta = 0.4,
+                            shape2 = 2)
+
+example_A2$E
+
+example_A2$C
+```
+
+
+As an example with a distribution very different than the normal, consider the following commands:
+
+```{r}
+set.seed(1)
+
+example_B1 <- dfba_sim_data(n = 100,
+                            model = "cauchy",
+                            design = "paired",
+                            delta = 0.5)
+
+example_B1
+```
+
+```{r}
+example_B1$E
+```
+
+```{r}
+example_B1$C
+```
+
+```{r fig.height = 4, fig.width = 7}
+plot(example_B1)
+```
+
+
+As with the previous example, repeating these commands with a different starting seed results in two different random scores for paired Cauchy variates.
+
+```{r}
+set.seed(2)
+
+example_B2 <- dfba_sim_data(n = 100,
+                            model = "cauchy",
+                            design = "paired",
+                            delta = 0.5)
+
+example_B2$E
+
+example_B2$C
+```
+
+# References
+
+Arnold, B. C. (1983). *Pareto Distribution*. Fairland, MD: International Cooperative Publishing House.
+
+Chechile, R. A. (2003). Mathematical tools for hazard function analysis. *Journal of Mathematical Psychology*, **47**, 478-494.
+
+Fishman, G. S. (1996). *Monte Carlo: Concepts, Algorithms, and Applications*, Springer, New York.
+
+Gumbel, E. J. (1958). *Statistics of Extremes*, Columbia University Press, New York.
+
+Hardy, M. (2010). Pareto's Law. *Mathematical Intelligencer*, **32**, 38-43.
+
+Harris, C. M. (1968). The Pareto distribution as a queue service discipline. *Operations Research*, **16**, 307-313.
+
+Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995). *Continuous Univariate Distributions*, Wiley, New York.
+
+Pareto, V. (1897). *Cours d'Economie Politique* Vol. 2, F. Rouge: Lausanna.
+
+```{=tex}
+\end{document}
+```

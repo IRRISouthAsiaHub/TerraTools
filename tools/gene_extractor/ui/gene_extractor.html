@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Gene Extractor</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+:root{--bg:#f4f7f5;--panel:#fff;--panel-soft:#f8faf9;--border:#dfe6e2;--text:#18221d;--muted:#68746e;--green:#237a4b;--green-dark:#185d39;--green-soft:#e7f4ec;--red:#c83c36;--shadow:0 2px 10px rgba(24,34,29,.06)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}
+.header{background:#fff;color:var(--text);padding:20px 34px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.brand-icon{width:40px;height:40px;border-radius:9px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px}
+.brand h1{margin:0;font-size:18px;font-weight:750;letter-spacing:-.2px}.brand p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);border:1px solid var(--border);padding:7px 11px;border-radius:999px}.status-dot{width:9px;height:9px;background:#59d18a;border-radius:50%}
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 30px;display:flex;gap:4px;overflow-x:auto}.nav button{border:0;background:transparent;padding:14px 18px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--green)}.nav button.active{color:var(--green);font-weight:600;border-bottom-color:var(--green)}
+.main{padding:26px 34px 42px;max-width:1400px;margin:auto}.tab{display:none}.tab.active{display:block}
+.instruction{background:var(--green-soft);border-left:4px solid var(--green);padding:15px 18px;margin-bottom:20px;border-radius:4px;font-size:13px}
+.instruction h4{margin:0 0 8px;color:var(--text)}.instruction p{margin:4px 0}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);padding:18px;margin-bottom:18px}
+.card h4{margin:0 0 12px;color:var(--text);font-size:14px;display:flex;align-items:center;gap:8px}
+.file-row{display:flex;gap:8px}.file-row input{flex:1}
+input[type=text]{width:100%;border:1px solid #C9D4C8;border-radius:6px;padding:9px 10px;background:#fff;color:var(--text);outline:none}
+input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(35,122,75,.10)}
+.file-name{font-size:11px;color:var(--muted);margin-top:6px;word-break:break-all}
+.btn{border:0;border-radius:6px;padding:9px 14px;cursor:pointer;font-weight:500;font-size:12px}
+.btn-secondary{background:#f0f4f1;color:var(--text);border:1px solid var(--border)}
+.btn-primary{background:var(--green);color:#fff}.btn-primary:hover{background:var(--green-dark)}
+.btn-lg{width:100%;padding:14px;font-size:15px;margin-top:6px}
+.status-msg{margin-top:16px;padding:12px 14px;border-radius:6px;font-size:13px;font-weight:500}
+.status-msg.success{background:#eafaf1;color:var(--green)}
+.status-msg.error{background:#fdecea;color:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;background:#EFF5EE;color:var(--navy);padding:10px;border-bottom:1px solid #D3E1D1;position:sticky;top:0}
+td{padding:9px 10px;border-bottom:1px solid #E9EEE8}
+.empty-table{text-align:center;color:var(--muted);padding:35px}
+.table-wrap{overflow:auto;max-height:520px;border:1px solid var(--border);border-radius:8px}
+.download-btn{margin-top:18px}
+.footer{text-align:center;color:#899289;font-size:11px;padding:20px}
+@media(max-width:1000px){.grid3{grid-template-columns:1fr}.main{padding:18px}.header{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="brand"><div class="brand-icon"><i class="fas fa-dna"></i></div><div><h1>Gene Marker &amp; Gene Extractor</h1><p>Physical marker positions &amp; genes within gene regions</p></div></div>
+<div class="status"><span class="status-dot"></span><span id="connectionStatus">Ready</span></div>
+</header>
+
+<nav class="nav">
+<button class="active" data-tab="extraction"><i class="fas fa-upload"></i> Data Extraction</button>
+<button data-tab="markers"><i class="fas fa-map-marker-alt"></i> Markers with Positions</button>
+<button data-tab="genes"><i class="fas fa-dna"></i> Genes in gene Regions</button>
+</nav>
+
+<main class="main">
+
+<section id="extraction" class="tab active">
+<div class="instruction">
+<h4><i class="fas fa-info-circle"></i> Instructions</h4>
+<p>1. Upload your extracted markers Excel file (columns: Markers, Chromosome, Position)</p>
+<p>2. Upload your gene markers Excel file (columns: Markers, Chromosome)</p>
+<p>3. Upload the rice gene list Excel file (columns: Chromosome, Start, Stop, Strand, Gene_id, Description)</p>
+<p>4. Click 'Extract Data' to process the files</p>
+<p>5. Download the results from the tabs above</p>
+</div>
+
+<div class="grid3">
+<div class="card">
+<h4><i class="fas fa-file-excel"></i> Extracted Markers File</h4>
+<div class="file-row"><input type="text" id="extractedMarkersPath" placeholder="No file selected" readonly><button class="btn btn-secondary" onclick="browseExtractedMarkers()">Choose Excel File</button></div>
+</div>
+<div class="card">
+<h4><i class="fas fa-file-excel"></i> gene Markers File</h4>
+<div class="file-row"><input type="text" id="geneMarkersPath" placeholder="No file selected" readonly><button class="btn btn-secondary" onclick="browsegeneMarkers()">Choose Excel File</button></div>
+</div>
+<div class="card">
+<h4><i class="fas fa-file-excel"></i> Rice Gene List File</h4>
+<div class="file-row"><input type="text" id="riceGenesPath" placeholder="No file selected" readonly><button class="btn btn-secondary" onclick="browseRiceGenes()">Choose Excel File</button></div>
+</div>
+</div>
+
+<div class="card">
+<button class="btn btn-primary btn-lg" onclick="extractData()"><i class="fas fa-cogs"></i> Extract Data</button>
+<div id="statusMessage"></div>
+</div>
+</section>
+
+<section id="markers" class="tab">
+<div class="card">
+<div class="table-wrap">
+<table id="markersTable">
+<thead><tr><th>Markers</th><th>Chromosome</th><th>Position</th></tr></thead>
+<tbody><tr><td colspan="3" class="empty-table">No data yet. Run extraction first.</td></tr></tbody>
+</table>
+</div>
+<button class="btn btn-primary download-btn" onclick="downloadResult('markers')"><i class="fas fa-download"></i> Download Markers Data</button>
+</div>
+</section>
+
+<section id="genes" class="tab">
+<div class="card">
+<div class="table-wrap">
+<table id="genesTable">
+<thead><tr><th>Chromosome</th><th>Start</th><th>Stop</th><th>Strand</th><th>Gene_id</th><th>Description</th><th>gene_start</th><th>gene_stop</th></tr></thead>
+<tbody><tr><td colspan="8" class="empty-table">No data yet. Run extraction first.</td></tr></tbody>
+</table>
+</div>
+<button class="btn btn-primary download-btn" onclick="downloadResult('genes')"><i class="fas fa-download"></i> Download Genes Data</button>
+</div>
+</section>
+
+</main>
+<footer class="footer">TerraTools · Gene Extractor</footer>
+</div>
+
+<script>
+let geneExtractorBridge = null;
+
+function initBridge(){
+    console.log("[gene EXTRACTOR] Initializing QWebChannel...");
+    if (typeof qt === "undefined" || !qt.webChannelTransport) {
+        setConnection("Browser preview");
+        return;
+    }
+    try {
+        new QWebChannel(qt.webChannelTransport, function(channel){
+            console.log("[gene EXTRACTOR] QWebChannel callback fired");
+            geneExtractorBridge = channel.objects.geneExtractorBridge;
+            if (!geneExtractorBridge) {
+                console.error("[gene EXTRACTOR] geneExtractorBridge object NOT found. Available:", Object.keys(channel.objects));
+                setConnection("Bridge not found");
+                return;
+            }
+            geneExtractorBridge.resultReady.connect(function(jsonStr){
+                console.log("[gene EXTRACTOR] resultReady received, length:", jsonStr ? jsonStr.length : 0);
+                try {
+                    showExtractionResult(JSON.parse(jsonStr));
+                } catch (err) {
+                    console.error("[gene EXTRACTOR] showExtractionResult() threw:", err);
+                    setStatusMessage("error", "Frontend error: " + err.message);
+                }
+            });
+            geneExtractorBridge.statusUpdate.connect(function(txt){
+                console.log("[gene EXTRACTOR] statusUpdate:", txt);
+            });
+            setConnection("Connected");
+            console.log("[gene EXTRACTOR] bridge connected successfully");
+        });
+    } catch (err) {
+        console.error("[gene EXTRACTOR] QWebChannel setup threw:", err);
+    }
+}
+
+window.addEventListener("error", function(e){
+    console.error("[gene EXTRACTOR] Uncaught JS error:", e.message, "at", e.filename, ":", e.lineno);
+});
+(function(){
+    if (typeof qt !== "undefined") {
+        const script = document.createElement("script");
+        script.src = "qrc:///qtwebchannel/qwebchannel.js";
+        script.onload = initBridge;
+        document.head.appendChild(script);
+    } else {
+        initBridge();
+    }
+})();
+
+function setConnection(text){ document.getElementById("connectionStatus").textContent = text; }
+
+document.querySelectorAll(".nav button").forEach(button => {
+    button.addEventListener("click", () => {
+        document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+    });
+});
+
+function browseExtractedMarkers(){
+    if (!geneExtractorBridge) { console.error("[gene EXTRACTOR] Bridge not ready"); return; }
+    geneExtractorBridge.browse_extracted_markers(function(path){
+        console.log("[gene EXTRACTOR] browse_extracted_markers returned:", path);
+        if (path) document.getElementById("extractedMarkersPath").value = path;
+    });
+}
+function browsegeneMarkers(){
+    if (!geneExtractorBridge) { console.error("[gene EXTRACTOR] Bridge not ready"); return; }
+    geneExtractorBridge.browse_gene_markers(function(path){
+        console.log("[gene EXTRACTOR] browse_gene_markers returned:", path);
+        if (path) document.getElementById("geneMarkersPath").value = path;
+    });
+}
+function browseRiceGenes(){
+    if (!geneExtractorBridge) { console.error("[gene EXTRACTOR] Bridge not ready"); return; }
+    geneExtractorBridge.browse_rice_genes(function(path){
+        console.log("[gene EXTRACTOR] browse_rice_genes returned:", path);
+        if (path) document.getElementById("riceGenesPath").value = path;
+    });
+}
+
+function collectConfig(){
+    return {
+        extracted_markers_path: document.getElementById("extractedMarkersPath").value,
+        gene_markers_path: document.getElementById("geneMarkersPath").value,
+        rice_gene_path: document.getElementById("riceGenesPath").value
+    };
+}
+
+function extractData(){
+    const config = collectConfig();
+    console.log("[gene EXTRACTOR] extractData() called with config:", config);
+
+    // Same validation the Shiny observeEvent(input$extract, ...) did
+    if (!config.extracted_markers_path || !config.gene_markers_path || !config.rice_gene_path) {
+        setStatusMessage("error", "Please upload all three required files.");
+        return;
+    }
+
+    setStatusMessage(null, "");
+    if (geneExtractorBridge && geneExtractorBridge.run_extraction) {
+        console.log("[gene EXTRACTOR] calling geneExtractorBridge.run_extraction()...");
+        geneExtractorBridge.run_extraction(JSON.stringify(config));
+    } else {
+        console.error("[gene EXTRACTOR] Bridge not ready");
+        setStatusMessage("error", "Qt bridge not connected. Run this page through TerraTools.");
+    }
+}
+
+function downloadResult(type){
+    console.log("[gene EXTRACTOR] downloadResult() called for:", type);
+    if (geneExtractorBridge && geneExtractorBridge.download_result) {
+        geneExtractorBridge.download_result(type);
+    } else {
+        console.error("[gene EXTRACTOR] Bridge not ready");
+        setStatusMessage("error", "Results are not available until extraction is completed.");
+    }
+}
+
+function setStatusMessage(kind, text){
+    const el = document.getElementById("statusMessage");
+    if (!kind) { el.innerHTML = ""; return; }
+    const icon = kind === "success" ? "fa-check-circle" : "fa-exclamation-circle";
+    el.innerHTML = '<div class="status-msg ' + kind + '"><i class="fas ' + icon + '"></i> ' + text + '</div>';
+}
+
+function showExtractionResult(result){
+    console.log("[gene EXTRACTOR] showExtractionResult() starting, status:", result ? result.status : result);
+    if (!result) return;
+
+    if (result.status === "error") {
+        setStatusMessage("error", result.message || "Error processing files.");
+        return;
+    }
+
+    setStatusMessage("success", "Data extraction completed successfully! Navigate to the tabs above to view and download the results.");
+
+    populateTable("markersTable", result.markers, ["Markers", "Chromosome", "Position"]);
+    populateTable("genesTable", result.genes, ["Chromosome", "Start", "Stop", "Strand", "Gene_id", "Description", "gene_start", "gene_stop"]);
+
+    // Same as updateTabsetPanel(session, "nav", selected = "Markers with Positions")
+    document.querySelector('[data-tab="markers"]').click();
+    console.log("[gene EXTRACTOR] showExtractionResult() finished, switched to markers tab");
+}
+
+function populateTable(tableId, rows, columns){
+    const tbody = document.querySelector("#" + tableId + " tbody");
+    tbody.innerHTML = "";
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="' + columns.length + '" class="empty-table">No results.</td></tr>';
+        return;
+    }
+    rows.forEach(row => {
+        const tr = document.createElement("tr");
+        columns.forEach(c => {
+            const td = document.createElement("td");
+            const v = row[c];
+            td.textContent = (v === null || v === undefined || v === "") ? "—" : v;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+window.showExtractionResult = showExtractionResult;
+</script>
+</body>
+</html>

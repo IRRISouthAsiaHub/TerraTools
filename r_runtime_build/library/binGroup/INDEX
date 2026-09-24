@@ -1,0 +1,111 @@
+Array.Measures          Operating characteristics for array testing
+                        without master pooling
+Inf.Array               Find the optimal testing configuration for
+                        informative array testing without master
+                        pooling
+Inf.D3                  Find the optimal testing configuration for
+                        informative three-stage hierarchical testing
+Inf.Dorf                Find the optimal testing configuration for
+                        informative two-stage hierarchical (Dorfman)
+                        testing
+Informative.array.prob
+                        Arrange a matrix of probabilities for
+                        informative array testing
+MasterPool.Array.Measures
+                        Operating characteristics for array testing
+                        with master pooling
+NI.A2M                  Find the optimal testing configuration for
+                        non-informative array testing with master
+                        pooling
+NI.Array                Find the optimal testing configuration for
+                        non-informative array testing without master
+                        pooling
+NI.D3                   Find the optimal testing configuration for
+                        non-informative three-stage hierarchical
+                        testing
+NI.Dorf                 Find the optimal testing configuration for
+                        non-informative two-stage hierarchical testing
+OTC                     Find the optimal testing configuration
+accuracy.dorf           Accuracy measures for informative Dorfman
+                        testing
+beta.dist               Expected value of order statistics from a beta
+                        distribution
+bgtCI                   Confidence Intervals for One Proportion in
+                        Binomial Group Testing
+bgtPower                Power to Reject a Hypothesis in Binomial Group
+                        Testing for One Proportion
+bgtTest                 Hypothesis Test for One Proportion in Binomial
+                        Group Testing
+bgtWidth                Expected Width of Confidence Intervals in
+                        Binomial Group Testing
+bgtvs                   Confidence Interval for One Proportion in Group
+                        Testing with Variable Group Sizes
+binCI                   Confidence Intervals for One Binomial
+                        Proportion
+binDesign               Sample Size Iteration for One Parameter
+                        Binomial Problem
+binGroup-package        Statistical Methods for Group Testing.
+binPower                Power Calculation for One Parameter Binomial
+                        Problem
+binTest                 Hypothesis tests for One Binomial Proportion
+binWidth                Expected Confidence Interval Width for One
+                        Binomial Proportion
+characteristics.pool    Testing expenditure for informative Dorfman
+                        testing
+estDesign               Sample Size Iteration Depending on Minimal MSE
+                        in One-Parameter Group Testing
+gt.control              Auxiliary for Controlling Group Testing
+                        Regression
+gtreg                   Fitting Group Testing Models
+gtreg.halving           Fitting Group Testing Models Under the Halving
+                        Protocol
+gtreg.mp                Fitting Group Testing Models in Matrix Pooling
+                        Setting
+hierarchical.desc2      Operating characteristics for hierarchical
+                        group testing
+hivsurv                 Data from an HIV surveillance project
+inf.dorf.measures       Operating characteristics for informative
+                        two-stage hierarchical (Dorfman) testing
+nDesign                 Iterate Sample Size in One Parameter Group
+                        Testing
+opt.info.dorf           Find the characteristics of an informative
+                        two-stage hierarchical (Dorfman) algorithm
+opt.pool.size           Find the optimal pool size for Optimal Dorfman
+                        or Thresholded Optimal Dorfman
+p.vec.func              Generate a vector of probabilities for
+                        informative group testing algorithms.
+plot.binDesign          Plot Results of binDesign
+plot.nDesign            Plot Results of nDesign or sDesign
+plot.poolbin            Diagnostic line fit for pool.bin objects
+pool.specific.dorf      Find the optimal pool sizes for Pool-Specific
+                        Optimal Dorfman (PSOD) testing
+pooledBin               Confidence intervals for a single proportion
+pooledBinDiff           Confidence intervals for the difference of
+                        proportions
+predict.gt              Predict Method for Group Testing Model Fits
+print.bgtCI             Print Functions for Group Testing CIs and Tests
+                        for One Proportion
+print.binDesign         Print Function for binDesign
+print.gt                Print methods for objects of classes "gt" and
+                        "gt.mp"
+print.nDesign           Print Functions for nDesign and sDesign
+print.poolbindiff       Print methods for classes "poolbin" and
+                        "poolbindiff"
+print.summary.gt        Print Functions for summary.gt.mp and
+                        summary.gt
+residuals.gt            Extract Model Residuals From a Fitted Group
+                        Testing Model
+sDesign                 Iterate Group Size for a One-Parameter Group
+                        Testing Problem
+sim.gt                  Simulation Function for Group Testing Data
+sim.halving             Simulation Function for Group Testing Data for
+                        the Halving Protocol
+sim.mp                  Simulation Function for Group Testing Data with
+                        Matrix Pooling Design
+summary.gt              Summary Method for Group Testing Model (Simple
+                        Pooling) Fits
+summary.gt.mp           Summary Method for Group Testing Model (Matrix
+                        Pooling) Fits
+summary.poolbindiff     Summary methods for "poolbin" and "poolbindiff"
+thresh.val.dorf         Find the optimal threshold value for
+                        Thresholded Optimal Dorfman testing

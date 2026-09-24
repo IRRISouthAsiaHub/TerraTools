@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Cross Selection</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+:root{--green:#1A4A1F;--green2:#2E6B35;--green3:#3A7D44;--light:#F7F7F5;--card:#FFF;--border:#DDE5DC;--text:#1A1A1A;--muted:#6B746B;--blue:#4A8FA0;--orange:#C8760A;--red:#990000;--shadow:0 3px 14px rgba(25,60,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:var(--text);font-family:"DM Sans",Arial,sans-serif}button,input,select{font:inherit}
+.header{background:linear-gradient(135deg,#173f1b,#2E6B35);color:#fff;padding:22px 34px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.brand-icon{width:46px;height:46px;border-radius:12px;background:#ffffff22;display:flex;align-items:center;justify-content:center;font-size:25px}
+.brand h1{margin:0;font-family:"Playfair Display",serif;font-size:25px}.brand p{margin:3px 0 0;color:#D5E8D5;font-size:12px}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#D9ECD9}.status-dot{width:9px;height:9px;background:#7DCE88;border-radius:50%}
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 30px;display:flex;gap:4px;overflow-x:auto}.nav button{border:0;background:transparent;padding:14px 18px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--green2)}.nav button.active{color:var(--green);font-weight:600;border-bottom-color:var(--green2)}
+.main{padding:28px 34px 42px;max-width:1500px;margin:auto}.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.card-title{font-weight:700;color:var(--green);font-size:15px;margin-bottom:15px;display:flex;align-items:center;gap:8px}.section-label{font-size:12px;font-weight:600;color:var(--green2);border-bottom:1px solid #D9E7D9;padding-bottom:7px;margin:17px 0 12px}
+.info{background:#EAF4EA;border:1px solid #B9D9B9;border-left:4px solid var(--green2);padding:11px 13px;border-radius:7px;font-size:12px;color:var(--green);margin-top:10px}
+.warn{background:#FFF2DE;border:1px solid #F0D9AE;border-left:4px solid var(--orange);padding:11px 13px;border-radius:7px;font-size:12px;color:#9A5C05;margin-top:10px}
+.form-row{margin-bottom:14px}label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;border:1px solid #C9D4C8;border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--green2);box-shadow:0 0 0 3px #2e6b3517}.file-row{display:flex;gap:8px}.file-row input{flex:1}
+.btn{border:0;border-radius:7px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:12px}.btn-primary{background:var(--green2);color:#fff}.btn-primary:hover{background:var(--green)}.btn-secondary{background:#EDF2ED;color:var(--green)}.btn-info{background:#E8F2F5;color:#347284}.btn-success{background:#E8F3E9;color:#27652F}.btn-warning{background:#FFF2DE;color:#9A5C05}
+.run{width:100%;margin-top:8px;padding:13px;font-size:14px}
+.range-wrap{display:flex;align-items:center;gap:10px}.range-wrap input[type=range]{flex:1}.range-value{min-width:50px;text-align:right;font-weight:600;color:var(--green)}input[type=range]{accent-color:var(--green2)}
+.dataset{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#F5F8F4;border:1px solid #DCE7DA;border-radius:9px;padding:14px;text-align:center}.stat-number{font-size:21px;font-weight:700;color:var(--green)}.stat-label{font-size:10px;color:var(--muted);margin-top:3px}
+.result-placeholder{min-height:280px;border:1px dashed #B9CDB8;border-radius:10px;background:#FBFCFA;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px}.result-placeholder .icon{font-size:36px;margin-bottom:10px}
+.plot-container{width:100%;min-height:280px;border:1px solid var(--border);border-radius:10px;background:#fff;overflow:auto}.plot-container img{max-width:100%;display:block;margin:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;background:#EFF5EE;color:var(--green);padding:10px;border-bottom:1px solid #D3E1D1}td{padding:9px 10px;border-bottom:1px solid #E9EEE8}.empty-table{text-align:center;color:var(--muted);padding:35px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;color:#fff}
+.badge-Unrelated{background:#3A7D44}.badge-Distantly_Related{background:#C8760A}.badge-Moderately_Related{background:#E8834A}.badge-Closely_Related{background:#990000}
+.footer{text-align:center;color:#899289;font-size:11px;padding:20px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:750px){.grid,.grid2{grid-template-columns:1fr}.main{padding:18px}.header{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="brand"><div class="brand-icon"><i class="fas fa-code-branch"></i></div><div><h1>TerraTools — Cross Selection</h1><p>Half-diallel cross optimization with kinship-aware parent selection</p></div></div>
+<div class="status"><span class="status-dot"></span><span id="connectionStatus">Ready</span></div>
+</header>
+
+<nav class="nav">
+<button class="active" data-tab="configure"><i class="fas fa-folder-open"></i> Configure</button>
+<button data-tab="dashboard"><i class="fas fa-chart-bar"></i> Dashboard</button>
+<button data-tab="allcrosses"><i class="fas fa-table"></i> All Crosses</button>
+<button data-tab="topcrosses"><i class="fas fa-trophy"></i> Top Crosses</button>
+<button data-tab="parents"><i class="fas fa-dna"></i> Parent Summary</button>
+</nav>
+
+<main class="main">
+<section id="configure" class="tab active">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-folder-open"></i> Input Files</div>
+<div class="form-row"><label>Criterion CSV</label><div class="file-row"><input type="text" id="criterionPath" placeholder="Select criterion CSV..." readonly><button class="btn btn-secondary" onclick="browseCriterion()">Browse</button></div>
+<div class="info">Expected columns: Genotype, Criterion (the selection index or breeding value used to rank parents).</div></div>
+<div class="form-row"><label>Kinship Matrix CSV</label><div class="file-row"><input type="text" id="kmatPath" placeholder="Select kinship matrix CSV..." readonly><button class="btn btn-secondary" onclick="browseKmat()">Browse</button></div>
+<div class="info">Square matrix, genotype names in the first column and as the header row.</div></div>
+<button class="btn btn-info" style="width:100%" onclick="previewData()"><i class="fas fa-search"></i> Preview &amp; Validate</button>
+<div id="dataValidation"></div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-cogs"></i> Thinning &amp; Cross Settings</div>
+<div class="form-row"><label>Kinship Threshold</label><div class="range-wrap"><input type="range" id="threshold" min=".05" max=".5" value=".15" step=".01" oninput="updateRange('threshold','thresholdValue')"><span class="range-value" id="thresholdValue">0.15</span></div></div>
+<div class="form-row"><label>Max per Cluster</label><div class="range-wrap"><input type="range" id="maxPerCluster" min="1" max="20" value="5" step="1" oninput="updateRange('maxPerCluster','maxPerClusterValue')"><span class="range-value" id="maxPerClusterValue">5</span></div></div>
+<div class="section-label">Plot Colors</div>
+<div class="form-row"><label>Offspring Value Color</label><input type="text" id="povColor" value="#3A7D44"></div>
+<div class="form-row"><label>Kinship Color</label><input type="text" id="kinshipColor" value="#C8760A"></div>
+<button class="btn btn-primary run" onclick="runCrossSelection()"><i class="fas fa-play"></i> Run Cross Selection</button>
+<div class="info" id="analysisStatus">Ready. Select a criterion file and a kinship matrix.</div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-database"></i> Dataset Information</div>
+<div class="dataset"><div class="stat"><div class="stat-number" id="criterionRows">—</div><div class="stat-label">Criterion Rows</div></div><div class="stat"><div class="stat-number" id="kmatGenotypes">—</div><div class="stat-label">Kinship Genotypes</div></div><div class="stat"><div class="stat-number" id="overlapCount">—</div><div class="stat-label">Overlap</div></div></div>
+<div class="section-label">Method</div>
+<div class="info">Genotypes are first thinned so no cluster of closely related lines contributes more than the chosen maximum, then every remaining pair is crossed (half-diallel). Predicted Offspring Value is the parents' mid-point criterion value; Kinship Coefficient comes from the matrix you supplied.</div>
+</div>
+</div>
+</section>
+
+<section id="dashboard" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-chart-simple"></i> Analysis Summary</div>
+<div class="dataset" style="grid-template-columns:repeat(6,1fr)">
+<div class="stat"><div class="stat-number" id="statCrosses">—</div><div class="stat-label">Total Crosses</div></div>
+<div class="stat"><div class="stat-number" id="statParents">—</div><div class="stat-label">Parents</div></div>
+<div class="stat"><div class="stat-number" id="statMeanPov">—</div><div class="stat-label">Mean POV</div></div>
+<div class="stat"><div class="stat-number" id="statMaxPov">—</div><div class="stat-label">Max POV</div></div>
+<div class="stat"><div class="stat-number" id="statLowK">—</div><div class="stat-label">K &lt; 0.125</div></div>
+<div class="stat"><div class="stat-number" id="statMeanK">—</div><div class="stat-label">Mean Kinship</div></div>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-info" onclick="downloadResult('hist_pov')"><i class="fas fa-image"></i> POV Histogram</button><button class="btn btn-info" onclick="downloadResult('hist_kinship')"><i class="fas fa-image"></i> Kinship Histogram</button><button class="btn btn-info" onclick="downloadResult('bar_relatedness')"><i class="fas fa-image"></i> Relatedness Bar</button><button class="btn btn-info" onclick="downloadResult('scatter_vk')"><i class="fas fa-image"></i> Value/Kinship Scatter</button><button class="btn btn-success" onclick="downloadResult('crosses_csv')"><i class="fas fa-file-csv"></i> Full Crosses CSV</button></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="card-title">Predicted Offspring Value Distribution</div><div class="plot-container" id="histPov"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-column"></i></div><div>Run an analysis to see this chart.</div></div></div></div></div>
+<div class="card"><div class="card-title">Kinship Coefficient Distribution</div><div class="plot-container" id="histKinship"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-column"></i></div><div>Run an analysis to see this chart.</div></div></div></div></div>
+</div>
+<div class="grid2">
+<div class="card"><div class="card-title">Crosses by Relatedness Category</div><div class="plot-container" id="barRelatedness"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-bar"></i></div><div>Run an analysis to see this chart.</div></div></div></div></div>
+<div class="card"><div class="card-title">Value vs Kinship Scatter</div><div class="plot-container" id="scatterVk"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-braille"></i></div><div>Run an analysis to see this chart.</div></div></div></div></div>
+</div>
+</section>
+
+<section id="allcrosses" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-table"></i> Half-Diallel Cross Table</div>
+<div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+<div class="form-row"><label>Filter Relatedness</label><select id="filterRelatedness"><option>All</option><option>Unrelated</option><option>Distantly_Related</option><option>Moderately_Related</option><option>Closely_Related</option></select></div>
+<div class="form-row"><label>Filter Performance</label><select id="filterPerformance"><option>All</option><option>Low</option><option>Medium</option><option>High</option><option>Very_High</option></select></div>
+<div class="form-row"><label>Max Kinship</label><input type="number" id="filterKinshipMax" value="1" min="0" max="1" step="0.01"></div>
+<div class="form-row"><button class="btn btn-primary" style="width:100%" onclick="applyCrossFilter()"><i class="fas fa-filter"></i> Apply Filter</button></div>
+</div>
+<div style="margin:10px 0"><button class="btn btn-success" onclick="exportAllCrosses()"><i class="fas fa-file-csv"></i> Export Filtered Table (CSV)</button></div>
+<div style="overflow-x:auto"><table id="crossesTable"><thead><tr><th>Parent1</th><th>Parent2</th><th>P1 Value</th><th>P2 Value</th><th>Predicted Offspring Value</th><th>Kinship</th><th>Relatedness</th><th>Performance</th></tr></thead><tbody><tr><td colspan="8" class="empty-table">No crosses yet. Run an analysis first.</td></tr></tbody></table></div>
+</div>
+</section>
+
+<section id="topcrosses" class="tab">
+<div class="grid2">
+<div class="card"><div class="card-title"><i class="fas fa-star"></i> Top 50 — Low Kinship (K &lt; 0.125)</div><div style="overflow-x:auto"><table id="topLowTable"><thead><tr><th>Parent1</th><th>Parent2</th><th>POV</th><th>Kinship</th><th>Relatedness</th></tr></thead><tbody><tr><td colspan="5" class="empty-table">No results yet.</td></tr></tbody></table></div><button class="btn btn-success" style="margin-top:10px" onclick="exportTopCrosses('low')"><i class="fas fa-file-csv"></i> Export (CSV)</button></div>
+<div class="card"><div class="card-title"><i class="fas fa-star-half-stroke"></i> Top 50 — Medium Kinship (0.125 ≤ K &lt; 0.25)</div><div style="overflow-x:auto"><table id="topMedTable"><thead><tr><th>Parent1</th><th>Parent2</th><th>POV</th><th>Kinship</th><th>Relatedness</th></tr></thead><tbody><tr><td colspan="5" class="empty-table">No results yet.</td></tr></tbody></table></div><button class="btn btn-success" style="margin-top:10px" onclick="exportTopCrosses('medium')"><i class="fas fa-file-csv"></i> Export (CSV)</button></div>
+</div>
+</section>
+
+<section id="parents" class="tab">
+<div class="grid2">
+<div class="card"><div class="card-title"><i class="fas fa-list"></i> Parent Usage &amp; Criterion Values</div><div style="overflow-x:auto"><table id="parentTable"><thead><tr><th>Genotype</th><th>Times Used</th><th>Criterion Value</th></tr></thead><tbody><tr><td colspan="3" class="empty-table">No results yet.</td></tr></tbody></table></div><button class="btn btn-success" style="margin-top:12px" onclick="downloadResult('parent_csv')"><i class="fas fa-file-csv"></i> Download Parent Table</button></div>
+<div class="card"><div class="card-title"><i class="fas fa-chart-bar"></i> Parent Criterion Values (Ranked)</div><div class="plot-container" id="parentBar"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-dna"></i></div><div>Run an analysis to see this chart.</div></div></div></div></div>
+</div>
+</section>
+</main>
+<footer class="footer">TerraTools · Cross Selection</footer>
+</div>
+
+<script>
+let crossBridge=null;
+let lastResult=null;
+
+function initCrossBridge(){
+    console.log("[CROSS] Initializing QWebChannel...");
+    if(typeof qt==="undefined" || !qt.webChannelTransport){
+        setConnection("Browser preview");
+        return;
+    }
+    try{
+        new QWebChannel(qt.webChannelTransport,function(channel){
+            crossBridge=channel.objects.crossBridge;
+            if(!crossBridge){
+                console.error("[CROSS] crossBridge object NOT found on channel.objects.");
+                setConnection("Bridge not found");
+                return;
+            }
+            crossBridge.resultReady.connect(function(jsonStr){
+                try{
+                    showCrossResult(JSON.parse(jsonStr));
+                }catch(err){
+                    console.error("[CROSS] showCrossResult() threw an error:",err);
+                    setStatus("analysisStatus","Frontend error: "+err.message);
+                }
+            });
+            crossBridge.statusUpdate.connect(function(txt){
+                setStatus("analysisStatus",txt);
+            });
+            setConnection("Connected");
+        });
+    }catch(err){
+        console.error("[CROSS] QWebChannel setup threw an error:",err);
+    }
+}
+
+window.addEventListener("error",function(e){
+    console.error("[CROSS] Uncaught JS error:",e.message,"at",e.filename,":",e.lineno);
+});
+(function(){
+    if(typeof qt!=="undefined"){
+        const script=document.createElement("script");
+        script.src="qrc:///qtwebchannel/qwebchannel.js";
+        script.onload=initCrossBridge;
+        document.head.appendChild(script);
+    }else{initCrossBridge();}
+})();
+
+function setConnection(text){document.getElementById("connectionStatus").textContent=text}
+function setStatus(id,text){document.getElementById(id).textContent=text}
+function updateRange(id,valueId){document.getElementById(valueId).textContent=document.getElementById(id).value}
+
+document.querySelectorAll(".nav button").forEach(button=>{
+    button.addEventListener("click",()=>{
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+    });
+});
+
+function browseCriterion(){
+    if(!crossBridge){setStatus("analysisStatus","Qt bridge not connected. Run this page through TerraTools.");return}
+    crossBridge.browse_criterion(function(path){
+        if(path)document.getElementById("criterionPath").value=path;
+    });
+}
+function browseKmat(){
+    if(!crossBridge){setStatus("analysisStatus","Qt bridge not connected.");return}
+    crossBridge.browse_kmat(function(path){
+        if(path)document.getElementById("kmatPath").value=path;
+    });
+}
+
+function previewData(){
+    const criterionPath=document.getElementById("criterionPath").value;
+    const kmatPath=document.getElementById("kmatPath").value;
+    if(!criterionPath && !kmatPath){setStatus("analysisStatus","Select at least one file to preview.");return}
+    if(!crossBridge){setStatus("analysisStatus","Qt bridge not connected.");return}
+    crossBridge.preview_data(criterionPath,kmatPath,function(jsonStr){
+        const result=JSON.parse(jsonStr);
+        renderValidation(result);
+    });
+}
+
+function renderValidation(result){
+    const box=document.getElementById("dataValidation");
+    if(result.status==="error"){
+        box.innerHTML='<div class="warn">'+result.message+'</div>';
+        return;
+    }
+    let html="";
+    if(result.criterion){
+        html+='<div class="info">Criterion loaded: '+result.criterion.rows+' rows, '+result.criterion.unique_genotypes+' unique genotypes</div>';
+        document.getElementById("criterionRows").textContent=result.criterion.rows;
+    }
+    if(result.kmat){
+        html+='<div class="info">Kinship matrix loaded: '+result.kmat.rows+' × '+result.kmat.cols+'</div>';
+        document.getElementById("kmatGenotypes").textContent=result.kmat.rows;
+    }
+    if(typeof result.overlap!=="undefined"){
+        const cls=result.overlap===0?"warn":"info";
+        html+='<div class="'+cls+'">Overlap: '+result.overlap+' genotypes match between files</div>';
+        document.getElementById("overlapCount").textContent=result.overlap;
+    }
+    box.innerHTML=html;
+}
+
+function collectPlotSettings(){
+    return {
+        pov_color:document.getElementById("povColor").value,
+        kinship_color:document.getElementById("kinshipColor").value
+    };
+}
+
+function runCrossSelection(){
+    const criterionPath=document.getElementById("criterionPath").value;
+    const kmatPath=document.getElementById("kmatPath").value;
+    if(!criterionPath||!kmatPath){setStatus("analysisStatus","Please select both a criterion file and a kinship matrix.");return}
+    const config={
+        criterion_file:criterionPath,
+        kmat_file:kmatPath,
+        threshold:Number(document.getElementById("threshold").value),
+        max_per_cluster:Number(document.getElementById("maxPerCluster").value),
+        plot:collectPlotSettings()
+    };
+    setStatus("analysisStatus","Running cross selection analysis...");
+    if(crossBridge && crossBridge.run_cross_selection){
+        crossBridge.run_cross_selection(JSON.stringify(config));
+    }else{
+        console.error("[CROSS] Bridge not ready");
+        setStatus("analysisStatus","Configuration collected. Cross bridge is not connected yet.");
+    }
+}
+
+function showCrossResult(result){
+    if(!result)return;
+    if(result.status==="error"){setStatus("analysisStatus","Error: "+(result.message||"Analysis failed."));return}
+    lastResult=result;
+    setStatus("analysisStatus","Cross selection analysis completed successfully.");
+
+    const s=result.summary||{};
+    document.getElementById("statCrosses").textContent=s.n_crosses??"—";
+    document.getElementById("statParents").textContent=s.n_parents??"—";
+    document.getElementById("statMeanPov").textContent=s.mean_pov??"—";
+    document.getElementById("statMaxPov").textContent=s.max_pov??"—";
+    document.getElementById("statLowK").textContent=s.n_low_kinship??"—";
+    document.getElementById("statMeanK").textContent=s.mean_kinship??"—";
+    document.getElementById("criterionRows").textContent=s.n_criterion_rows??"—";
+    document.getElementById("kmatGenotypes").textContent=s.n_kmat_genotypes??"—";
+    document.getElementById("overlapCount").textContent=s.n_overlap??"—";
+
+    const plots=result.plots||{};
+    if(plots.hist_pov)document.getElementById("histPov").innerHTML='<img src="'+plots.hist_pov+'" alt="Predicted Offspring Value Histogram">';
+    if(plots.hist_kinship)document.getElementById("histKinship").innerHTML='<img src="'+plots.hist_kinship+'" alt="Kinship Coefficient Histogram">';
+    if(plots.bar_relatedness)document.getElementById("barRelatedness").innerHTML='<img src="'+plots.bar_relatedness+'" alt="Crosses by Relatedness">';
+    if(plots.scatter_vk)document.getElementById("scatterVk").innerHTML='<img src="'+plots.scatter_vk+'" alt="Value vs Kinship Scatter">';
+    if(plots.parent_bar)document.getElementById("parentBar").innerHTML='<img src="'+plots.parent_bar+'" alt="Parent Criterion Values">';
+
+    populateCrossTable("crossesTable",result.top_crosses);
+    populateParentTable(result.parent_table);
+    loadTopCrosses();
+
+    document.querySelector('[data-tab="dashboard"]').click();
+}
+
+function relatednessBadge(cat){
+    if(!cat)return "—";
+    return '<span class="badge badge-'+cat+'">'+cat.replace(/_/g," ")+'</span>';
+}
+
+function populateCrossTable(tableId,rows){
+    const tbody=document.querySelector("#"+tableId+" tbody");tbody.innerHTML="";
+    if(!rows||rows.length===0){tbody.innerHTML='<tr><td colspan="8" class="empty-table">No crosses.</td></tr>';return}
+    rows.forEach(row=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML="<td>"+row.Parent1+"</td><td>"+row.Parent2+"</td><td>"+row.P1_Criterion_Value+"</td><td>"+row.P2_Criterion_Value+"</td><td>"+row.Predicted_Offspring_Value+"</td><td>"+row.Kinship_Coefficient+"</td><td>"+relatednessBadge(row.Relatedness_Category)+"</td><td>"+(row.Performance_Category??"—")+"</td>";
+        tbody.appendChild(tr);
+    });
+}
+
+function populateParentTable(rows){
+    const tbody=document.querySelector("#parentTable tbody");tbody.innerHTML="";
+    if(!rows||rows.length===0){tbody.innerHTML='<tr><td colspan="3" class="empty-table">No parents.</td></tr>';return}
+    rows.forEach(row=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML="<td>"+row.Genotype+"</td><td>"+row.Times_Used+"</td><td>"+row.Criterion_Value+"</td>";
+        tbody.appendChild(tr);
+    });
+}
+
+function applyCrossFilter(){
+    if(!lastResult){setStatus("analysisStatus","Run an analysis first.");return}
+    const filters={
+        relatedness:document.getElementById("filterRelatedness").value,
+        performance:document.getElementById("filterPerformance").value,
+        kinship_max:Number(document.getElementById("filterKinshipMax").value)
+    };
+    if(!crossBridge||!crossBridge.filter_crosses){setStatus("analysisStatus","Bridge not ready.");return}
+    crossBridge.filter_crosses(JSON.stringify(filters),function(jsonStr){
+        const result=JSON.parse(jsonStr);
+        if(result.status==="error"){setStatus("analysisStatus",result.message);return}
+        populateCrossTable("crossesTable",result.rows);
+    });
+}
+
+function loadTopCrosses(){
+    if(!crossBridge||!crossBridge.filter_crosses)return;
+    crossBridge.filter_crosses(JSON.stringify({relatedness:"All",performance:"All",kinship_max:0.125,kinship_min:0}),function(jsonStr){
+        const result=JSON.parse(jsonStr);
+        if(result.status==="success")populateTopTable("topLowTable",result.rows.slice(0,50));
+    });
+    crossBridge.filter_crosses(JSON.stringify({relatedness:"All",performance:"All",kinship_max:0.25,kinship_min:0.125}),function(jsonStr){
+        const result=JSON.parse(jsonStr);
+        if(result.status==="success")populateTopTable("topMedTable",result.rows.slice(0,50));
+    });
+}
+
+function populateTopTable(tableId,rows){
+    const tbody=document.querySelector("#"+tableId+" tbody");tbody.innerHTML="";
+    if(!rows||rows.length===0){tbody.innerHTML='<tr><td colspan="5" class="empty-table">No crosses in this band.</td></tr>';return}
+    rows.forEach(row=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML="<td>"+row.Parent1+"</td><td>"+row.Parent2+"</td><td>"+row.Predicted_Offspring_Value+"</td><td>"+row.Kinship_Coefficient+"</td><td>"+relatednessBadge(row.Relatedness_Category)+"</td>";
+        tbody.appendChild(tr);
+    });
+}
+
+function downloadResult(type){
+    if(crossBridge && crossBridge.download_result){
+        crossBridge.download_result(type);
+    }else{
+        console.error("[CROSS] Bridge not ready");
+        setStatus("analysisStatus","Results are not available until an analysis is completed.");
+    }
+}
+
+function exportAllCrosses(){
+    if(!crossBridge||!crossBridge.export_filtered_crosses){
+        setStatus("analysisStatus","Bridge not ready.");
+        return;
+    }
+    const filters={
+        relatedness:document.getElementById("filterRelatedness").value,
+        performance:document.getElementById("filterPerformance").value,
+        kinship_max:Number(document.getElementById("filterKinshipMax").value),
+        kinship_min:0
+    };
+    crossBridge.export_filtered_crosses(JSON.stringify(filters));
+}
+
+function exportTopCrosses(band){
+    if(!crossBridge||!crossBridge.export_top_crosses){
+        setStatus("analysisStatus","Bridge not ready.");
+        return;
+    }
+    crossBridge.export_top_crosses(band);
+}
+window.showCrossResult=showCrossResult;
+</script>
+</body>
+</html>

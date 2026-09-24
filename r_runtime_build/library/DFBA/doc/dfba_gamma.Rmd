@@ -1,0 +1,84 @@
+---
+title: "dfba_gamma"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_gamma}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Theoretical Background
+
+Many studies have two variates where each variate is a score on an ordinal scale (*e.g.*, an integer on a $1,\ldots,M$ scale). Such data are typically organized into a rank-ordered matrix of frequency values where the element in the $[I, J]$ cell is the frequency of occasions where one variate has a rank value of $I$ while the corresponding rank for the other variate is $J$. For such matrices, Goodman and Kruskal (1954) provided a frequentist distribution-free concordance correlation statistic that has come to be called the *Goodman and Kruskal's gamma* or the $G$ statistic (Siegel \& Castellan, 1988). The `dfba_gamma()` function provides a corresponding Bayesian distribution-free analysis given the input of a rank-ordered matrix. 
+
+ 
+Chechile (2020) showed that the Goodman-Kruskal gamma is equivalent to the more general Kendall $\tau_A$ nonparametric correlation coefficient. Historically, gamma was considered a different metric from $\tau$ because, typically, the version of $\tau$ in standard use was $\tau_B$, which is a flawed metric because *it does not properly correct for ties*. It is important to point out that the commands `cor(x, y, method = "kendall")` and `cor.test(x, y, method = "kendall")` (from the `stats` package) return the $\tau_B$ correlation, which is *incorrect when there are ties*. 
+
+The correct $\tau_A$ is computed by the `dfba_bivariate_concordance()` function (see the vignette for the `dfba_bivariate_concordance()` function for more details and examples about the difference between $\tau_A$ and $\tau_B$). The `dfba_gamma()` function is similar to the `dfba_bivariate_concordance()` function; the main difference is that the `dfba_gamma()` function deals with data that are *organized in advance into a rank-ordered table or matrix*, whereas the input for the `dfba_bivariate_concordance()` function are two paired vectors `x` and `y` of continuous values.  
+
+The gamma statistic is equal to:
+
+\begin{equation} 
+  G = \frac{n_c-n_d}{n_c+n_d},
+  (\#eq:gammastat)
+\end{equation}
+
+
+where $n_c$ is the number of occasions when the variates change in a *concordant* way, and $n_d$ is the number of occasions when the variates change in a *discordant* fashion. The value of $n_c$ for an order matrix is the sum of terms for each $[I, J]$ that are equal to $n_{ij}N^{+}_{ij}$, where $n_{ij}$ is the frequency for cell $[I, J]$ and $N^{+}_{ij}$ is the sum of the frequencies in the matrix where the row value is greater than $I$ and where the column value is greater than $J$. The value $n_d$ is the sum of terms for each $[I, J]$ that are $n_{ij}N^{-}_{ij}$, where $N^{-}_{ij}$ is the sum of the frequencies in the matrix where row value is greater than $I$ and the column value is less than $J$. The $n_c$ and $n_d$ values computed in this fashion are respectively equal to $n_c$ and $n_d$ values found when the bivariate measures are entered as paired vectors into the `dfba_bivariate_concordance()` function.
+
+As with the `dfba_bivariate_concordance()` function, the Bayesian analysis focuses on the population concordance proportion parameter $\phi$, which is linked to the $G$ statistic because $G=2\phi-1$. The likelihood function is proportional to $\phi^{n_c}(1-\phi)^{n_d}$. Similar to the Bayesian analysis for the concordance parameter in the `dfba_bivariate_concordance()` function, the prior distribution is a beta distribution with shape parameters $a_0$ and $b_0$, and the posterior distribution is the conjugate beta distribution where shape parameters are $a = a_0 + n_c$ and $b = b_0 + n_d$.
+
+
+# Using the `dfba_gamma()` Function
+
+The `dfba_gamma()` function has one required argument `x` that must be an object in the form of a matrix or a table. 
+
+# Example
+
+The following example demonstrates how to create a matrix of data and to analyze it using the `dfba_gamma()` function.
+
+
+```{r}
+N <- matrix(c(38, 4, 5, 0, 6, 40, 1, 2, 4, 8, 20, 30),
+            ncol = 4,
+            byrow = TRUE)
+           
+colnames(N) <- c('C1', 'C2', 'C3', 'C4')
+
+rownames(N) <- c('R1', 'R2', 'R3')
+
+A <- dfba_gamma(N)
+
+A
+
+```
+
+```{r fig.width = 7, fig.height = 4}
+
+plot(A)
+
+```
+
+
+The `dfba_gamma()` function also has three optional arguments; listed with their respective default arguments, they are: `a0 = 1`, `b0 = 1`, and `prob_interval = .95` The `a0` and `b0` arguments are the shape parameters for the prior beta distribution; the default value of $1$ for each corresponds to a uniform prior. The `prob_interval` argument specifies the probability value for the interval estimate of the $\phi$ concordance parameter. 
+
+# References
+ 
+Chechile, R.A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+ 
+Goodman, L. A., and Kruskal, W. H. (1954). Measures of association for cross classifications. *Journal of the American Statistical Association*, **49**, 732-764.
+
+Siegel, S., and Castellan, N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.

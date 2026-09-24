@@ -1,0 +1,12 @@
+citHeader("To cite the alr4 package in publications use:")
+
+bibentry(
+  bibtype = "Book",
+  title = "Applied Linear Regression, 4th Edition",
+  publisher="Wiley",
+  author = person("Sanford", "Weisberg", email = "sandy@umn.edu", role = c("aut", "cre")),
+  year = "2014",
+  note = "Data sets discussed in this book",
+  url = "http://z.umn.edu/alr4ed"
+)
+

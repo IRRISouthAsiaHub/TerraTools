@@ -1,0 +1,147 @@
+---
+title: "dfba_beta_bayes_factor"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_beta_bayes_factor}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction and Overview
+
+The `dfba_beta_bayes_factor()` function one of of three functions in the `DFBA` package -- along with `dfba_beta_descriptive()` and `dfba_binomial()` -- that are devoted to the beta distribution. The *Bayes Factor* is a statistic that can be useful in Bayesian hypothesis testing. Although the Bayes factor can be used more generally, the `dfba_beta_bayes_factor()` function is for finding Bayes factors for a beta variate. For more information on Bayesian analysis of binomial and beta distributions, see the vignettes for the `dfba_beta_descriptive()` function and the `dfba_binomial()` function. The section [Types of Bayes Factors and Their Interpretation](#BF_Interpretation), there is a general discussion about Bayes factors, along with recommendations about the interpretation and use of Bayes factors. In the section [Using the `dfba_beta_bayes_factor()` function](#using_dfba_bbf), the `dfba_beta_bayes_factor()` function is demonstrated by way of several examples.
+
+# Types of Bayes Factors and Their Interpretation {#BF_Interpretation}
+
+Scientists often conduct research to assess conflicting hypotheses. In frequentist theory the researcher has to assume a null hypothesis to assess if that hypothesis is reasonable. But Bayesian statistics does not require the assumption of a null hypothesis. Both the null and alternative hypotheses are rival models. The questions are: which model is more reasonable, and is the evidence strong enough to endorse one of the two hypotheses as a scientific finding? These are complex issues without a single answer for all cases. Yet a useful tool in addressing these issue is the Bayes factor. 
+
+There are two related Bayes factors, which are usually denoted as $BF_{10}$ and $BF_{01}$, and coded as `BF10` and `BF01`, respectively. The relationship between these two Bayes factors is $BF01 = \frac{1}{BF_{10}}$. $BF_{10}$ is a number that reflects the relative strength of the alternative hypothesis to the null. If $BF_{10} > 1$, then the data have increased the belief in the alternative hypothesis. Similarly, if $BF10 < 1$ (and thus $BF_{01}>1$), then the data have decreased the belief in the alternative hypothesis. If $BF_{10}=BF_{01}=1$, then the data have not altered the credibility of either hypothesis. In all cases, the Bayes factors are non-negative numbers. 
+
+In general, the Bayes factor can be expressed in two alternative forms. One form is in terms of odds ratios. In this form: 
+
+\begin{equation} 
+  BF10 = \frac{P(H_1|D)/P(H_0|D)}{P(H_1)/P(H_0)}
+  (\#eq:BFOR)
+\end{equation} 
+
+
+where the numerator of \@ref(eq:BFOR) is the posterior odds ratio of $H_1$ to $H_0$, and the denominator of \@ref(eq:BFOR) is the prior odds ratio for $H_1$ to $H_0$ and where $D$ denotes the data. Thus if the data has caused the odds ratio between the two rival hypotheses to increase from the prior odds ratio then $BF_{10}$ is greater than $1$.
+
+The other form for expressing the Bayes factor is as a ratio of the likelihood of the data between two models or hypotheses. In this form:
+
+\begin{equation} 
+  BF10 = \frac{P(D|H_1)}{P(D|H_0)}
+  (\#eq:BFlike)
+\end{equation} 
+
+
+Thus $BF_{10}>1$ means that the data are more likely for model $H_1$ than for model $H_0$. Generally, the models being compared can represent any pair of rival models for the data. So, it is possible to use a Bayes factor to compare two models for the *measurement error*, *e.g.*, a normal distribution versus a mixture of normal distributions. However, in this case the two rival models are not exhaustive of *all possible models* for the measurement error. When the Bayes factor compares only two of many models, it has questionable utility, assessing only the relative merit of two of many possible models. 
+
+In the `DFBA` package, the Bayes factor deals with two rival hypotheses about a population parameter that are *mutually exclusive and exhaustive*. For example, an investigator might be interested in comparing a null model of the binomial rate parameter $\phi$ that is $H_0: \phi \le .5$ versus the alternative model of $H_1: \phi > .5$. This example corresponds to the case where the null and alternative hypotheses are *mutually exclusive intervals for the parameter*, and these hypotheses are *exhaustive of all possible models* for the $\phi$ parameter. Another example of interval hypothesis might be the case for a null hypothesis of $H_0:\phi \in [.495,\,.505]$ versus the alternative hypothesis $H_1:\phi \notin [.495,\,.505]$ (the $\in$ and $\notin$ symbols denote, respectively "in" and "not in"). Besides interval hypotheses, the Bayes factor can also be used to examine a *point null hypothesis*.  A point null hypothesis might be the hypothesis that $H_0:\phi=.5$, which is compared to the alternative hypothesis of $H_1:\phi \ne .5$. 
+
+For binomial sampling, the prior and posterior beta distribution provide values for the both the prior and posterior odds for the two hypotheses when the null and alternative are interval hypotheses. But what happens if the null is a single point, such as the sharp hypothesis $H_0:\phi =.5$?. The population parameter $\phi$ is distributed on the continuous interval $[0,1]$. Because $\phi$ is a continuous variable, the prior and posterior beta distributions are probability density functions. To obtain a probability, the probability density must be integrated over some interval for $\phi$. Because of this fundamental property, there is no probability for any single point because a mathematical point lacks interval width. Even the mode of the distribution has a probability mass of 0. Yet all points for the beta distribution do have a nonzero probability density that can be different for the prior and posterior distributions. Thus, there still is a meaningful Bayes factor for a point hypothesis. As described in Chechile (2020), the Bayes factor $BF_{10}$ can be re-expressed as
+
+\begin{equation} 
+  BF10 = \left[\frac{p(H_1|D)}{p(H_1)}\right]\cdot\left[\frac{p(H_0)}{p(H_0|D)}\right]
+  (\#eq:SavageDickey)
+\end{equation} 
+
+The first term in equation \@ref(eq:SavageDickey) is $1/1 = 1$. The second term is of the form of $0/0$, which appears to be undefined. However, by using L'H&ocirc;spital's rule, it can be proved the term $p(H_0)/p(H_0|D)$ is the ratio of prior probability density at the null point divided by the posterior probability density. That is, if the null hypothesis is $\phi=\phi*$, then $BF10=f(\phi*)/f(\phi*|D)$. So, if the posterior probability density at the null hypothesis point is less than the prior probability density at that null point, then $BF10>1$. This method for finding the Bayes factor for a point is called the Savage-Dickey method because of the separate contributions from both of those statisticians (Dickey & Lientz, 1970).
+
+
+There is no standard guideline for recommending a decision about the prevailing hypothesis, but several statisticians have suggested criteria. Let $BF=\max(BF10, BF01)$ (*i.e*, the larger of two Bayes factors). Jeffreys (1961) suggested that $BF > 10$ was *strong* and $BF > 100$ was *decisive*, but Kass and Raffrey (1995) suggested that $BF > 20$ was *strong* and $BF > 150$ was *decisive*. Chechile (2020) argued from a decision-theory framework for a third option for the user to *decide not to decide* if the prevailing Bayes factor is not sufficiently large. From this decision-making perspective, Chechile (2020) suggested that $BF > 19$ was a *good bet -- too good to disregard*, $BF > 99$ was a *strong bet -- irresponsible to avoid*, and $BF > 20,001$ was *virtually certain*. But Chechile also pointed out that despite the Bayes factor value, there is often some probability, however small, for either hypothesis. Ultimately, each academic discipline has to set the standard for their field for the strength of evidence. Yet even when the Bayes factor is below the user's threshold for making claims about the hypotheses, the value of the Bayes factor from one study can be nonetheless valuable to other researchers and might be combined via a product rule in a meta-analysis. 
+ 
+As a simple example of how Bayes factors can be combined across studies, suppose that there are two studies with the same binomial protocols and each study has the same interval null hypothesis of $H_0:\phi \le .5$. Suppose that the prior for the first study is $a_0=1$ and $b_0=1$ (*i.e.*, the flat prior on the $[0,1]$ interval). Also suppose that the data are the frequencies of $n_1=16$ and $n_2=4$, so the posterior shape parameters are $a=17$ and $b=5$. This study results in the Bayes factor of $BF_{10}=276.8789$. The second study in this example uses the posterior shape parameters from the first study as the $a_0$ and $b_0$ values for the second study; hence $a_0=17$ and $b_0=5$. The second study finds $n_1=23$ and $n_2=15$, so posterior shape parameters are $a=40$ and $b=20$. These values for the second study result in a Bayes factor $BF_{10}=0.832282$. Yet the observations from both studies had more responses that are consistent with $H_1$, but not to the same degree. The first study resulted in strong evidence for the alternative hypothesis. When the prior odds ratio for the second study was taken to be the posterior odds ratio from the first study, the Bayes factor $BF_{10}$ resulted in a value less than $1$ because the frequencies in the two response categories were not as lopsided as in the first study. But, when the prior of the second study is based on the posterior from the first study, the two Bayes factors combine by a product rule. That is, the $BF_{10(combined)}=BF_{10(S_1)} \cdot BF_{10(S_2|S_1)}$, where $S_1$ denotes the first study and $S2|S1$ denotes the second study when its prior is the posterior from $S_1$ (Chechile, 2020). So, $BF_{10(combined)}$ in this example is equal to $276.8789 \times 0.832282=230.4413$. Note that if the data were simply pooled for the two studies (*i.e.*, $n_1=16+23=39$ and $n_2=4+15=19$) and the uniform prior of $a0=1$ and $b0=1$ is employed, then the resulting Bayes factor would be $230.4413$, which is the same value that was found using the product rule for combining Bayes factors. 
+
+
+# Using the `dfba_beta_bayes_factor()` Function {#using_dfba_bbf}
+
+There are six arguments for this function, which are `(a_post, b_post, method, H0, a0 = 1, b0 = 1)`. For binomial data, the posterior beta distribution has $a$ (`a_post`) and $b$ (`b_post`) shape parameters where $a=n_1+a_0$, $b=n_2+b_0$ where $a_0$ and $b_0$ are the beta shape parameters for the prior and $n_1$ and $n_2$ are the observed values for the two binomial response frequencies (values of $n_1$ and $n_2$ are inferred by values of the shape parameters and do not need to be separately specified). The `method` argument takes one of two possible string values: `interval` or `point`, which result in *interval-type* or *point-type* Bayes factor outputs (respectively). The `H0` argument also takes two possible forms, one for when `method = "interval"` and the other for when `method = "point"`. For interval-type Bayes factors, the `H0` input is a vector of two elements that consist of the lower and upper limits for the null hypothesis range for the binomial $\phi$ parameter. For example: if the null hypothesis were $H_0:\phi \le .5$, then input for `H0` would be `H0 = c(0, .5)`. When `method = "point"`, the `H0` argument is the value of the null hypothesis point (*e.g.*, `H0 = .5`). The arguments `a0` and `b0` are the shape parameters for the prior beta distribution. The default for the prior is a uniform distribution; other priors can be specified using the `a0` and `b0` arguments. As an example, suppose the user has a uniform prior, a null hypothesis of $H_0:\,\phi \le .5$ and observes $n_1=16$ and $n_2=4$:
+
+```{r}
+dfba_beta_bayes_factor(a_post = 17, # a_post = n1 + 1
+                       b_post = 5,  # b_post = n2 + 1
+                       method = "interval", 
+                       H0 = c(0, .5))
+```
+
+
+Suppose the user instead wanted to use the Jeffreys prior of $a_0=b_0=.5$ for the same problem:
+
+```{r}
+dfba_beta_bayes_factor(a_post = 16.5, # a_post = n1 + 0.5
+                       b_post = 4.5,  # b_post = n2 + 0.5
+                       method = "interval",
+                       c(0, .5),
+                       a0 = .5,
+                       b0 = .5)
+```
+
+
+Note that the prior odds ratio for both of the above two cases is $1$. This result occurs because both the uniform prior and the Jeffreys prior are symmetric about $.5$. Nonetheless, the resulting Bayes factor for those two cases are not identical because the two posterior probabilities for the alternative hypothesis differ slightly. This might seem puzzling, but remember the posterior mean for the Jeffreys prior case is $\frac{16.5}{16.5+4.5}=.785714286$; whereas the posterior mean for the uniform prior is $\frac{17}{17+5}=.77\bar{27}$. 
+
+The greater value for $BF10$ for the Jeffreys prior is because the posterior probability for $\phi>.5$ is slightly larger for the Jeffreys prior case than for the uniform prior (i.e. $.997136$ versus $.9964013$). 
+
+As another example, let us consider the case where the user has the tight interval of $[.4975,\,.5025]$ as the null hypothesis, and the user has a uniform prior. Moreover, suppose that the user observes $n_1=272$ and $n_2=277$. In this case:
+
+```{r}
+dfba_beta_bayes_factor(a_post = 273,
+                       b_post = 278,
+                       method = "interval",
+                       H0 = c(.4975, .5025))
+```
+
+
+Notice that the prevailing Bayes factor is now $BF_{01}$, which is $19.99418$. The data has thus built a case for the null hypothesis. This example illustrates, unlike the frequentist tests of hypotheses, that the Bayes factor can provide evidence for either the alternative or the null hypothesis.
+
+For another example, suppose that instead of an interval, the user wants to test the point-null hypothesis of $.5$ for the same data using the (default) uniform prior: 
+
+```{r}
+dfba_beta_bayes_factor(a_post = 273,
+                       b_post = 278,
+                       method = "point",
+                       H0 = .5)
+```
+
+The Bayes factor $BF_{01}$ is still large ($BF_{01} = 18.28888$), but not identical to that of the previous example because this case deals with a *ratio of probability densities* rather than posterior-to-prior odds ratios of the two non-zero probabilities. For a point-null hypothesis, even in this case with a large Bayes factor, there is still a probability of zero for the null because all points lack area under the probability density function. 
+
+As a final example, let us consider testing the point-null hypothesis $H_0: \phi=.65$ for the same data: 
+
+```{r}
+dfba_beta_bayes_factor(a_post = 273,
+                       b_post = 278,
+                       method = "point",
+                       H0 = .65)
+```
+
+
+
+Note that the Bayes factor $BF_{10}$ is now astronomically large for this null (*i.e.*, $BF_{10} > 4.9 \times 10^ {9}$). Clearly, the null hypothesis of $\phi=.65$ has no credibility. But, since *all point-null hypotheses have zero probability*, this result is neither surprising nor informative. Unlike interval Bayes factors, point-hypothesis testing is only useful if (1) the specific point hypothesis is important for scientific reasons, and (2) the data are centered near the null point. While point Bayes factor calculations can support the null hypothesis when the posterior probability density at the null point is much larger than the prior probability density, the hypothesis itself cannot have a non-zero probability.  
+
+
+
+# References 
+
+Chechile, R. A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge, MA: MIT Press.
+
+Dickey, J. M., and Lientz, B. P. (1970). The weighted likelihood ratio, sharp hypotheses about chance, the order of a Markov chain. *The Annals of Mathematical Statistics*, **41**, 214-226.
+
+Jeffreys, H. (1961). *Theory of Probability (3rd ed.)*. Oxford: Oxford University Press.
+
+Kass, R. E., and Raftery, A. E. (1995). Bayes factors. *Journal of the American Statistical Association*, **90**, 773-795.
+
+Johnson, N. L., Kotz S., and Balakrishnan, N. (1995). *Continuous Univariate Distributions, Vol. 1*, New York: Wiley.
+ 

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Introduction</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="overview" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Overview</h1>
+<p>This vignette is a general introduction to the package <code>DFBA</code>, along with a brief discussion of what the scope and domain of applications are for the functions in the package. First, it is important to state what <em>distribution-free</em> Bayesian statistics are and what they are not, and to explain the practical and theoretical importance for doing distribution-free analyses. It is also important to briefly distinguish Bayesian <em>versus</em> frequentist methods for statistical inference.</p>
+<div id="frequentist-and-bayesian-approaches-to-nonparametric-methods" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Frequentist and Bayesian Approaches to Nonparametric Methods</h2>
+<p>Frequentist and Bayesian approaches fundamentally differ on the basic idea of what can be represented with a probability distribution. To frequentists, population parameters are fixed constants and therefore cannot be represented with probability distributions. The frequentist approach to statistics is based on the relative frequency method of assigning probability values (Ellis, 1842). From this framework, there are no probabilities for anything that does not have a relative frequency (von Mises, 1957). As a consequence of this philosophical decision about the population parameters, frequentist theorists had to invent procedures to obtain point and interval estimates of the population parameters and to invent methods for making decisions about condition differences. These procedures are <em>ad hoc</em> and are not direct results from probability theory. Since probability in the frequentist approach is derived from the relative frequency of data outcomes, frequentist methods involve computing the likelihood of the observe data <em>plus non-observed data that are more extreme</em>. In contradistinction to the frequentist approach, in the Bayesian framework, probability can be anything that satisfies the Kolmogorov (1933) axioms, so probabilities need not be limited to processes that have a relative frequency. Importantly, probability can be a measure of information or knowledge provided that the probability representation meets the Kolmogorov axioms (de Finetti, 1974). The advantage of this approach is the Bayesian methods for point and interval estimation and the methods for making decisions are obtain directly from probability theory. No <em>ad hoc</em> rules are needed because Bayes’s Theorem provides the basis for rigorously converting the prior distribution for the population parameters to a posterior distribution. Moreover, from Bayes’s Theorem the only data that are used are the observed data. Thus, frequentists and Bayesians have diametrically opposed views about population parameters and the relevant likelihood function. To frequentists, the parameters are fix constants and the data outcomes are a random variable, whereas to Bayesians the parameters have a probability distribution, but the only likelihood computed after an experiment is the likelihood for the observed data.</p>
+<p>The package <code>DFBA</code> provides a set of functions for performing Bayesian analyses in a fashion that does not depend on making parametric assumptions about the measurement error. Both frequentist and Bayesian statistics typically make parametric assumptions about the distribution of measurement errors. The term <em>parametric statistics</em> usually refers to any procedure where a normal distribution is assumed for each condition and where the standard deviation of the errors is equal in each condition. Such assumptions may be unrealistic in practice: it is unlikely that these parametric assumptions are precisely true; there may be extreme outlier scores within groups of observations which can have an undue influence on the error model; mixture processes often occur, so the assumption of a homogeneous process might be unreasonable; data – including categorical and rank-based measurements – may not be continuous, <em>etc.</em> Frequentist statistics first developed nonparametric methods for such applications where the parametric model was not assumed. The beauty of those methods is that they often provide investigators with the means to arrive at robust conclusions without the worry that their results were due in part to an invalid error model. Even when parametric models seem to be reasonable, frequentist nonparametric statistics are a valuable alternative to see if the conclusions from parametric analyses hold.</p>
+<p>Frequentist distribution-free statistics were developed long before their Bayesian counterparts. In the mid-twentieth century, Wilcoxon and later Mann and Whitney developed frequentist tests for continuous data that only used rank-order information. Importantly this work bypassed the need for making the usual parametric assumptions for <span class="math inline">\(t\)</span>-tests (Wilcoxon, 1945; Mann &amp; Whitney, 1947). Textbooks by Siegel provided a comprehensive framework for doing frequentist nonparametric statistics (Siegel, 1956; Siegel &amp; Castellan, 1988). With these developments, frequentist distribution-free procedures became an important set of tools for data analysts.</p>
+<p>The field of Bayesian statistics, by contrast, was slow to develop distribution-free statistical tests. Lindley, a noted Bayesian statistician, observed that distribution-free statistics was a topic on which Bayesian statistics was embarrassingly silent (Lindley, 1972). The topic that has come to be called <em>Bayesian nonparametric models</em> (<em>e.g.</em>, Ferguson, 1973; Müller <em>et al.</em>, 2015) includes procedures that were not distribution-free. Instead, these models are complex explorations of parameter spaces with infinite dimensionality. Eventually, fully-Bayesian counterparts to the Wilcoxon and to the Mann-Whitney tests were developed (Chechile, 2018; 2020b). Chechile (2020a) further expanded those results along with other Bayesian procedures that parallel the tests discussed in frequentist textbooks on nonparametric statistics. Chechile deliberately used the term <em>distribution-free Bayesian statistics</em> (Chechile, personal communication) so as to distinguish the simple Bayesian counterparts to the frequentist distribution-free procedures from the more complex aforementioned <em>Bayesian nonparametric models</em>.</p>
+</div>
+<div id="the-dfba-package" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span> The <code>DFBA</code> Package</h2>
+<p>The <code>DFBA</code> package implements the methods for distribution-free Bayesian analyses across a range of applied contexts. The functions were designed and documented in a fashion to be readily accessible to research scientists who might widely vary in their background on statistical theory. All the functions in the package have the prefix of <code>dfba_</code>, which is followed by a function name. While specific vignettes are available for each of the functions, the functions are nonetheless briefly described below.</p>
+</div>
+<div id="dfba-functions" class="section level2" number="1.3">
+<h2><span class="header-section-number">1.3</span> DFBA Functions</h2>
+<div id="dfba_beta_descriptive-supplementary-descriptive-statistics-for-the-beta-distribution" class="section level3" number="1.3.1">
+<h3><span class="header-section-number">1.3.1</span> <code>dfba_beta_descriptive()</code>: Supplementary descriptive statistics for the beta distribution</h3>
+<p><code>dfba_beta_descriptive()</code>: The <code>stats()</code> package has a number of functions to obtain the probability density, cumulative probability, quantiles, and random scores for a set of probability distributions. For example, for the beta distribution, the functions <code>dbeta()</code>, <code>pbeta()</code>, <code>qbeta()</code>, and <code>rbeta()</code> return the probability density, cumulative probability, quantiles, and random values, respectively. The <code>dfba_beta_descriptive()</code> function supplements the functions in the <code>stats()</code> package. <code>dfba_beta_descriptive()</code> provides the mean, median, and mode for a beta variate in terms of the two shape parameters for the beta distribution; and provides two interval estimates for the beta variate. Each of the interval estimates captures a set proportion of the distribution where the user can stipulate the probability within the limits. The <em>equal-tail interval</em> estimate has equal-tail probabilities, <em>i.e.</em>, the probability below the lower limit is equal to the probability above the upper limit. The <em>highest density interval</em> estimate is the most compact interval that contains the stipulated probability. <code>dfba_beta_descriptive()</code> is called by several of the other functions in the <code>DFBA</code> package. See the vignette about this function for more information about the beta distribution along with examples.</p>
+</div>
+<div id="dfba_binomial-distribution-free-bayesian-binomial-tests" class="section level3" number="1.3.2">
+<h3><span class="header-section-number">1.3.2</span> <code>dfba_binomial()</code>: Distribution-free Bayesian Binomial Tests</h3>
+<p>For the binomial research design there are two categorical outcomes per test. The binomial model is a Bernoulli process where it is assumed that the trials are independent with the same population probability (say <span class="math inline">\(\phi\)</span>) for one of the two outcomes. For the Bayesian analysis the prior distribution for the <span class="math inline">\(\phi\)</span> parameter is expressed in terms of a beta distribution. Such a prior results in a posterior distribution that is another member of the beta family of distributions. There are two shape parameters for any beta distribution that must be finite, positive real values. In the <code>DFBA</code> package, the two shape parameters for a prior beta distribution are denoted as <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span>. The case where <span class="math inline">\(a_0=b_0=1\)</span> is the special case that corresponds to a uniform prior distribution for <span class="math inline">\(\phi\)</span> on the <span class="math inline">\([0,\,1]\)</span> interval. The posterior beta distribution has shape parameters of <span class="math inline">\(a=a_0+n_1\)</span> and <span class="math inline">\(b=b_0+n_2\)</span> where <span class="math inline">\(n_1\)</span> and <span class="math inline">\(n_2\)</span> are the frequency of observations in the two binomial categories. The <code>dfba_binomial()</code> function computes the posterior point and interval estimates for the population <span class="math inline">\(\phi\)</span> parameter. More details and examples about the <code>dfba_binomial()</code> function are provided in the separate vignette about that program.</p>
+</div>
+<div id="dfba_beta_bayes_factor-bayes-factor-for-posterior-beta-distribution" class="section level3" number="1.3.3">
+<h3><span class="header-section-number">1.3.3</span> <code>dfba_beta_bayes_factor()</code>: Bayes Factor for Posterior Beta Distribution</h3>
+<p>In Bayesian statistics, scientific hypotheses are evaluated with probability statements about the population parameter. For example, an investigator might want to assess a null hypothesis about the binomial parameter <span class="math inline">\(\phi\)</span>. For any posterior beta distribution, the function <code>dfba_beta_bayes_factor()</code> provides the user with valuable information for making decisions about the binomial <span class="math inline">\(\phi\)</span> parameter. The function computes the prior and posterior probabilities for a user-stipulated null hypothesis about the binomial <span class="math inline">\(\phi\)</span> parameter as well as the Bayes factor associated with the null hypothesis. The null hypothesis either can be an interval of values for <span class="math inline">\(\phi\)</span> or it can be a single point. The vignette dedicated to this function provides more information about what the Bayes factor is and how it can be used to make decisions.</p>
+</div>
+<div id="dfba_mcnemar-bayesian-repeated-measures-mcnemar-test-for-change" class="section level3" number="1.3.4">
+<h3><span class="header-section-number">1.3.4</span> <code>dfba_mcnemar()</code>: Bayesian Repeated-Measures McNemar Test for Change</h3>
+<p>The frequentist McNemar test is a nonparametric <em>change detection procedure</em> for a within-block or within-subject study where the variate is categorical. An example of a study where this procedure would be appropriate is a political focus group measuring the preference for Candidate <em>A</em> <em>vs.</em> Candidate <em>B</em> among a group of potential voters <em>before</em> and <em>after</em> a debate. The test is designed to see if there are more participants changing their opinion from Candidate <em>A</em> to Candidate <em>B</em> or more changing from <em>B</em> to <em>A</em>. The <code>dfba_mcnemar()</code> function provides the user with a Bayesian alternative analysis for this specialized research design. The function computes point and intervals estimates for the population change rate in a particular direction as well as Bayes factor values. See the vignette for the <code>dfba_mcnemar()</code> function for more details and examples.</p>
+</div>
+<div id="dfba_beta_contrast-bayesian-contrasts" class="section level3" number="1.3.5">
+<h3><span class="header-section-number">1.3.5</span> <code>dfba_beta_contrast()</code>: Bayesian Contrasts</h3>
+<p>This function is a Bayesian alternative to the frequentist nonparametric <span class="math inline">\(\chi^2\)</span> test of statistical independence when there are <span class="math inline">\(K\ge 2\)</span> independent groups and the variate is a binomial in each condition. The frequentist procedure is limited because it only assess the hypothesis that all groups are equivalent, which is unlikely to be true in the limit of the population. Instead, the <code>dfba_beta_contrast()</code> function implements a Bayesian analysis of a linear contrast of conditions when there are two or more independent conditions or groups and where the variate for each condition is a binomial. The user can stipulate the linear contrast by inputting contrast weights such that the sum of the contrast coefficients is zero. For any stipulated contrast, the function provides point and interval estimates as well as Bayes factor values. Examples and more information about this function are discussed in the separate vignette for this function.</p>
+</div>
+<div id="dfba_sign_testbayesian-sign-test" class="section level3" number="1.3.6">
+<h3><span class="header-section-number">1.3.6</span> <code>dfba_sign_test()</code>:Bayesian Sign Test</h3>
+<p>The sign test is a classic frequentist nonparametric procedure. The context for this test is when there are two paired continuous variates <span class="math inline">\(Y_1\)</span> and <span class="math inline">\(Y_2\)</span>. The frequentist procedure involves computing the difference <span class="math inline">\(d=Y_1-Y_2\)</span>. For all the <em>nonzero</em> differences <span class="math inline">\(d\)</span>, the sign test is based on the frequentist test about the population rate for a positive difference. The function <code>dfba_sign_test()</code> is the Bayesian counterpart to the frequentist sign test. The function allows the user to enter their continuous values for <span class="math inline">\(Y_1\)</span> and <span class="math inline">\(Y_2\)</span>, and it computes the prior and posterior probability that the population rate parameter is greater than <span class="math inline">\(.5\)</span>. Point and interval estimates are computed for the population of positive signs, and the Bayes factor is also found. Examples and more details about the <code>dfba_sign_test()</code> function can be found in the separate vignette about the sign test.</p>
+</div>
+<div id="dfba_median_test-bayesian-median-test" class="section level3" number="1.3.7">
+<h3><span class="header-section-number">1.3.7</span> <code>dfba_median_test()</code>: Bayesian Median Test</h3>
+<p>Given two independent groups (<em>e.g.</em>, group <span class="math inline">\(E\)</span> for <em>experimental</em> and <span class="math inline">\(C\)</span> for <em>control</em>) where the variate for each group is continuous, the median test is a simple (but low-power) frequentist nonparametric analysis to test for condition differences. The frequentist procedure forms a <span class="math inline">\(2 \times 2\)</span> array of frequencies for the observations. One dimension is the group category and the other dimension is scores above the combined median versus scores at or below the combined median. The <code>dfba_median_test()</code> function implements a Bayesian analysis for this procedure. For continuous measurements of the two groups, it finds the combined median and computes the <span class="math inline">\(2 \times 2\)</span> array of frequencies. The <code>dfba_median_test()</code> function performs a Bayesian analysis to see if it is more likely than would be expected for an above-median value to be from one of the two groups. See the vignette about this function for more information.</p>
+</div>
+<div id="dfba_wilcoxon-bayesian-distribution-free-repeated-measures-test-wilcoxon-signed-ranks-test" class="section level3" number="1.3.8">
+<h3><span class="header-section-number">1.3.8</span> <code>dfba_wilcoxon()</code>: Bayesian Distribution-free Repeated-Measures Test (Wilcoxon Signed-Ranks Test)</h3>
+<p>The Wilcoxon signed-rank test is the frequentist nonparametric counterpart to the parametric paired <span class="math inline">\(t\)</span>-test. The procedure is based on the rank of the difference scores <span class="math inline">\(d = Y_1 - Y_2\)</span>. The ranking is initially performed on the absolute value of the nonzero <span class="math inline">\(d\)</span> values, and each rank is then multiplied by the sign of the difference. Since the procedure is based on only ranks of the differences, it is robust with respect to outliers in either the <span class="math inline">\(Y_1\)</span> or <span class="math inline">\(Y_2\)</span> measures. The procedure does not depend on the assumption of a normal distribution for the two continuous variates. The sample <span class="math inline">\(T_{pos}\)</span> statistic is the sum of the ranks that have a positive sign, whereas <span class="math inline">\(T_{neg}\)</span> is the positive sum of the ranks that have a negative value. The <code>dfba_wilcoxon()</code> function does a Bayesian analysis of the signed-rank statistics. Given vectors of <span class="math inline">\(Y_1\)</span> and <span class="math inline">\(Y_2\)</span> values, the function computes the signed-rank statistics as well as a Bayesian analysis of the sign-bias parameter <span class="math inline">\(\phi_w\)</span>, which is the population proportion for positive differences. See the separate vignette about this function for further details and for examples.</p>
+</div>
+<div id="dfba_mann_whitney-bayesian-distribution-free-independent-samples-test-mann-whitney-u" class="section level3" number="1.3.9">
+<h3><span class="header-section-number">1.3.9</span> <code>dfba_mann_whitney()</code>: Bayesian Distribution-free Independent Samples Test (Mann Whitney U)</h3>
+<p>The Mann-Whitney <span class="math inline">\(U\)</span> test is the frequentist nonparametric counterpart to the independent-groups <span class="math inline">\(t\)</span>-test. The sample <span class="math inline">\(U_E\)</span> statistic is the number of times that the <span class="math inline">\(E\)</span> variate is larger than the <span class="math inline">\(C\)</span> variate, whereas <span class="math inline">\(U_C\)</span> is the converse number. This test uses only rank information, so it is robust with respect to outliers, and it does not depend on the assumption of a normal model for the variates. The <code>dfba_mann_whitney()</code> function computes the <span class="math inline">\(U\)</span> statistics from the two independent-groups data vectors and performs a Bayesian analysis that is focused on the population parameter <span class="math inline">\(\Omega_E\)</span>, which is the population limit for the ratio <span class="math inline">\(\frac{U_E}{U_E+U_C}\)</span>. Additional details and examples can be found in the separate vignette about this function.</p>
+</div>
+<div id="dfba_sim_data-simulated-data-generator-and-inferential-comparison" class="section level3" number="1.3.10">
+<h3><span class="header-section-number">1.3.10</span> <code>dfba_sim_data()</code>: Simulated Data Generator and Inferential Comparison</h3>
+<p>This function is designed to be called by other <code>DFBA</code> programs that compare frequentist and Bayesian power. The function generates simulated data for two conditions that can be from nine different probability models. The nine probability models are: normal, Weibull, Cauchy, lognormal, <span class="math inline">\(\chi^2\)</span>, logistic, exponential, Gumbel, and Pareto. The user can also stipulate the sample size, research design (either <em>independent</em> or <em>paired</em>), the offset between the two samples, a blocking factor, and the probability model. The program computes the frequentist <span class="math inline">\(p\)</span>-value from a <span class="math inline">\(t\)</span>-test on the generated data, and it computes the Bayesian posterior probability from a distribution-free analysis of the difference between the two conditions. The Bayesian analysis is obtained either from the <code>dfba_wilcoxon()</code> function if the design is <em>paired</em> or from the <code>dfba_mann_whitney()</code> function if the design is <em>independent.</em> Examples and additional information about the <code>dfba_sim_data()</code> function are available in a separate vignette.</p>
+</div>
+<div id="dfba_bayes_vs_t_power-simulated-distribution-free-bayesian-power-and-t-power" class="section level3" number="1.3.11">
+<h3><span class="header-section-number">1.3.11</span> <code>dfba_bayes_vs_t_power()</code>: Simulated Distribution-Free Bayesian Power and <span class="math inline">\(t\)</span> Power</h3>
+<p>Researchers need to make experimental-design decisions such as the choice about the sample size per condition and the decision of whether to use a within-block design or an independent-groups design. These planning issues arise regardless if one uses either a frequentist or a Bayesian approach to statistical inference. In the <code>DFBA</code> package, there are two functions to help users with these decisions. The <code>dfba_bayes_vs_t_power()</code> function produces for a set of 11 sample sizes (a) the Bayesian power estimate from a distribution-free analysis and (b) the corresponding frequentist power from a parametric <span class="math inline">\(t\)</span>-test. The sample size varies across the 11 cases from a user-specified minimum and increases in steps of 5. These estimates are based on a number of different Monte Carlo sampled data sets generated by the <code>dfba_sim_data()</code> function. The user can stipulate the research design (either independent or paired), the offset between the two samples, a blocking factor, and the probability model. Further details about this function are provided in a separate vignette.</p>
+</div>
+<div id="dfba_power_curve-power-curves" class="section level3" number="1.3.12">
+<h3><span class="header-section-number">1.3.12</span> <code>dfba_power_curve()</code>: Power Curves</h3>
+<p>While the <code>dfba_bayes_vs_t_power()</code> function provides frequentist and Bayesian power estimates for 11 cases for different sample sizes, which have the same offset between the variates, the <code>dfba_power_curve()</code> function produces frequentist and Bayesian power estimates for 21 offset values for the <em>same sample size</em> <span class="math inline">\(n\)</span>. The power estimates are based on a number of Monte Carlo sampled data sets generated by the <code>dfba_sim_data()</code> function. Additional information about the <code>dfba_power_curve()</code> can be found in a separate vignette.</p>
+</div>
+<div id="dfba_bivariate_concordance-bayesian-distribution-free-correlation-and-concordance" class="section level3" number="1.3.13">
+<h3><span class="header-section-number">1.3.13</span> <code>dfba_bivariate_concordance()</code>: Bayesian Distribution-Free Correlation and Concordance</h3>
+<p>The product-moment correlation depends on Gaussian assumptions about the residuals in a regression analysis. Thus the parametric correlation metric is not robust because it is strongly influenced by any extreme outlier scores for either of the two variates. A Bayesian rank-based concordance analysis avoids these limitations. The function <code>dfba_bivariate_concordance()</code> is focused on a nonparametric concordance metric for characterizing the association between the two bivariate measures. Given two vectors of continuous bivariate data, the <code>dfba_bivariate_concordance()</code> function computes the sample number of concordant changes <span class="math inline">\(n_c\)</span> between the two variates and the number of discordant changes <span class="math inline">\(n_d\)</span>. The function also computes the frequentist Kendall <span class="math inline">\(\tau_A\)</span> correlation coefficient <span class="math inline">\(\frac{n_c-n_d}{n_c+n_d}\)</span>, and provides a Bayesian analysis of the population concordance parameter <span class="math inline">\(\phi_c\)</span>, which is the population limit of the proportion of concordance changes between the variates (<em>i.e.</em>, the population value for <span class="math inline">\(\frac{n_c}{n_c+n_d}\)</span>). For goodness-of-fit applications, where one variate is a measured quantity and the other variate is the paired theoretical predicted score based on a scientific theory, the <code>dfba_bivariate_concordance()</code> function provides a correction to the number of concordant changes based on the number of fitting parameters in the scientific model. More information about this function is available in the separate vignette dedicated to this function.</p>
+</div>
+<div id="dfba_gamma-bayesian-goodman-kruskal-gamma" class="section level3" number="1.3.14">
+<h3><span class="header-section-number">1.3.14</span> <code>dfba_gamma()</code>: Bayesian Goodman-Kruskal Gamma</h3>
+<p>While the <code>dfba_bivariate_concordance()</code> function examines bivariate concordance for two paired continuous random variables, the <code>dfba_gamma()</code> function provides a concordance analysis when the data are in the form of a rank-based array of frequencies. For an ordered matrix, the frequency value in the <span class="math inline">\(I\)</span>th – <span class="math inline">\(J\)</span>th cell is the number of observations where the <span class="math inline">\(X\)</span> variate has a rank of <span class="math inline">\(I\)</span> and corresponding <span class="math inline">\(Y\)</span> variate has a rank of <span class="math inline">\(J\)</span>. Given a rank-ordered table or matrix, the <code>dfba_gamma()</code> function computes the Goodman-Kruskal gamma statistic as well as a Bayesian analysis of the population concordance proportion parameter <span class="math inline">\(\phi_c\)</span>. Additional information about this function is found in a separate vignette.</p>
+</div>
+<div id="references" class="section level3" number="1.3.15">
+<h3><span class="header-section-number">1.3.15</span> References</h3>
+<p>Chechile, R. A. (2018) A Bayesian analysis for the Wilcoxon signed-rank statistic. <em>Communications in Statistics - Theory and Methods</em>, <a href="https://doi.org/10.1080/03610926.2017.1388402" class="uri">https://doi.org/10.1080/03610926.2017.1388402</a></p>
+<p>Chechile, R.A. (2020a). <em>Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods</em>. Cambridge: MIT Press.</p>
+<p>Chechile, R.A. (2020b). A Bayesian analysis for the Mann-Whitney statistic. <em>Communications in Statistics: Theory and Methods</em> <em>49</em>(3): 670-696. <a href="https://doi.org/10.1080/03610926.2018.1549247" class="uri">https://doi.org/10.1080/03610926.2018.1549247</a>.</p>
+<p>de Finetti, B. (1974). Bayesianism: Its unifying role for both foundations and applications of statistics. <em>International Statistical Review</em>, <em>42</em>, 117-139.</p>
+<p>Ferguson, T. S. (1973). A Bayesian analysis of some nonparametric problems. <em>Annals of Statistics</em>, <em>1</em>, 209-230.</p>
+<p>Kolmogorov, A. N. (1933). . Berlin: Springer.</p>
+<p>Lindley, D. V. (1972). . Philadelphia: SIAM.</p>
+<p>Müller, P., Quintana, F. A., Jara, A., and Hanson, T. (2015). <em>Bayesian Nonparametric Data Analysis</em>. Cham, Switzerland: Springer International.</p>
+<p>Siegel, S. (1956). <em>Nonparametric Statistics for the Behavioral Sciences</em>. New York: McGraw-Hill.</p>
+<p>Siegel, S., and Castellan, N. J. (1988). <em>Nonparametric Statistics for the Behavioral Sciences</em>. New York: McGraw-Hill.</p>
+<p>von Mises, R. (1957). <em>Probability, Statistics, and Truth</em>. New York: Dover.</p>
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

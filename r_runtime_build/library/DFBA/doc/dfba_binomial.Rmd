@@ -1,0 +1,185 @@
+---
+title: "dfba_binomial"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_binomial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Overview
+The `dfba_binomial()` function provides tools for Bayesian analysis of binomial data. In this vignette, the section [Theoretical and Historical Background](#background) introduces the binomial model. It also contains a discussion of the theoretical and historical background of Bayesian and frequentist approaches, as the binomial model has historically been a source of vigorous debate between frequentists and Bayesians. It also identifies some key differences between the frequentist and the Bayesian approach. Consequently, the binomial model sets the stage in general for discussing the differences between Bayesian and frequentist theory, and thus is pertinent for the entire `DFBA` package. The section [Using the `dfba_binomial()` Function](#Usage) contains a detailed discussion of the `dfba_binomial()` function with examples.
+
+
+# Theoretical and Historical Background {#background}
+
+The data type for the binomial model has the property that each observation has one of two possible outcomes, and where the population proportion for a response in one category is denoted as $\phi$ and the proportion for the other response is $1-\phi$. It is assumed that the value for $\phi$ is the same for each independent sampling trial. After a sample of $n$ trials, let us denote the frequency of Category 1 responses as $n_1$, and denote the frequency for Category 2 responses as $n_2=n-n_1$. The likelihood for observing $n_1$ and $n_2=n-n_1$ given knowledge of the the population $\phi$ parameter is $p(n_1,n)= \frac{n!}{n1!(n-n1)!} \phi^{n_1} (1-\phi)^{n-n_1}$. In reality, however, the true population parameter $\phi$ is unknown, but we can know the frequencies $n_1$ and $n_2$ upon the collection of data. The statistical inferential question concerns estimating the population $\phi$ parameter given the observed data. The binomial is arguably the most simple data type and the most straightforward inferential problem. There are two approaches for making this inference about the $\phi$ parameter: the frequentist and the Bayesian approaches. 
+
+The frequentist approach to statistics is based on the relative frequency method of assigning probability values (Ellis, 1842). In that framework, there can be no probabilities assigned to anything that does not have a relative frequency (von Mises, 1957). In frequency theory, the $\phi$ parameter does not have a relative frequency, so it cannot have a probability distribution. From a frequentist framework, a value for the binomial rate parameter is *assumed*, and there is a discrete distribution for the $n+1$ outcomes for $x$ from $0$ to $n$. The discrete likelihood distribution has relative frequency over repeated experiments. Thus, for the frequentist approach, $x$ is a random variable, and $\phi$ is a fixed (and assumed) constant. For example, in frequentist hypothesis testing, the discrete likelihoods for the observed data *plus non-observed more extreme outcomes* are computed via the binomial likelihood equation given a specific assumed value for $\phi$. That is, the summed likelihood is $L(x)= \sum_{x=n_1}^{x=n}\frac{n!}{x!(n-x)!} \phi^{x} (1-\phi)^{n-x}$ for $x=n_1,\ldots, n$. In the frequentist approach, that summed likelihood is based on an assumed value for $\phi$ (*e.g.*, a null hypothesis value such as $\phi=.5$), and data are treated as a random variable since alternative non-observed possibilities are included in the calculation. Summation over non-observed outcomes is justified by the idea that over an infinite number of different samples with the same number of trials $n$ and the same assumed null value for $\phi$, the summed likelihood would meet the relative frequency requirement. The assumed null hypothesis will be rejected if the summed likelihood is a low probability (say less than $.05$), otherwise the null hypothesis is retained. Frequency theory thus deliberately rejects the idea of the binomial rate parameter $\phi$ having a probability distribution. 
+
+Both Bayes (1763) and Laplace (1774) had previously employed a *Bayesian* approach of treating the $\phi$ parameter -- rather than the observed data $x$ -- as a random variable. Yet Ellis and other researchers within the frequentist tradition deliberately rejected the Bayes/Laplace approach. For example, the frequentist confidence interval is the range of $\phi$ values where the null hypothesis of specific $\phi$ values would be retained given the observed data (Clopper & Pearson, 1934). Yet the frequentist confidence interval is not a *probability* interval since population parameters cannot have a probability distribution in the frequentist framework. Frequentist statisticians were well aware that if the $\phi$ parameter had a distribution, then the Bayes/Laplace approach would be correct because Bayes theorem itself was not in dispute (*e.g.*, Pearson, 1920). 
+ 
+Although the Bayesian approach was the original statistical inference method -- developed with the early work by Bayes (1763) and Laplace (1774) -- the frequentist approach by the late nineteenth century had extinguished the Bayes/Laplace approach on philosophical grounds. It was argued that the population parameter was a fixed value, so it was erroneous to treat it as a random variable. A consensus had been achieved in favor of the frequentist approach. However, in the twentieth century the Bayesian approach slowly reemerged *via* the work by probability theorists such as Ramsey (1931), de Finetti (1937), and Jeffreys (1946), as well as by the development of a mathematical theory of information (Shannon, 1948). Another important 20th century development was the reduction of *probability itself* to a set of fundamental axioms (Kolmogorov, 1933). It became clear to some theorists that probability need not be limited to the case where the sampling was done repeatedly so as to satisfy the frequentist requirement of a relative frequency of experiments. Unique events could have a probability provided that the probability assignment of values to outcomes was consistent with the Kolmogorov axioms. To the above mentioned theorists, even a constant could have a probability distribution that reflects our knowledge about the value of the constant. Once the philosophical roadblock about parameters having a probability distribution was bypassed, the Bayes/Laplace approach was back in business.
+
+One key disadvantage of frequentist methods relative to Bayesian methods is that the frequentist framework does not meet the needs of researchers who want to have a probability associated with their empirical findings about some unknown population parameter. For example, the *Clopper-Pearson confidence interval was not a probability interval on the parameter*. If it were a probability, then there would be a probability for the parameter, and that result is not allowed in the frequentist framework. Also when a null hypothesis such as the assumption that $\phi \le .5$ is rejected in a frequentist significance test with a $p$ value less than $.05$, then that result does not mean the probability for the alternative hypothesis that $\phi>.5$ is greater than $.95$. Yet researchers commonly misuse confidence intervals and tests of significance. The misuse of frequentist methods was so widespread that the *American Statistical Association* formed a blue-ribbon commission of experts to inform researchers about this problem. For example, the panel pointed out that a $p$ value is not a probability for either the null or alternative hypothesis (Wassertein & Lazar, 2016). As statistician Robert Matthews stated about null hypothesis significance tests (NHST):
+
+> The key concepts of NHST- and, in particular, $p$-values cannot do what researchers ask of them. Despite the impression created by countless research papers, lecture courses, and textbooks, $p$-values below 0.05 do not "prove" the reality of anything. Nor, come to that, do $p$-values above 0.05 disprove anything. (Matthews, 2021, p. 16).   
+
+With the Bayesian approach, parameters and hypotheses have an initial (prior) probability representation, and once data are obtained, the Bayesian approach rigorously arrives at a posterior probability distribution. Bayesian analyses are thus better fitted to the needs of the research scientist who desires a probabilistic representation of a population parameter.
+
+Another advantage of the Bayesian approach is that after the key assumption of a prior probability, the rest of the statistical inference -- in terms of point and interval estimation as well as hypothesis testing -- is based on probability theory. Unlike frequentist theory, which developed one-off rules for estimation and hypothesis testing, the Bayesian inference is rigorously grounded in probability theory. 
+
+Yet another advantage to the Bayesian approach is that it can supply probabilistic evidence for any hypothesis. In frequentist theory, hypothesis testing requires assuming a null hypothesis, so it cannot build evidence for the null because the null hypothesis was assumed in the first place. Bayesian statistics does not assume any hypothesis; instead the Bayesian approach has a full probability representation for the unknown parameter over all possible values. Thus there will be a posterior probability for and against any hypothesis of interest.
+
+A key difference between the frequentist and Bayesian approaches is in the use of likelihoods. A likelihood is the conditional probability of data outcome given a value for the population parameter. In the frequentist approach, the likelihood for an inference about testing the binomial rate parameter involved the summing of the observed outcome plus more extreme non-observed outcomes. The operation of including non-observed likelihoods is never done in the Bayesian approach because those outcomes are not part of Bayes's theorem. From the Bayesian perspective, the inclusion of unobserved outcomes in the analysis violates the likelihood principle (Berger & Wolpert, 1988). A number of investigators have found paradoxes with frequentist procedures when the likelihood principle is not used (*e.g.*, Lindley & Phillips,1976; Chechile, 2020). For example, cases can be found where the data from a binomial study can either reject the null hypothesis or continue to retain the assumption of the null hypothesis depending on the stopping rules of the study (Chechile, 2020). The likelihood of the observed data is the same, but the non-observed data are dependent on the stopping rules. A paradox can be found based on the frequentist inclusion of non-observed outcomes. This paradox does not occur with the Bayesian approach because the stopping rules for doing a binomial experiment are irrelevant; all that matters is the observed outcome values for the frequencies $n_1$ and $n_2$. Thus in Bayesian statistics, the likelihood of the observed data for the binomial has the likelihood that is *proportional* to $\phi^{n_1}(1-\phi)^{n_2}$. The proportionality constant is not needed because it appears in both the numerator and the denominator of Bayes theorem, so it cancels. 
+    
+It is well known that the beta distribution has a special linkage to Bernoulli processes. A Bernoulli process has (1) binary outcomes, (2) a population proportion for a given category, and (3) independent trials where the population proportions are the same. The binomial is a Bernoulli process that has fixed number of trials $n$. A *negative binomial* is a Bernoulli process where there is a predetermined number of one of the two outcome categories. The frequentist likelihood for the binomial and negative binomial are different due to the different stopping rules. However, regardless of these differences the Bayesian likelihood $L$ for a Bernoulli processes is 
+
+\begin{equation} 
+  L \propto \phi^{n_1} (1-\phi)^{n_2}.
+  (\#eq:LikelihoodEquation)
+\end{equation} 
+ 
+The Bayesian analysis for the binomial obtains a posterior distribution density function $f(\phi| n_1,n_2)$ after an experiment that is 
+
+\begin{equation} 
+  f(\phi\,| n_1,n_2) = \frac{f(\phi) L}{\int_{0}^{1}f(\phi) L d\phi}
+  (\#eq:generalBayesrule)
+\end{equation} 
+
+where $f(\phi)$ is the prior density function, and $L$ is from equation \@ref(eq:LikelihoodEquation). Let $f(\phi)$ be beta distribution with shape parameters $a_0$ and $b_0$. The prior density is thus:
+
+\begin{equation}
+  f(\phi) = \frac{\Gamma(a_0+b_0)}{\Gamma(a_0)\Gamma(b_0)}\phi^{a_0-1} (1-\phi)^{b_0-1}
+  (\#eq:betapriordensity)
+\end{equation}
+
+where $a_0>0$ and $b_0>0$ and are finite. See the vignette about the `dfba_beta_descriptive()` function for more information about the beta distribution. With this prior, the posterior distribution via Bayes theorem from equation \@ref(eq:generalBayesrule) results in the posterior distribution
+
+\begin{equation}
+  f(\phi| n_1,n_2) = \frac{\Gamma(a+b)}{\Gamma(a)\Gamma(b)}\phi^{a-1} (1-\phi)^{b-1}
+  (\#eq:betaposterior)
+\end{equation}
+
+where $a=a_0+n_1$ and $b=b_0+n_2$.^[To prevent confusion between the prior and posterior shape parameters, the `dfba_binomial()` function uses the variable names `a0` and `b0` to refer to $a_0$ and $b_0$ and `a_post` and `b_post` to refer to the posterior $a$ and $b$, respectively] Thus, if a beta distribution is the prior for the binomial $\phi$ parameter, then the resulting posterior distribution from Bayes theorem is another member of the beta family of distributions. This property of the prior and posterior being in the same distributional family is called *conjugacy*. The beta distribution is a natural Bayesian conjugate function for all Bernoulli processes where the likelihood is proportional to $\phi^{n_1}(1-\phi)^{n_2}$ (Lindley & Phillips, 1976; Chechile, 2020). 
+
+# Using the `dfba_binomial()` Function {#Usage}
+
+A binomial analysis of data is easily implemented via the `dfba_binomial()` function.^[The `dfba_beta_bayes_factor()` function can be used to assess any hypothesis, such as $\phi>.5$. But, hypothesis testing is outside the scope of this vignette since that topic is explored more extensively in the vignette devoted to the `dfba_beta_bayes_factor()` function.] The function takes the arguments `(n1, n2, a0 = 1, b0 = 1, prob_interval = .95)`. The `a0` and `b0` arguments have default values of $1$. These arguments are the shape parameters for the prior beta distribution. When $a_0 = b_0 = 1$, the beta density function is a flat density on the $[0,~1]$ interval. The `a0` and `b0` parameters are required to be positive, finite values. The `prob_interval` argument has a default value of $.95$. The required arguments for the `n1` and `n2` are the frequency values for responses in the two outcome categories. These quantities must be non-negative integer values. 
+
+## Examples
+
+### Example 1
+
+For observed frequencies for $n_1$ and $n_2$ of, respectively, $25$ and $8$, using the default values for `a0`, `b0`, and `prob_interval` arguments gives the following:
+
+```{r}
+dfba_binomial(n1 = 25,
+              n2 = 8)
+```
+
+The `a_post` and `b_post` values shown above are shape parameters for the posterior beta. The output provides the *mean*, *median*, and *modal* estimates for the posterior $\phi$ distribution, as well as the $95\%$ equal-tail interval estimate and $95\%$ highest-density interval. 
+
+The `plot()` method produces visualizations of the the posterior and prior beta distributions (a visualization of the posterior distribution alone can be produced by including the argument `plot.prior = FALSE`). 
+
+```{r fig.width = 7}
+plot(dfba_binomial(n1 = 25,
+                   n2 = 8
+                   ))
+```
+
+The above example uses the default uniform prior. This prior is commonly used as an *non-informative* prior. However, some theorists use another non-informative prior called the Jeffreys prior (Jeffreys, 1946). This prior is a beta distribution where the two shape parameters are $a_0=b_0=.5$. This prior is a U-shaped function. 
+
+```{r fig.width = 7}
+plot(dfba_binomial(n1 = 25,
+                   n2 = 8,
+                   a0 = .5,
+                   b0 = .5))
+```
+
+### Example 2
+
+In Bayesian statistics, the prior is the initial subjective probability belief model for the unknown parameter. The prior might be different for different investigators. When the priors differ, the posteriors are also different. Bayes theorem is a means to convert a prior to a posterior conditional on the observed data, but Bayes theorem does not stipulate which prior is "right". Consequently, Bayesians are usually very careful to inform the reader about the prior that was used and the rationale for that choice. Moreover, Bayesians usually are very careful to report the data so that others can reanalyze their data with their preferred prior. In the `DFBA` package, the user can supply their own prior. Please note that the developers of the package have a preference for a flat uniform prior for the binomial rate parameter, so that prior is the default. Chechile (2020) compared the Jeffreys prior to the uniform prior for the binomial rate parameter in terms of Shannon's information metric. The uniform prior is less informative than the Jeffreys prior as demonstrated by the Shannon information metric. While the uniform prior and the Jeffreys prior differ, the posterior distributions are nonetheless very similar. For example, in the above case where `n1 = 25` and `n2 = 8`, the posterior $95$-percent highest-density is $[.5987647,.8792364]$ for the uniform prior, and it is $[.6052055,.8865988]$ for the Jeffreys prior. These interval estimates are very close, and as the sample size increases, the difference between these two non-informative priors becomes trivially small. 
+ 
+There are also times when researchers deliberately choose to employ an informed prior that reflects knowledge acquired from previous research. For example, suppose a second investigator upon reading a report where the original researchers had a posterior beta distribution with shape parameters of $26$ and $9$, the second scientist might use `a0 = 26` and `b0 = 9` for the prior for a replication study on the same problem. Suppose further that this second researcher records experimental results of `n1 = 41` and `n2 = 32`. This investigator thus would use the following code for the analysis of the data from the second study:
+
+```{r}
+dfba_binomial(n1 = 41,
+              n2 = 32,
+              a0 = 26,
+              b0 = 9)
+```
+
+Note that the $95$-percent highest-density interval (HDI) is $[.5288804,\,.710597]$, which is a more narrow range than the $95$-percent HDI from the first study, which was $[.5987647,\,.8792364]$. There is also a shift in the centrality estimates.  
+
+# Conclusion
+
+The `dfba_binomial()` function, along with the functions `dfba_beta_descriptive()` and `dfba_beta_bayes_factor()`, are useful tools for doing a Bayesian analysis of binomial data. The Bayesian analysis is relatively easy for researchers to understand. Unlike frequentist analyses, which are often misinterpreted by both the researchers and the readers of papers, Bayesian results are properly framed in probability theory. For example, Bayesian interval estimates are probability statements about the population parameter. Thus a claim that a particular interval contains $95\%$ for the population parameter is a statement that implies betting odds. That is, the probability that the parameter is inside the interval is $19$ times more probable than it is outside the interval. The interpretation of such statements is straightforward for both the scientist as well as the readers of scientific reports. In contrast to this simple interpretation, the frequentist confidence interval is widely misunderstood as discussed in [section 2](#background). Developers of frequentist methods of the confidence interval employed specialized rules to *avoid* having a probability distribution for the binomial $\phi$ parameter. They understood that if they allowed the parameter to have a probability distribution, then the whole justification of the frequentist approach would collapse. Yet in an era of thinking about information in terms of probability, the older relative-frequency tools for statistical inference are out of step. 
+
+# References
+ 
+Bayes, T. (1763). An essay towards solving a problem in the doctrine of chance. *Philosophical Transactions*, **53**, 370-418.
+ 
+Berger, J. O., and Wolpert, R. L. (1988). *The Likelihood Principle (2nd ed.)*. Hayward, CA: Institute of Mathematical Statistics. 
+ 
+Chechile, R. A. (2018) A Bayesian analysis for the Wilcoxon signed-rank statistic. *Communications in Statistics -- Theory and Methods*, <https://doi.org/10.1080/03610926.2017.1388402>
+
+Chechile, R.A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+ 
+Chechile, R.A. (2020b). A Bayesian analysis for the Mann-Whitney statistic. *Communications in Statistics -- Theory and Methods*, **49(3)**: 670-696. <https://doi.org/10.1080/03610926.2018.1549247>.
+
+Clopper, C. J., and Pearson, E. S. (1934). The use of confidence or fiducial limits illustrated in the case of the binomial. *Biometrika*, **26**, 404-413.
+
+de Finetti, B. (1974). Bayesianism: Its unifying role for both foundations and applications of statistics. *International Statistical Review*, **42**, 117-139.
+
+de Finetti, B. (1937). La pr&eacute;}vision se lois logiques, ses sources subjectives. *Annales de l'Institut Henri Poincar&eacute;*, **7**, 1-68.
+
+Ellis, R. L. (1842). On the foundations of the theory of probability. *Transactions of the Cambridge Philosophical Society*, **8**, 1-6.
+
+Ferguson, T. S. (1973). A Bayesian analysis of some nonparametric problems. *Annals of Statistics*, **1**, 209-230.
+
+Lindley, D. V. (1972). *Bayesian Statistics, a Review*. Philadelphia: SIAM.
+
+Jeffreys, H. (1946).  An invariant form for the prior probability in estimation problems, *Proceedings of the Royal Society of London Series A, Mathematical and Physical Sciences*, **186**, 453-461.
+
+Kolmogorov, A. N. (1933/1959). *Grundbegriffe der Wahrcheinlichkeitsrechnung*. Berlin: Springer. English translation in 1959 as *Foundations of the Theory of Probability*. New York: Chelsea.
+
+Laplace, P. S. (1774). M&eacute;moire sur la probabilit&eacute; des causes par les &eacute;v&eacute;nements. *Oeuvres compl&eacute;te, **8**, 5-24.
+
+Lindley, D. V., and Phillips, L. D. (1976). Inference for a Bernoulli process (a Bayesian view). *The American Statistician*, **30**, 112-119.
+
+M&uuml;ller, P., Quintana, F. A., Jara, A., and Hanson, T. (2015). *Bayesian Nonparametric Data Analysis*. Cham, Switzerland: Springer International.
+
+Siegel, S. (1956). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+
+Siegel, S., and Castellan, N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw-Hill.
+
+Johnson, N. L., Kotz S., and Balakrishnan, N. (1995). *Continuous Univariate Distributions, Vol. 1*, New York: Wiley.
+
+Matthews, R. (2021). The $p$-value statement, five years on. *Significance*, **18**, 16-19.
+
+Pearson, K. (1920). The fundamental problem of practical statistics. *Biometrika*, **13**, 1-16.
+
+Ramsey, E. P. (1931). Truth and probability, In B. B. Braithwaite (Ed.), *The Foundations of Mathematics and Other Logical Essays* (pp. 156-198). London: Tr&uuml;bner & Company.
+
+Shannon, C. E. (1948). A mathematical theory of communication. *The Bell System Technical Journal*, **27**, 623-656.
+
+Johnson, N. L., Kotz S., and Balakrishnan, N. (1995). *Continuous Univariate Distributions, Vol. 1*, New York: Wiley.
+ 
+von Mises, R. (1957). *Probability, Statistics, and Truth*. New York: Dover.
+
+Wasserstein, R. L., and Lazar, N. A. (2016). The ASA's statement on $p$-values: Context, process, and purpose. *American Statistician*, **70**, 129-133.
+

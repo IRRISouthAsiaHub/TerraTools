@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — GWAS</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+    :root {
+        --primary: #1a3a2a;
+        --primary-mid: #2d6a4f;
+        --accent: #52b788;
+        --accent-light: #95d5b2;
+        --bg-card: rgba(245,250,247,0.97);
+        --text-dark: #1a2e22;
+        --text-muted: #5a7566;
+        --border: rgba(82,183,136,0.18);
+        --shadow-card: 0 4px 24px rgba(26,58,42,0.08);
+        --radius: 12px;
+        --radius-sm: 7px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: #f5faf7;
+        color: var(--text-dark);
+        min-height: 100vh;
+        padding: 24px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+    .logo-icon {
+        width: 44px; height: 44px;
+        background: linear-gradient(135deg, var(--accent), var(--primary-mid));
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; color: white;
+        box-shadow: 0 4px 18px rgba(82,183,136,0.35);
+    }
+    header h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.7rem; color: var(--primary); font-weight: 700;
+    }
+    header p { color: var(--text-muted); font-size: 0.9rem; }
+
+    .dashboard {
+        background: white;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(26,58,42,0.10);
+        border: 1px solid var(--border);
+    }
+
+    .tabs {
+        display: flex; flex-wrap: wrap;
+        background: rgba(245,250,247,0.98);
+        border-bottom: 1.5px solid var(--border);
+        padding: 0 8px;
+    }
+    .tab-btn {
+        padding: 14px 20px; cursor: pointer; background: none; border: none;
+        font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+        color: var(--text-muted); display: flex; align-items: center; gap: 8px;
+        border-bottom: 3px solid transparent; position: relative; top: 1.5px;
+    }
+    .tab-btn:hover { color: var(--primary-mid); background: rgba(82,183,136,0.07); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--accent); background: white; font-weight: 600; }
+
+    .tab-content { padding: 26px 30px 34px; min-height: 480px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .section-header h2 {
+        font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--primary); font-weight: 600;
+    }
+    .section-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; margin-bottom: 20px; }
+
+    .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--border);
+        margin-bottom: 18px;
+    }
+    .card h3 {
+        color: var(--primary); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .card h3 i { color: var(--accent); }
+
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 220px; }
+
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 500; margin: 10px 0 5px; }
+    input[type=text], input[type=number] {
+        width: 100%; padding: 9px 12px; border-radius: var(--radius-sm);
+        border: 1.5px solid var(--border); font-family: 'DM Sans'; font-size: 0.88rem;
+        background: white; color: var(--text-dark);
+    }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .file-row { display: flex; gap: 8px; }
+    .file-row input { flex: 1; }
+
+    .btn {
+        padding: 9px 16px; border-radius: var(--radius-sm); border: none;
+        font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans';
+        transition: background 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-mid); }
+    .btn-secondary { background: transparent; color: var(--primary-mid); border: 1.5px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(82,183,136,0.10); }
+    .btn-run {
+        width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px;
+        background: linear-gradient(135deg, var(--accent), var(--primary-mid)); color: white;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-run:hover { opacity: 0.92; }
+    .btn-run:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .checkbox-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 6px;
+    }
+    .chk-item {
+        display: flex; align-items: center; gap: 7px;
+        background: white; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+        padding: 7px 10px; font-size: 0.83rem; cursor: pointer;
+    }
+    .chk-item input { accent-color: var(--accent); }
+    .chk-item.checked { border-color: var(--accent); background: rgba(82,183,136,0.08); }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .switch { position: relative; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+        position: absolute; cursor: pointer; inset: 0; background-color: #ccc;
+        transition: .2s; border-radius: 22px;
+    }
+    .slider-toggle:before {
+        position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+        background-color: white; transition: .2s; border-radius: 50%;
+    }
+    input:checked + .slider-toggle { background-color: var(--accent); }
+    input:checked + .slider-toggle:before { transform: translateX(18px); }
+
+    .status-bar {
+        display: flex; align-items: center; gap: 10px; margin-top: 14px;
+        font-size: 0.85rem; color: var(--text-muted);
+    }
+    .spinner {
+        width: 16px; height: 16px; border: 2.5px solid var(--border);
+        border-top-color: var(--accent); border-radius: 50%;
+        animation: spin 0.8s linear infinite; display: none;
+    }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 18px; }
+    .result-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+    .result-card img { width: 100%; display: block; background: white; }
+    .result-card .label { padding: 8px 12px; font-size: 0.82rem; color: var(--primary); font-weight: 600; }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.95rem; }
+    .empty-state i { font-size: 2.2rem; color: var(--accent-light); margin-bottom: 12px; display: block; }
+
+    .downloads { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .summary-box {
+        font-family: monospace; font-size: 0.8rem; background: #f5faf7; border: 1px solid var(--border);
+        border-radius: var(--radius-sm); padding: 14px; white-space: pre-wrap; color: var(--text-dark); margin-top: 14px;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-icon"><i class="fas fa-globe"></i></div>
+        <div>
+            <h1>GWAS Analysis</h1>
+            <p>Genome-wide association study — genotype–phenotype analysis across multiple models</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="data-models"><i class="fas fa-database"></i> Data &amp; Models</button>
+            <button class="tab-btn" data-tab="advanced"><i class="fas fa-sliders-h"></i> Advanced</button>
+            <button class="tab-btn" data-tab="plot-settings"><i class="fas fa-chart-area"></i> Plot Settings</button>
+            <button class="tab-btn" data-tab="results"><i class="fas fa-th-large"></i> Results</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- DATA & MODELS -->
+            <div class="tab-pane active" id="data-models">
+                <div class="section-header">
+                    <h2>Input Data &amp; Models</h2>
+                    <p>Select your genotype/phenotype file and choose which GWAS models to run.</p>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-file-csv"></i> Input Data</h3>
+                    <div class="file-row">
+                        <input type="text" id="filePath" placeholder="Select genotype/phenotype CSV, TSV or TXT file" readonly>
+                        <button class="btn btn-secondary" onclick="browseFile()"><i class="fas fa-folder-open"></i> Browse</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-dna"></i> GWAS Models</h3>
+                    <div class="checkbox-grid" id="modelGrid"></div>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-ruler"></i> Basic Parameters</h3>
+                        <label>Minimum MAF: <span id="mafVal">0.05</span></label>
+                        <input type="range" id="maf" min="0" max="0.5" step="0.01" value="0.05" oninput="mafVal.textContent=this.value">
+                        <label>Permutations: <span id="permVal">100</span></label>
+                        <input type="range" id="permutations" min="20" max="200" step="10" value="100" oninput="permVal.textContent=this.value">
+                        <label>Top N: <span id="topnVal">15</span></label>
+                        <input type="range" id="topN" min="1" max="100" step="1" value="15" oninput="topnVal.textContent=this.value">
+                        <label>Minimum PVE (%): <span id="pveVal">0</span></label>
+                        <input type="range" id="minPve" min="0" max="100" step="0.5" value="0" oninput="pveVal.textContent=this.value">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADVANCED -->
+            <div class="tab-pane" id="advanced">
+                <div class="section-header">
+                    <h2>Advanced Model Parameters</h2>
+                    <p>Fine-tune the mixed-model and iterative-model settings.</p>
+                </div>
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-balance-scale"></i> Mixed Model Parameters</h3>
+                        <label>MLM PCs: <span id="mlmPcsVal">3</span></label>
+                        <input type="range" id="mlmPcs" min="0" max="50" value="3" oninput="mlmPcsVal.textContent=this.value">
+                        <label>GEMMA PCs: <span id="gemmaPcsVal">3</span></label>
+                        <input type="range" id="gemmaPcs" min="0" max="50" value="3" oninput="gemmaPcsVal.textContent=this.value">
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-project-diagram"></i> FarmCPU</h3>
+                        <label>Iterations: <span id="farmIterVal">10</span></label>
+                        <input type="range" id="farmIter" min="1" max="100" value="10" oninput="farmIterVal.textContent=this.value">
+                        <label>Bin size: <span id="farmBinVal">10</span></label>
+                        <input type="range" id="farmBin" min="1" max="1000" value="10" oninput="farmBinVal.textContent=this.value">
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-link"></i> BLINK</h3>
+                        <label>LD r² threshold: <span id="blinkLdVal">0.70</span></label>
+                        <input type="range" id="blinkLd" min="0" max="1" step="0.01" value="0.7" oninput="blinkLdVal.textContent=this.value">
+                    </div>
+                </div>
+            </div>
+
+            <!-- PLOT SETTINGS -->
+            <div class="tab-pane" id="plot-settings">
+                <div class="section-header">
+                    <h2>Plot Options</h2>
+                    <p>Control which reference lines and filters appear on the Manhattan plot.</p>
+                </div>
+                <div class="card">
+                    <div class="toggle-row">
+                        <span>Show Bonferroni threshold</span>
+                        <label class="switch"><input type="checkbox" id="showBonferroni" checked><span class="slider-toggle"></span></label>
+                    </div>
+                    <div class="toggle-row">
+                        <span>Show suggestive threshold</span>
+                        <label class="switch"><input type="checkbox" id="showSuggestive" checked><span class="slider-toggle"></span></label>
+                    </div>
+                    <div class="toggle-row">
+                        <span>Show permutation/LOD threshold</span>
+                        <label class="switch"><input type="checkbox" id="showLod" checked><span class="slider-toggle"></span></label>
+                    </div>
+                    <div class="toggle-row">
+                        <span>Apply PVE filtering</span>
+                        <label class="switch"><input type="checkbox" id="showPve"><span class="slider-toggle"></span></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="tab-pane" id="results">
+                <div class="section-header">
+                    <h2>Results</h2>
+                    <p>Generated plots, downloadable Excel report, and plot archive.</p>
+                </div>
+                <div id="resultsEmpty" class="empty-state">
+                    <i class="fas fa-flask"></i>
+                    Run the pipeline to see results here.
+                </div>
+                <div id="resultsGrid" class="results-grid" style="display:none;"></div>
+                <div id="downloads" class="downloads"></div>
+                <div id="summaryBox" class="summary-box" style="display:none;"></div>
+            </div>
+
+        </div>
+
+        <div style="padding: 0 30px 26px;">
+            <button class="btn btn-run" id="runBtn" onclick="runGwas()">
+                <i class="fas fa-play"></i> Run GWAS
+            </button>
+            <div class="status-bar">
+                <div class="spinner" id="spinner"></div>
+                <span id="statusText">Ready</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+    const MODELS = ["OLS","MLM","EMMAX","FarmCPU","GEMMA","BLINK","mrMLM","FASTmrMLM"];
+    const DEFAULT_CHECKED = ["OLS","MLM"];
+    const grid = document.getElementById('modelGrid');
+    MODELS.forEach(m => {
+        const item = document.createElement('label');
+        item.className = 'chk-item' + (DEFAULT_CHECKED.includes(m) ? ' checked' : '');
+        item.innerHTML = `<input type="checkbox" value="${m}" ${DEFAULT_CHECKED.includes(m) ? 'checked' : ''}> ${m}`;
+        item.querySelector('input').addEventListener('change', e => {
+            item.classList.toggle('checked', e.target.checked);
+        });
+        grid.appendChild(item);
+    });
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    let gwasBridge;
+    console.log("[GWAS] Initializing QWebChannel...");
+    try {
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            console.log("[GWAS] QWebChannel callback fired");
+            gwasBridge = channel.objects.gwasBridge;
+            if (!gwasBridge) {
+                console.error("[GWAS] gwasBridge object NOT found on channel.objects. Available objects:", Object.keys(channel.objects));
+                return;
+            }
+            gwasBridge.resultReady.connect(function(jsonStr) {
+                console.log("[GWAS] resultReady signal received, length:", jsonStr ? jsonStr.length : 0);
+                try {
+                    onResult(jsonStr);
+                } catch (err) {
+                    console.error("[GWAS] onResult() threw an error:", err);
+                    document.getElementById('statusText').textContent = "Frontend error: " + err.message;
+                    document.getElementById('runBtn').disabled = false;
+                    document.getElementById('spinner').classList.remove('active');
+                }
+            });
+            gwasBridge.statusUpdate.connect(txt => {
+                console.log("[GWAS] statusUpdate:", txt);
+                document.getElementById('statusText').textContent = txt;
+            });
+            console.log("[GWAS] bridge connected successfully");
+        });
+    } catch (err) {
+        console.error("[GWAS] QWebChannel setup threw an error:", err);
+    }
+
+    window.addEventListener('error', function(e) {
+        console.error("[GWAS] Uncaught JS error:", e.message, "at", e.filename, ":", e.lineno);
+    });
+
+    function browseFile() {
+        if (!gwasBridge) return;
+        gwasBridge.browse_file(function(path) {
+            if (path) document.getElementById('filePath').value = path;
+        });
+    }
+
+    function downloadFile(sourcePath, suggestedName) {
+        if (!gwasBridge) { console.error("[GWAS] Bridge not ready"); return; }
+        console.log("[GWAS] requesting save of", sourcePath, "as", suggestedName);
+        gwasBridge.save_file(sourcePath, suggestedName);
+    }
+
+    function collectConfig() {
+        const models = Array.from(document.querySelectorAll('#modelGrid input:checked')).map(el => el.value);
+        return {
+            input_file: document.getElementById('filePath').value,
+            models: models,
+            maf: parseFloat(document.getElementById('maf').value),
+            permutations: parseInt(document.getElementById('permutations').value),
+            top_n: parseInt(document.getElementById('topN').value),
+            minimum_pve: parseFloat(document.getElementById('minPve').value),
+            mlm_pcs: parseInt(document.getElementById('mlmPcs').value),
+            gemma_pcs: parseInt(document.getElementById('gemmaPcs').value),
+            farmcpu_iterations: parseInt(document.getElementById('farmIter').value),
+            farmcpu_bin_size: parseInt(document.getElementById('farmBin').value),
+            blink_ld_r2: parseFloat(document.getElementById('blinkLd').value),
+            show_bonferroni: document.getElementById('showBonferroni').checked,
+            show_suggestive: document.getElementById('showSuggestive').checked,
+            show_lod: document.getElementById('showLod').checked,
+            show_pve: document.getElementById('showPve').checked,
+        };
+    }
+
+    function runGwas() {
+        if (!gwasBridge) { console.error("[GWAS] Bridge not ready"); return; }
+        const cfg = collectConfig();
+        console.log("[GWAS] runGwas() called with config:", cfg);
+        if (!cfg.input_file) {
+            document.getElementById('statusText').textContent = "Please select an input file.";
+            return;
+        }
+        if (cfg.models.length === 0) {
+            document.getElementById('statusText').textContent = "Please select at least one model.";
+            return;
+        }
+        document.getElementById('runBtn').disabled = true;
+        document.getElementById('spinner').classList.add('active');
+        document.getElementById('statusText').textContent = "Running GWAS...";
+        console.log("[GWAS] calling gwasBridge.run_gwas()...");
+        gwasBridge.run_gwas(JSON.stringify(cfg));
+        console.log("[GWAS] gwasBridge.run_gwas() call returned (this just means the async call was dispatched)");
+    }
+
+    function onResult(jsonStr) {
+        console.log("[GWAS] onResult() starting, raw length:", jsonStr.length);
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('spinner').classList.remove('active');
+        const result = JSON.parse(jsonStr);
+        console.log("[GWAS] parsed result, status:", result.status);
+
+        if (result.status !== "success") {
+            document.getElementById('statusText').textContent = "Error: " + result.message;
+            return;
+        }
+        document.getElementById('statusText').textContent = "GWAS completed successfully.";
+
+        // Switch to Results tab
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
+        document.getElementById('results').classList.add('active');
+        console.log("[GWAS] switched to results tab");
+
+        document.getElementById('resultsEmpty').style.display = 'none';
+        const resultsGrid = document.getElementById('resultsGrid');
+        resultsGrid.style.display = 'grid';
+        resultsGrid.innerHTML = '';
+        console.log("[GWAS] rendering", Object.keys(result.plots).length, "plot(s):", result.plots);
+        Object.entries(result.plots).forEach(([name, path]) => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            const imgSrc = `file://${path}`;
+            card.innerHTML = `<img src="${imgSrc}"><div class="label">${name.replace(/^\d+_/,'').replace(/_/g,' ')}</div>`;
+            const img = card.querySelector('img');
+            img.onerror = () => console.error("[GWAS] FAILED to load image:", imgSrc);
+            img.onload = () => console.log("[GWAS] loaded image:", imgSrc);
+            resultsGrid.appendChild(card);
+        });
+
+        const downloads = document.getElementById('downloads');
+        downloads.innerHTML = `
+            <button class="btn btn-secondary" onclick="downloadFile('${result.excel}', 'gwas_results.xlsx')"><i class="fas fa-file-excel"></i> Excel Report</button>
+            <button class="btn btn-secondary" onclick="downloadFile('${result.zip}', 'gwas_plots.zip')"><i class="fas fa-file-archive"></i> All Plots (ZIP)</button>
+        `;
+
+        const summaryBox = document.getElementById('summaryBox');
+        summaryBox.style.display = 'block';
+        summaryBox.textContent = result.summary;
+        console.log("[GWAS] onResult() finished successfully");
+    }
+</script>
+</body>
+</html>

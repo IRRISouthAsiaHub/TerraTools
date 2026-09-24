@@ -1,0 +1,40 @@
+adasyn                  Adaptive Synthetic Algorithm
+bsmote                  Borderline-SMOTE Algorithm
+circle_example          Synthetic Dataset With a Circle
+cluster_centroids       ClusterCentroids Algorithm
+cnn                     Condensed Nearest Neighbors
+enn                     Edited Nearest Neighbors
+instance_hardness       Remove hard to classify points
+kmeans_smote            KMeans-SMOTE Algorithm
+ncl                     Neighborhood Cleaning Rule
+nearmiss                Remove Points Near Other Classes
+oss                     One-Sided Selection
+rose                    ROSE Algorithm
+smogn                   SMOGN Algorithm
+smote                   SMOTE Algorithm
+smoten                  SMOTEN Algorithm
+smotenc                 SMOTENC Algorithm
+step_adasyn             Apply Adaptive Synthetic Algorithm
+step_bsmote             Apply Borderline-SMOTE Algorithm
+step_cluster_centroids
+                        Under-Sampling by Cluster Centroids
+step_cnn                Condensed Nearest Neighbors
+step_downsample         Down-Sample a Data Set Based on a Factor
+                        Variable
+step_enn                Edited Nearest Neighbors
+step_instance_hardness
+                        Remove hard to classify points
+step_kmeans_smote       Apply KMeans-SMOTE Algorithm
+step_ncl                Neighborhood Cleaning Rule
+step_nearmiss           Remove Points Near Other Classes
+step_oss                One-Sided Selection
+step_rose               Apply ROSE Algorithm
+step_smogn              Apply SMOGN Algorithm
+step_smote              Apply SMOTE Algorithm
+step_smoten             Apply SMOTEN Algorithm
+step_smotenc            Apply SMOTENC Algorithm
+step_svmsmote           Apply SVM-SMOTE Algorithm
+step_tomek              Remove Tomek's Links
+step_upsample           Up-Sample a Data Set Based on a Factor Variable
+svmsmote                SVM-SMOTE Algorithm
+tomek                   Remove Tomek's Links

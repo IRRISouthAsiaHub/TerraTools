@@ -1,0 +1,76 @@
+---
+title: "dfba_mcnemar"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_mcnemar}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+
+
+# Introduction to the `dfba_mcnemar()` Function
+
+Researchers are sometimes interested in the detection of a change in the response rate pre- and post-treatment. The frequentist McNemar procedure is a nonparametric test that examines the subset of binary categorical responses where the response changes between the two tests (Siegel & Castellan, 1988). The frequentist test assumes the null hypothesis that the change rate is $0.5$. That is, the frequentist analysis is a $\chi^2$ test to assess if there is a significant departure from the change rate of $.5$. Chechile (2020) pointed out that the subset *of the change cases* is a Bernoulli process, so the Bayesian analysis can be done for the *population response-switching rate* $\phi_{rb}$ in the same way as with binomial data. The $rb$ subscript on the $\phi$ parameter denotes *randomized block*, which is a statistical term for the fact that the respondents where randomly sampled but each respondent was measured twice (*i.e.*, within a block). The Bayesian analysis of all Bernoulli processes has a prior and posterior that are *beta distributions* (see the vignettes on the `dfba_beta_descriptive()`, `dfba_binomial()`, and `dfba_beta_bayes_factor()` functions).  
+
+The McNemar test is a *change-detection assessment of a binary response*. To illustrate, please consider the hypothetical case of a sample of $50$ people who are evaluating two political candidates before and after a debate. Suppose $26$ people prefer *Candidate A* both before and after the debate, $14$ people prefer *Candidate B* both before and after the debate, $9$ people switched their preference from *Candidate A* to *Candidate B*, and $1$ person switched their preference from *Candidate B* to *Candidate A*. Despite the fact that this sample has $50$ participants, it is only the $10$ people who switched their preference that are being analyzed with the McNemar test. Among this subset, there is evidence that *Candidate B* did better on the debate. Overall, support for *Candidate A* in the whole sample fell from $35$ out of $50$ ($70\%$) to $27$ out of $50$ ($54\%$). *Candidate A* still has a majority of support among the sample, but by a smaller margin than the one that *Candidate A* enjoyed prior to the debate. Thus, the statistical inference for the McNemar test is centered on the population change-rate $\phi_{rb}$ rather than the overall proportional preferences.
+
+# Using the `dfba_mcnemar()` Function
+
+The `dfba_mcnemar()` function has the following five arguments (default values are included for arguments that have them):
+
+* `n_01`
+
+* `n_10`
+
+* `a0 = 1`
+
+* `b0 = 1`
+
+* `prob_interval = .95`
+
+The `n_01` argument is the number of respondents that were initially scored as a $0$ but switched to a $1$ score after some treatment or experience. The `n_10` argument is the frequency of respondents that switch from $1$ to $0$ *All of respondents who did not switch their response are ignored.* The analytic focus on *only those observations of category change* is a central feature of *both* the frequentist *and* the Bayesian forms of the McNemar test. 
+
+The `a0` and `b0` arguments are the two shape parameters for the prior beta distribution for the $\phi_{rb}$ parameter. The uniform distribution (*i.e.*, $a0=b0=1$) is the default prior for the change-rate parameter. Finally, the `prob_interval` argument is the value for the interval estimates for $\phi_{rb}$. The default value for \pkg{prob\_interval} is $.95$. 
+
+## Example 
+
+For example, in a repeated-measures design, the responses $n=17$ participants indicate category change from $0$ to $1$, and the responses of $2$ participants indicate category change from $1$ to $0$. Using the default values of the prior beta shape parameters (`a0 = 1, b0 = 1`) and of the desired probability interval (`prob_interval = .95`):
+
+```{r}
+dfba_mcnemar(n_01 = 17,
+             n_10 = 2)
+```
+
+
+For this example, there is a high probability -- $.9997988$ -- for the hypothesis that $\phi_{rb}> .5$. Point and interval estimates for $\phi_{rb}$ are also provided. The Bayes factor against the point-null hypothesis that $\phi_{rb}=.5$ is $BF_{10}=153.3006$ (see the vignette for the `dfba_beta_bayes_factor()` function). The output also provides a Bayes factor in support of the interval alternative hypothesis that $H_1:\,\phi_{rb}>.5$ (i.e., $BF_{10}=4,968.55$). 
+
+The `plot()` method produces a visualization of the prior and posterior distributions for the $\phi_{rb}$ parameter. Note: a plot of the posterior distribution without the prior distribution is given by including the argument `plot.prior = FALSE` (the default is `plot.prior = TRUE`).  
+
+
+```{r fig.width = 7}
+plot(dfba_mcnemar(n_01 = 17,
+                  n_10 = 2))
+```
+
+
+In conclusion, the `dfba_mcnemar()` function computes centrality estimates and interval estimates for the population change-rate parameter. Bayes factors for tests of hypotheses about the population parameter are also provided. The function further enables plots of the prior and posterior distributions. 
+
+# References
+
+Chechile, R.A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+
+Siegel, S., and Castellan, N. J. (1988) *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw Hill.

@@ -1,0 +1,32 @@
+center                  Calculate Location Estimate for a Fitted Model
+                        Object
+ddPlot.covfm            Distance - Distance Plot
+designMD                Design Matrix Mahalanobis Distance
+distancePlot.covfm      Side-by-Side Mahalanobis Distance Plot
+ellipsesPlot.covfm      Ellipses Plot - Visual Correlation Matrix
+                        Comparison
+fit.models              Fit dot Models
+fmclass.register        Register Comparable Functions
+overlaidKernelDensityPlot
+                        Overlaid Kernel Density Estimate Plot
+overlaidQQPlot          Overlaid Normal QQ Plot
+overlaidSimpleRegressionPlot
+                        Scatter Plot with Overlaid Fits
+plot.covfm              Plot Method
+plot.glmfm              Comparison Diagnostic Plots for Generalized
+                        Linear Models
+plot.lmfm               Comparison Diagnostic Plots for Linear
+                        Regression Models
+screePlot.covfm         Comparison Screeplot
+sideBySideIndexPlot     Comparison Index (Time) Plot
+sideBySideKernelDensityPlot
+                        Comparison Kernel Density Estimate Plot
+sideBySideQQPlot        Compaison QQ Plot
+sideBySideScatterPlot   Comparison Scatter Plot
+summary.covfm           Summary Method
+summary.glmfm           Comparison Summaries for Generalized Linear
+                        Models
+summary.lmfm            Comparison Summaries for Linear Regression
+                        Models
+vcor                    Calculate Correlation Matrix for a Fitted Model
+                        Object

@@ -1,0 +1,823 @@
+# see 0.14.2
+
+## Changes
+
+* Argument `linewidth` was renamed to `size_line`, to be consistent across the
+  easystats-ecosystem. However, `linewidth` remains as an alias, since this is
+  the name of the corresponding ggplot2-argument.
+
+* `plot()` for `check_heteroscedasticity()` now works for GLM's and models from
+  package *glmmTMB*. Previously, `check_heteroscedasticity()` worked for linear
+  models only.
+
+## Bug fixes
+
+* `plot()` for `check_heteroscedasticity()` now uses Pearson residuals for
+  `glmmTMB` and `MixMod` models. Previously these residuals were divided by a
+  single scalar, which is only correct when the variance function does not
+  depend on the mean; for non-mixed binomial and Poisson models that scalar was
+  1, so the plot could suggest heteroscedasticity for correctly specified
+  models. See easystats/performance#926.
+
+# see 0.14.1
+
+## Changes
+
+* Added plot method for prior predictive checks, from the `performance::check_priors()`
+  function.
+
+* The `plot()` method for `performance::check_dag()` gains a `size_arrow` argument,
+  to control the size of arrows in the DAG.
+
+* Added plot method for `datawizard::means_by_groups()` objects.
+
+## Bug fixes
+
+* The `type` argument in `performance::check_predictions()` was not recognized in
+  the `plot()` method.
+
+* `plot()` for `model_parameters()` with *lavaan* objects did not work when the
+  object contained no `loadings` component.
+
+# see 0.14.0
+
+## Changes
+
+* `plot()` for `parameters::factor_analysis()` and `parameters::principal_components()`
+  gains a new `type` option, `"graph"`. This creates a graph with nodes/edges
+  indicating factor loadings.
+
+* Updated plot-method for `performance::check_model()` for Bayesian ordinal
+  models.
+
+* New `geom_point_halo()`, `geom_pointrange_halo()`, `geom_jitter_halo()` and
+  `geom_count_halo()` geoms, which add a slight contour around the points
+
+* Outlier plots no longer show extreme smoother curves for models with a small
+  number of observations or a small number of outlier data points.
+
+## Bug fixes
+
+* Fixed the `*_borderless` aliases for `geom_point2()` or `geom_jitter2()`, which
+  were broken and did not render as intended.
+
+# see 0.13.0
+
+## Breaking Changes
+
+* Data points in `plot()` for objects from `parameters::model_parameters()` were
+  sorted in reverse order when using the `sort` argument. This was fixed, thus,
+  `sort = "ascending"` now sorts the data in ascending order in plot/math logic.
+
+## Major Changes
+
+* Daniel Lüdecke is now the main maintainer of the package.
+
+* Several `plot()` methods gain a `theme` argument, to control the visual
+  themes for plots. This is in particular useful for plots that consist of
+  several single plots, like the one returned by `check_model()`.
+
+## Changes
+
+* `plot()` for `check_model()` now limits the number of data points for models
+  with many observations, to reduce the time for rendering the plot. Use argument
+  `maximum_dots` to define the maximum number of data points to show.
+
+* `plot()` for `check_model()` extracts the `show_ci` attribute from objects
+  returned by `check_model()`, to show or hide confidence intervals.
+
+## Bug fixes
+
+* Fixed issue in the `plot()` method for `estimate_density()` with vector input
+  and `group_by` argument.
+
+# see 0.12.0
+
+## Major Changes
+
+* The minimum needed R version has been bumped to `4.1`, since `{correlation}`,
+  a runtime dependency, requires it.
+
+## Changes
+
+* `plot()` for `performance::check_normality()` now also supports objects from
+  `psych::fa()`, `psych::principal()` and `parameters::factor_analysis()`.
+
+* `plot()` for `performance::check_outliers()` gets a new `"scree"` type option,
+  to create a scree plot of outlier statistics.
+
+* Minor re-labelling of axis titles and subtitles in `plot()` for
+  `performance::check_residuals()`.
+
+* Updates the package to adapt to the changes in the latest `{ggplot2}`
+  release.
+
+* Themes get an `axis.text.space` argument, to define the spacing between axis
+  lines and axis labels. Due to changes in `{ggplot2}`, the default spacing was
+  slightly changed, now it can be set to the desired value using this argument.
+
+# see 0.11.0
+
+## Changes
+
+* All `theme_*()` function get a `...` argument that is passed to
+  `ggplot2::theme()`.
+
+* Arguments that change the size of elements in `theme_*()` functions (like
+  `plot.title.size` or `axis.text.size` now scale with the `base_size` argument,
+  to ensure proper scaling of plots when the base-size is changed.
+
+* Added a new theme, `theme_azurelight()`, with a light-blue character, and
+  reduced use of grid lines.
+
+* `theme_modern()` now recognizes a `show.ticks` argument, to add tick marks to
+  the plot and slightly increase the distance between axis labels and the
+  related axis.
+
+* Color scale functions (those starting with `scale_*()`) get a new `"gradient"`
+  palette, which are simply the color values for blue and orange colors from
+  that palette. Furthermore, color scale functions now automatically select an
+  appropriate palette (usually, `"contrast"` or `"gradient"`) depending on
+  whether discrete or continuous color scales are requested.
+
+## Bug fixes
+
+* Fixed issue with adding prior layers to plots from `estimate_density()`.
+
+# see 0.10.0
+
+## Changes
+
+- `plot()` for `p_function()` now checks the values of the `size_length`
+  argument, to give an informative error message when the input is not valid.
+
+- `plot()` for `model_parameters()` now also plots group-levels of random
+  effects (i.e. for mixed models, when `model_parameters(x, ..., group_level =
+  TRUE)`).
+
+- `plot()` for `model_parameters()` gets a `show_direction` argument, to turn
+  off the direction of the effect in the plot.
+
+- `plot()` for `model_parameters()` now gives an informative error message when
+  trying to plot Anova tables (which does not work).
+
+- `plot()` for `simulate_parameters()` now better copes with models that have
+  multiple response levels (e.g. multinomial models).
+
+- Gains `{patchwork}` as a hard dependency given its importance for the
+  package.
+
+## Bug fixes
+
+- Fixed issue in `plot()` for `bayestestR::si()`.
+
+- Fixed issue in `plot()` for `parameters::model_parameters()` for GAM models.
+
+# see 0.9.0
+
+## Changes
+
+- New `plot()` method for `performance::check_dag()`.
+
+- Minor improvements to `plot()` for methods `p_direction()` and
+  `p_significance()`, which also support forthcoming changes in the *parameters*
+  package.
+
+## Bug fixes
+
+- Fixed issue in `plot()` for `performance::check_model()` when package
+  *qqplotr* is not installed.
+
+# see 0.8.5
+
+## Major Changes
+
+* The minimum needed R version has been bumped to `4.0`.
+
+## Minor Changes
+
+* Improved scaling for detrended QQ plots when package `{qqplotr}` is not
+  installed. The normal and the detrended QQ plots are now visually more
+  similar.
+
+* Gets rid of warnings due to API changes in the `{datawizard}` package.
+
+## Bug fixes
+
+* Fixed CRAN test failures.
+
+# see 0.8.4
+
+## Minor Changes
+
+* Fixes warnings generated from the `{ggplot2}` 3.5.0 release.
+
+* Small adjustment to size of point geoms for `check_model()` plots.
+
+* More arguments to change base font sizes and geom sizes are now passed to
+  downstream plot-functions (i.e., `plot()` for `check_model()` passes arguments
+  to change geom sizes to the underlying plot-functions).
+
+* `plot()` for `check_predictions()` now supports Bayesian regression models
+  from *brms* and *rstanarm*.
+
+## Bug fixes
+
+* Corrected order of models for `plot.compare_parameters()`.
+
+# see 0.8.3
+
+## Major changes
+
+* New `plot()` method for simulated residuals (implemented in the _performance_
+  package).
+
+* `plot()` for `check_model()` was revised and now includes more accurate Q-Q
+  plots for non-Gaussian models.
+
+## Minor Changes
+
+* `plot.check_model()` now passes arguments `size_point` and `size_line` to the
+  posterior predictive check plot.
+
+* Minor changes regarding the latest update of _ggplot2_.
+
+# see 0.8.2
+
+## Minor Changes
+
+* `plot.n_factors()` now shows a dashed line over the bars, indicating the
+  cumulate explained variance by the number of factors.
+
+* `plot.check_outliers()` now dodges the x-axis labels, to avoid overlapping
+  labels.
+
+# see 0.8.1
+
+## Major Changes
+
+* This release changes the licensing model of `{see}` to an MIT license.
+
+## New features
+
+* There is now a `plot()` method for outputs of `datawizard::data_tabulate()`
+  (#293).
+
+## Minor Changes
+
+* The `print()` method for `performance::check_model()` now also evaluates the
+  default plot type for posterior predictive checks.
+
+* QQ/PP-plots now default to drawing simultaneous testing bands (when the
+  `qqplotr` package is available). Previous behavior can be restored by setting
+  `method = "pointwise"`.
+
+* Plot method for `performance::check_normality()` now default to a detrended
+  QQ-plot. Previous behavior can be restored by setting `type = "density"`.
+
+* Plot method for `binned_residuals()` gains a `show_smooth` argument, to show
+  or hide the smooth line.
+
+* Plot method for `check_predictions()` gains a `x_limits` argument, to limit
+  the x-axis-range. This can be useful to "zoom in" certain parts of the plot.
+
+# see 0.8.0
+
+## Major Changes
+
+* `plot()` for `performance::check_model()` no longer produces a normal QQ plot
+  for GLMs. Instead, it now shows a half-normal QQ plot of the absolute value of
+  the standardized deviance residuals.
+
+* `plot()` for `performance::check_model()` and
+  `performance::check_predictions()` gains a `type` argument, to either create
+  density plots, or discrete dots resp. interval plots for posterior predictive
+  checks.
+
+* `plot()` for `performance::check_model()` gains an `n_column` argument, to
+  define the number of columns for the diagnostic plots (by default, two
+  columns).
+
+* `plot()` for `performance::check_model()` sometimes failed to create the plot
+  under certain conditions, e.g. when the screen or app windows was zoomed-in.
+  If an error occurs, a much more informative error message is shown, providing
+  several possible solutions to resolve this problem.
+
+* `plot()` for `parameters::equivalence_test()` now aligns the labelling with
+  the `print()` method. Hence, the legend title is no longer labelled `"Decision
+  on H0"`, but rather `"Equivalence"`, to emphasize that we can assume practical
+  equivalence for effects, but that we cannot accept the H0 (in a frequentist
+  framework).
+
+* Added some examples and cross references between docs. Furthermore, a vignette
+  about plotting functions for the *datawizard* package was added.
+
+## Bug fixes
+
+* Fixed issue with duplicated legend in the `plot()` method for
+  `performance::check_predictions()`.
+
+* Fixes issue in `plot.binned_residuals()` for models whose residuals were
+  completely inside error bounds.
+
+* `plot()` now works when using it on the output of `describe_distribution()`
+  with a `select` argument of length 1.
+
+# see 0.7.5
+
+## Changes
+
+* Changed the default "yellow" color in `palette_okabeito()` to `"#F5C710"`
+  instead of `"#F0E442"` to increase visibility against a white background. For
+  the original Okabe-Ito palette, set `palette = "full_original"` or `palette =
+  "black_first_original"`.
+
+* Deals with deprecated arguments and functions in recent `{ggplot2}` updates.
+
+# see 0.7.4
+
+## Changes
+
+* Updates docs and tests for `{ggplot2}` release (`3.4.0`).
+
+* New function `scale_color_colorhex()` provides color scales based on palettes
+  from color-hex.com (#245).
+
+* The default for the smoothing bandwidth from `plot.check_predictions()` has
+  changed from `"nrd0"` to `"nrd"`, which seems to produce better fitting plots
+  for non-Gaussian models. Furthermore, `performance::check_predictions()`
+  accepts a `bw` argument (smoothing bandwidth), which is passed down to the
+  `plot()` method's density-estimation.
+
+## Bug fixes
+
+* Fixed issues with `plot()` for `check_outliers()` for models with convergence
+  issues.
+
+# see 0.7.3
+
+## Changes
+
+* Indrajeet Patil is now the maintainer.
+
+* The minimum needed R version has been bumped to `3.6`.
+
+* Replaced deprecated arguments in function calls.
+
+## Bug fixes
+
+* Fixed issues in the `plot()` method from `model_parameters()` for
+  intercept-only models.
+
+# see 0.7.2
+
+## Changes
+
+* Added `aesthetics` argument to all `color` and `fill` scale functions so that
+  the same scale can be applied to multiple aesthetics and so that the functions
+  can be used with other aesthetics from other packages (e.g., `edge_color`).
+
+* Added Okabe-Ito color palette (`palette_okabeito`, `scale_color_okabeito()`)
+  etc.)
+
+* Several minor improvements.
+
+## Bug fixes
+
+* Fixed CRAN check issues.
+
+# see 0.7.1
+
+## Changes
+
+* Changed style for `plot.check_collinearity()`, which is now a dot-plot,
+  including error bars.
+
+## Bug fixes
+
+* `plot.check_model()` did not apply the `colors` argument to all sub-plots.
+
+* `plot()` for `model_parameters()` could fail when model objects' class
+  attribute had more than one element.
+
+# see 0.7.0
+
+* Improved plotting for `performance::check_model()`:
+
+  - using more appropriate plots for binomial models
+
+  - the redundant density-plot of normality-checks was replaced by the posterior
+    predictive check plot.
+
+  - includes a plot to investigate overdispersion for count-models.
+
+* Minor improvements for some plot-methods (colour tweaking, labelling, ...).
+
+# see 0.6.9
+
+* Minor changes to catch up with changes from other easystats-packages.
+
+# see 0.6.8
+
+## New features
+
+* Add option to show density layers for Bayesian and bootstrapped models in
+  `plot()` for `parameters::model_parameters()`.
+
+* Negative coefficients in `plot()` for `parameters::model_parameters()` are now
+  always red.
+
+* Improve support for `parameters::model_parameters()` from *emmeans* objects.
+
+* Updated code and examples to work with new API decisions made for the
+  *performance* package.
+
+## Bug fixes
+
+* Fix density plots for frequentist models.
+
+# see 0.6.5
+
+## General
+
+* `check_model()` function now uses *patchwork* instead of *gridExtra* to
+  arrange plots in a grid.
+
+* Reduced/removed some package dependencies.
+
+* Revise `plot()` for `bayestestR::bayesfactor()` to meet forthcoming changes in
+  the _bayestestR_ package.
+
+## New features
+
+* New functions `geom_from_list` and `geoms_from_list` to create geoms from
+  lists.
+
+* Plotting for normality check is now supported for `afex_aov` models.
+
+## Bug fixes
+
+* Fixed issue that argument `show_intercept` is no longer ignored in `plot()`
+  for `rope()`.
+
+# see 0.6.3
+
+## New plot functions
+
+* Added plot-function for `parameters::compare_parameters()`.
+
+* Added option to `detrend` QQ/PP plots.
+
+## changes
+
+* Plot for SEM models now has arrows pointing from the latent variables towards
+  the manifest variables.
+
+* The `plot()` method for `check_model()` was revised and should now be more
+  consistent regarding titles and subtitles, as well as color schemes and plot
+  order. Furthermore, the plot for influential observation was changed in order
+  to better catch the potential influential observations.
+
+* The `check_heteroscedasticity()` plot contains a dashed horizontal line, which
+  makes it to assess the homoscedasticity assumption.
+
+* The y-axis label for `check_collinearity()` plot clarifies that the measure
+  being plotted is VIF. This was unclear when this plot was embedded in a grid
+  of plots from `check_model()` containing multiple checks.
+
+* Plotting methods for `performance_roc()` and `performance_accuracy()` show
+  correct labels now.
+
+## Bug fixes
+
+* Fixed issue with wrong labelling of CI-levels for `plot.see_hdi()`.
+
+* Fixed minor issues due to breaking changes in other easystats-packages.
+
+# see 0.6.2
+
+## Changes to functions
+
+* `plot()` for `performance::check_normality()` gains a `alpha`-argument, to
+  change the alpha-level of confidence bands.
+
+* The `...` argument for `geom_violindot()` is now also passed to to
+  `geom_violinhalf()`, allowing, e.g., to change the alpha value of the
+  violin-geoms as well.
+
+* Reorganized order of arguments in `geom_violindot()`, so aesthetics arguments
+  like `fill` are not absorbed by partial matching for arguments like
+  `fill_dots`.
+
+## Bug fixes
+
+* `plot()` for `performance::check_normality()` shows more accurate QQ-plots.
+
+* `plot()` for `performance::check_normality()` show correct confidence bands
+  for QQ- and PP-plots (with `qqplotr`). Previous bands were extremely narrow!
+
+# see 0.6.1
+
+## Changes to functions
+
+* `plot()` for `parameters::model_parameters()` now supports models from package
+  *metaBMA*
+
+* `plot()` for `parameters::model_parameters()` gains a `weight_points`
+  argument, to adjust the point-size depending on study-weights for
+  meta-analysis models.
+
+* `plot()` for `parameters::model_parameters()` now labels the x-axis depending
+  on model-type (i.e. "Odds Ratio" instead of "Exp(Estimate)") when this
+  information is available.
+
+## Bug fixes
+
+* Minor fix in `plot()` for `parameters::model_parameters()` for `brmsfit`
+  models.
+
+# see 0.6.0
+
+## Breaking changes
+
+* Harmonized spelling of arguments. Formerly, we had `text_size` and
+  `size_text`, or just `size` even if only in the context of text labels. We now
+  tried to harmonize these kind of arguments to gain more consistency throughout
+  the different `plot()` methods.
+
+## New plot functions
+
+* Added plot-function for `parameters::model_parameters()` for
+  brms-meta-analysis models.
+
+* Added plot-function for `performance::pp_check()`.
+
+## Changes to functions
+
+* `plot()` for `parameters::model_parameters()` gains a `size_text`-argument, to
+  add text values for estimates and confidence intervals to the plot (see also
+  vignette).
+
+* `plot()` for `parameters::model_parameters()` from meta-analysis models (e.g.
+  from *metafor*) gains a `type` argument, to create funnel plots with `type =
+  "funnel"`.
+
+* `plot()` for `bayestestR::estimate_density()` and
+  `parameters::simulate_parameters()` were revised, and now also include the
+  point-estimate and error bar. Therefore, arguments `centrality` and `ci` were
+  added.
+
+## Bug fixes
+
+* Fixed bug in `plot.model_parameters()` when `standardize` was `"basic"`,
+  `"smart"` or `"posthoc"`.
+
+* Fixed wrong axis labelling for ROC-curves (from
+  `performance::performance_roc()`).
+
+# see 0.5.2
+
+## Changes to functions
+
+* `plot()` for `correlation::correlation()` gains a `type` and `size` argument,
+  to plot correlation matrices either as tiles or circles.
+
+## Color Scales and Palettes
+
+* Added new color-palettes.
+
+* Palettes for existing color scales have been revamped.
+
+* Added `"light"` palettes for dark themes.
+
+# see 0.5.1
+
+## Changes to functions
+
+* Plot-function for `parameters::describe_distribution()` gains `highlight`,
+  `highlight_color` and `size` arguments.
+
+* Plot-function for `parameters::describe_distribution()` now uses thin bars for
+  variables with integer values (instead of less precise histogram).
+
+* Plot-function for `performance::check_normality()` gains `size` and
+  `point_size` arguments.
+
+* Plot-function for `performance::check_normality()` now also plots normality of
+  random effects, when `check_normality(effects = "random")` was called.
+
+* Legend labels nopw show a percentage-sign where applicable (for instance, for
+  `plot.hdi()`).
+
+## Bug fixes
+
+* Fixed issue with argument `n_column` in `plot.p_significant()`, `plot.hdi()`,
+  and `plot.p_direction()`, which stopped working since R 4.0.0.
+
+* Fixed issue in `plot.performance_roc()` with swapped x/y axes.
+
+# see 0.5.0
+
+## New functions
+
+* `golden_ratio()` was added as a helper to get nice proportions.
+
+## New plot functions
+
+* Added plot-function for `correlation::summary()`.
+
+* Added plot-function for `parameters::describe_distribution()`.
+
+* Added plot-function for `effectsize::equivalence_test()`.
+
+* Added plot-function for various effectsize-functions, like
+  `effectsize::eta_squared()`.
+
+## Changes to functions
+
+* `plot.estimate_density()` now also works for density estimation of data
+  frames.
+
+* `plot.equivalence_test()` now also works for frequentist models and data
+  frames (see `parameters::equivalence_test()`).
+
+* Slightly changed plotting-style for `plot.equivalence_test()`.
+
+# see 0.4.1
+
+## General
+
+* Reduce package dependencies.
+
+## New plot-functions
+
+* Added plot-function for `correlation::correlation()`.
+
+## Changes to functions
+
+* `plot()` for `model_parameters.rma()` now arranges facets by subgroups (see
+  vignettes).
+
+* minor improvements to `plot()` for `parameters::cluster_analysis()`.
+
+* minor improvements to `plot()` for `parameters::model_parameters.brmsfit()`.
+
+* Plot-function for `bayestestR::si()` gets a `support_only` argument, to plot
+  only the support data or the "raw" prior and posterior distributions.
+
+# see 0.4.0
+
+## Breaking changes
+
+* Arguments `ncol` and `nrow` in `plots()` were renamed into `n_columns` and
+  `n_rows` to be consistent with arguments from other functions in the
+  **see**-package.
+
+## New plot-functions
+
+* Added plot-function for `performance::compare_performance()`.
+
+* Added plot-function for `bayestestR::si()`.
+
+## Changes to functions
+
+* `plot()`-functions for the
+  [**bayestestR**-package](https://easystats.github.io/see/articles/bayestestR.html)
+  now also support `BFBayesFactor` and `MCMCglmm` objects.
+
+* `plot()` for `parameters::model_parameters()` now uses fixed axis for facets
+  when model is an ordinal or cumulative link model (because all facets are on
+  the same scale, and thus parameters are easier to compare).
+
+## Bug fixes
+
+* Fixed issue with group coloring for `parameters::model_parameters()` when
+  `exponentiate = TRUE`.
+
+* Fixes issue with `plot.point_estimate()` for vectors.
+
+# see 0.3.0
+
+## Breaking changes
+
+* `how_to_plot()` was removed for the time being, due to its inadequate
+  maintenance effort. It might be re-implemented sometime in the future...
+
+## General
+
+* Improved layout (vertical alignment) for some plotting-functions for the
+  **bayestestR**-package, when there was only one parameter. Plots now are
+  closer to the x-axis, removing unnecessary empty space.
+
+* Labels and plot annotations are now more "human readable", and labelling is
+  more context sensitive.
+
+## New plot-functions
+
+* Added `coord_radar` for radar charts.
+
+* Added plot-function for `parameters::cluster_analysis()`.
+
+* Added plot-function for `parameters::principal_components()`.
+
+* Added plot-function for `parameters::parameters_simulate()`.
+
+* Added plot-function for `parameters::n_factors()`.
+
+* Added plot-function for `bayestestR::p_significance()`.
+
+## Changes to functions
+
+* `plot()` for `parameters::model_parameters()` gets a `sort`-argument to sort
+  coefficients.
+
+* `plot()` for `parameters::model_parameters()` now also create forest plots for
+  meta-analysis.
+
+* `plot()` for `bayestestR::bayesfactor_parameters()` only plots facets when
+  necessary.
+
+* `plot()` for `performance::check_outliers()` now also plot multiple methods in
+  one plot.
+
+* Following `plot()` methods get a `n_columns`-argument, so model components
+  like random effects or a zero-inflation component can be plotted in a
+  multi-column layout: `bayestestR::p_direction()`, `bayestestR::hdi()`,
+  `bayestestR::rope()`, `bayestestR::equivalence_test()`,
+  `parameters::model_parameter()`, `parameters::parameters_simulate()`
+
+* Following `plot()` methods get `priors` and `priors_alpha` arguments, to add a
+  layer with prior samples to the plot: `bayestestR::p_direction()`,
+  `bayestestR::estimate_density()`, `bayestestR::point_estimate()`
+
+# see 0.2.1
+
+## General
+
+* More comprehensive examples available from the
+  [package-website](https://easystats.github.io/see/).
+
+* Added new color-palettes.
+
+## New plot-functions
+
+* Added plot-function for `parameters::model_parameters()`.
+
+* Added plot-function for `bayestestR::point_estimate()`.
+
+## Changes to functions
+
+* The `plot()`-method for `bayestestR::bayesfactor_savagedickey()` gets a
+  `rope_color` and a `rope_alpha`-argument to plot the "null"-interval, when the
+  null-hypothesis is a _region of practical equivalence_, and not just the
+  point-null.
+
+* The `plot()`-method for `performance::binned_residuals()` now also allows to
+  modify size and colors of geoms (related arguments are in
+  `performance::binned_residuals()`).
+
+## Bug fixes
+
+* Fixed issue with dark themes and text color in facet headings.
+
+# see 0.2.0
+
+## General
+
+* `geom_point2()` now accepts `size`-aesthetics when mapped to data.
+
+* Themes now get a `base_size` and `base_family` argument, in line with
+  **ggplot** themes, to set the default size and family for plots.
+
+* `plot()`-methods now work for **bayestestR** functions that work on
+  `emmGrid`-objects (created from pairwise comparison with package
+  **emmeans**).
+
+## New themes
+
+* `theme_lucid()`, a light and clear theme.
+
+## New plot-functions
+
+* Added plot-function for `performance::check_model()`.
+
+* Added plot-function for `performance::check_normality()`.
+
+* Added plot-function for `performance::check_heteroscedasticity()`.
+
+* Added plot-function for `performance::check_outliers()`.
+
+* Added plot-function for `performance::check_distribution()`.
+
+* Added plot-function for `performance::check_collinearity()`.
+
+* Added plot-function for `performance::check_homogeneity()`.
+
+## New geoms
+
+* `geom_poolpoint()` and `geom_pooljitter()` to draw pool ball points (points
+  labelled with the observation name).
+
+## Bug fixes
+
+* Fixed issues with color codes in the flat-ui palette.

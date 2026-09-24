@@ -1,0 +1,36 @@
+GMerrorsar              Spatial simultaneous autoregressive error model
+                        estimation by GMM
+LR.Sarlm                Likelihood ratio test
+MCMCsamp                MCMC sample from fitted spatial regression
+ME                      Moran eigenvector GLM filtering
+SpatialFiltering        Semi-parametric spatial filtering
+aple                    Approximate profile-likelihood estimator (APLE)
+aple.mc                 Approximate profile-likelihood estimator (APLE)
+                        permutation test
+aple.plot               Approximate profile-likelihood estimator (APLE)
+                        scatterplot
+as.spam.listw           Spatial neighbour sparse representation
+do_ldet                 Spatial regression model Jacobian computations
+griffith_sone           Spatial weights matrix eigenvalues
+gstsls                  Spatial simultaneous autoregressive SAC model
+                        estimation by GMM
+impacts                 Impacts in spatial lag models
+invIrM                  Compute SAR generating operator
+lagmess                 Matrix exponential spatial lag model
+lagsarlm                Spatial simultaneous autoregressive model
+                        estimation by maximum likelihood
+lextrB                  Find extreme eigenvalues of binary symmetric
+                        spatial weights
+lmSLX                   Spatial Durbin linear (SLX, spatially lagged X)
+                        model
+predict.Sarlm           Prediction for spatial simultaneous
+                        autoregressive linear model objects
+set.ZeroPolicyOption    Control checking of spatial object IDs
+set.mcOption            Options for parallel support
+similar.listw           Create symmetric similar weights lists
+spBreg_lag              Bayesian MCMC spatial simultaneous
+                        autoregressive model estimation
+spautolm                Spatial conditional and simultaneous
+                        autoregression model estimation
+stsls                   Generalized spatial two stage least squares
+trW                     Spatial weights matrix powers traces

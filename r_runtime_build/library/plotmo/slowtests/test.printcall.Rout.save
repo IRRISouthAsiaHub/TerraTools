@@ -1,0 +1,308 @@
+> # test.printcall.R
+> #
+> # TODO we don't test use of printcall in a namespace
+> 
+> source("test.prolog.R")
+> options(warnPartialMatchArgs=FALSE)
+> library(plotmo)
+Loading required package: Formula
+Loading required package: plotrix
+> for(all in c(FALSE, TRUE)) {
++     for(EVAL in c(FALSE, TRUE)) {
++         printf("=== Test printcall with all=%s EVAL=%s ===\n", all, EVAL)
++ 
++         foo30 <- function() { plotmo:::printcall(all=all) }
++         foo30()
++ 
++         foo32 <- function(...) { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo32()
++         foo32(a=31)
++ 
++ 
++         foo34 <- function(aa=1, ...) { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo34()
++         foo34(a=31) # argname a will be expanded to aa
++         foo34(a=31, x=1:10, y=NULL)
++         foo34(a=31, y=NULL)
++         foo34(x=stopifnot(TRUE), y=NULL)
++ 
++         foo36 <- function(aa=NULL, ...) { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo36()
++         foo36(a=NULL)
++         foo36(a=1)
++         foo36(a=1:3)
++         foo36(a=1:3, x=NULL)
++ 
++         # check formatting of various argument types
++         # note that we correctly don't call stopifnot(FALSE) (which would call stop)
++ 
++         foo38 <- function(aa=1:3, bb=4:6, cc=print.default,
++                         dd=stopifnot(FALSE),
++                         ee=function(m=1) cat(m), ff=7, ...)
++             { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo38(x=matrix(ncol=1, nrow=3))
++ 
++         list1 <- list(aa=1:3, bb=4:6, cc=print.default,
++                       dd=stopifnot(TRUE),
++                       ee=function(m=1) cat(m), ff=7)
++ 
++         cat("list1 ", plotmo:::list.as.char(list1), "\n", sep="")
++ 
++         list2 <- list(lmmod=lm(Volume~Girth, data=trees),
++               boolean=c(TRUE, FALSE, TRUE, TRUE, FALSE, TRUE), env=parent.frame(),
++               chars=c("a", "b", "c", "a", "b", "c"),
++               trees=trees, l=list(x=1, y="2", z=foo38))
++ 
++         cat("list2 ", plotmo:::list.as.char(list2), "\n", sep="")
++ 
++         # test unnamed arguments
++ 
++         foo40 <- function(aa, ...) { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo40()
++         foo40(aa=b, c)
++         foo40(b, c)
++ 
++         # test printcall when called in an S3 method
++ 
++         foo.s3 <- function(a=NULL, ...) { UseMethod("foo.s3") }
++         foo.s3.list <- function(a=NULL, ...) {
++             cat("in foo.s3.list: "); plotmo:::printcall(all=all)
++             plotmo:::printdots(..., EVAL=EVAL)
++         }
++         foo.s3.default <- function(a=NULL, ...) {
++             cat("in foo.s3.default: "); plotmo:::printcall(all=all)
++             plotmo:::printdots(..., EVAL=EVAL)
++         }
++         foo.s3(a=list(m=1, n=2))
++         foo.s3(a=NULL)
++         foo.s3(a=list(m=1, n=2, o=3, p=4, q=5, r=6, s=7, t=8, u=9), b=30)
++ 
++         # test formatting with long argument list
++ 
++         foo46 <- function(mmmmmmmmmmm=1000, nnnnnnnnnnn=2000, ooooooooooo=3000, ppppppppppp=4000,
++                         qqqqqqqqqqq=5000, rrrrrrrrrrr=6000, sssssssssss=7000, ttttttttttt=8000,
++                         uuuuuuuuuuu=9000, vvvvvvvvvvv=1000, wwwwwwwwwww=2000, xxxxxxxxxxx=3000,
++                         ...) { plotmo:::printcall(all=all); plotmo:::printdots(..., EVAL=EVAL) }
++         foo46(a=30)
++ 
++         # test call.as.char
++ 
++         foo47 <- function(aa=1, ...) { s <- plotmo:::call.as.char(all=all); cat(s, "\n", sep="") }
++         foo47(b=30)
++ 
++         # create a variable named foo48 in foo48
++         foo48 <- function(aa=1, ...) { foo48 <- 99; s <- plotmo:::call.as.char(all=all); cat(s, "\n", sep="") }
++         foo48(b=30)
++ 
++         # Note that the following doesn't do what you might expect.
++         # The calling function is print(), not foo50() as you may expecty.
++ 
++         foo50 <- function(...) { print(plotmo:::call.as.char(all=all)) }
++         foo50(a=1)
++     }
++ }
+=== Test printcall with all=FALSE EVAL=FALSE ===
+foo30()
+foo32()
+foo32 dots: no dots
+foo32(a=31)
+foo32 dots: a=31
+foo34()
+foo34 dots: no dots
+foo34(aa=31)
+foo34 dots: no dots
+foo34(aa=31, x=1:10, y=NULL)
+foo34 dots: x=..1, y=..2
+foo34(aa=31, y=NULL)
+foo34 dots: y=..1
+foo34(x=stopifnot(TRUE), y=NULL)
+foo34 dots: x=..1, y=..2
+foo36()
+foo36 dots: no dots
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=1)
+foo36 dots: no dots
+foo36(aa=1:3)
+foo36 dots: no dots
+foo36(aa=1:3, x=NULL)
+foo36 dots: x=..1
+foo38(x=matrix(ncol=1,nrow=3))
+foo38 dots: x=..1
+list1 aa=c(1,2,3), bb=c(4,5,6), cc=function.object, dd=NULL, ee=function.object, ff=7
+list2 lmmod=lm.object, boolean=c(TRUE,FALSE,TR...), env=R_GlobalEnv, chars=c("a","b","c","...), trees=data.frame[31,3], l=list(x=1, y="2", z=function.object)
+foo40()
+foo40 dots: no dots
+foo40(aa=b, c)
+foo40 dots: ..1
+foo40(aa=b, c)
+foo40 dots: ..1
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2))
+foo.s3.list dots: no dots
+in foo.s3.default: foo.s3.default(a=NULL)
+foo.s3.default dots: no dots
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2,o=3,p=4,q=5,r=6,s=7,t=8,u=9), b=30)
+foo.s3.list dots: b=30
+foo46(a=30)
+foo46 dots: a=30
+foo47(b=30)
+foo48(b=30)
+[1] "print(x=plotmo:::call.as.char(all=all))"
+attr(,"fname")
+[1] "print"
+=== Test printcall with all=FALSE EVAL=TRUE ===
+foo30()
+foo32()
+foo32 dots: no dots
+foo32(a=31)
+foo32 dots: a=31
+foo34()
+foo34 dots: no dots
+foo34(aa=31)
+foo34 dots: no dots
+foo34(aa=31, x=1:10, y=NULL)
+foo34 dots: x=c(1,2,3,4,5,6,7...), y=NULL
+foo34(aa=31, y=NULL)
+foo34 dots: y=NULL
+foo34(x=stopifnot(TRUE), y=NULL)
+foo34 dots: x=NULL, y=NULL
+foo36()
+foo36 dots: no dots
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=1)
+foo36 dots: no dots
+foo36(aa=1:3)
+foo36 dots: no dots
+foo36(aa=1:3, x=NULL)
+foo36 dots: x=NULL
+foo38(x=matrix(ncol=1,nrow=3))
+foo38 dots: x=c(NA,NA,NA)
+list1 aa=c(1,2,3), bb=c(4,5,6), cc=function.object, dd=NULL, ee=function.object, ff=7
+list2 lmmod=lm.object, boolean=c(TRUE,FALSE,TR...), env=R_GlobalEnv, chars=c("a","b","c","...), trees=data.frame[31,3], l=list(x=1, y="2", z=function.object)
+foo40()
+foo40 dots: no dots
+foo40(aa=b, c)
+foo40 dots: function.object
+foo40(aa=b, c)
+foo40 dots: function.object
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2))
+foo.s3.list dots: no dots
+in foo.s3.default: foo.s3.default(a=NULL)
+foo.s3.default dots: no dots
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2,o=3,p=4,q=5,r=6,s=7,t=8,u=9), b=30)
+foo.s3.list dots: b=30
+foo46(a=30)
+foo46 dots: a=30
+foo47(b=30)
+foo48(b=30)
+[1] "print(x=plotmo:::call.as.char(all=all))"
+attr(,"fname")
+[1] "print"
+=== Test printcall with all=TRUE EVAL=FALSE ===
+foo30()
+foo32()
+foo32 dots: no dots
+foo32(a=31)
+foo32 dots: a=31
+foo34(aa=1)
+foo34 dots: no dots
+foo34(aa=31)
+foo34 dots: no dots
+foo34(aa=31, x=1:10, y=NULL)
+foo34 dots: x=..1, y=..2
+foo34(aa=31, y=NULL)
+foo34 dots: y=..1
+foo34(aa=1, x=stopifnot(TRUE), y=NULL)
+foo34 dots: x=..1, y=..2
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=1)
+foo36 dots: no dots
+foo36(aa=1:3)
+foo36 dots: no dots
+foo36(aa=1:3, x=NULL)
+foo36 dots: x=..1
+foo38(aa=1:3, bb=4:6, cc=print.default, dd=stopifnot(FALSE),
+      ee=function(m=1)cat(m), ff=7, x=matrix(ncol=1,nrow=3))
+foo38 dots: x=..1
+list1 aa=c(1,2,3), bb=c(4,5,6), cc=function.object, dd=NULL, ee=function.object, ff=7
+list2 lmmod=lm.object, boolean=c(TRUE,FALSE,TR...), env=R_GlobalEnv, chars=c("a","b","c","...), trees=data.frame[31,3], l=list(x=1, y="2", z=function.object)
+foo40(aa=)
+foo40 dots: no dots
+foo40(aa=b, c)
+foo40 dots: ..1
+foo40(aa=b, c)
+foo40 dots: ..1
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2))
+foo.s3.list dots: no dots
+in foo.s3.default: foo.s3.default(a=NULL)
+foo.s3.default dots: no dots
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2,o=3,p=4,q=5,r=6,s=7,t=8,u=9), b=30)
+foo.s3.list dots: b=30
+foo46(mmmmmmmmmmm=1000, nnnnnnnnnnn=2000, ooooooooooo=3000, ppppppppppp=4000,
+      qqqqqqqqqqq=5000, rrrrrrrrrrr=6000, sssssssssss=7000, ttttttttttt=8000,
+      uuuuuuuuuuu=9000, vvvvvvvvvvv=1000, wwwwwwwwwww=2000, xxxxxxxxxxx=3000,
+      a=30)
+foo46 dots: a=30
+foo47(aa=1, b=30)
+foo48(aa=1, b=30)
+[1] "print(x=plotmo:::call.as.char(all=all))"
+attr(,"fname")
+[1] "print"
+=== Test printcall with all=TRUE EVAL=TRUE ===
+foo30()
+foo32()
+foo32 dots: no dots
+foo32(a=31)
+foo32 dots: a=31
+foo34(aa=1)
+foo34 dots: no dots
+foo34(aa=31)
+foo34 dots: no dots
+foo34(aa=31, x=1:10, y=NULL)
+foo34 dots: x=c(1,2,3,4,5,6,7...), y=NULL
+foo34(aa=31, y=NULL)
+foo34 dots: y=NULL
+foo34(aa=1, x=stopifnot(TRUE), y=NULL)
+foo34 dots: x=NULL, y=NULL
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=NULL)
+foo36 dots: no dots
+foo36(aa=1)
+foo36 dots: no dots
+foo36(aa=1:3)
+foo36 dots: no dots
+foo36(aa=1:3, x=NULL)
+foo36 dots: x=NULL
+foo38(aa=1:3, bb=4:6, cc=print.default, dd=stopifnot(FALSE),
+      ee=function(m=1)cat(m), ff=7, x=matrix(ncol=1,nrow=3))
+foo38 dots: x=c(NA,NA,NA)
+list1 aa=c(1,2,3), bb=c(4,5,6), cc=function.object, dd=NULL, ee=function.object, ff=7
+list2 lmmod=lm.object, boolean=c(TRUE,FALSE,TR...), env=R_GlobalEnv, chars=c("a","b","c","...), trees=data.frame[31,3], l=list(x=1, y="2", z=function.object)
+foo40(aa=)
+foo40 dots: no dots
+foo40(aa=b, c)
+foo40 dots: function.object
+foo40(aa=b, c)
+foo40 dots: function.object
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2))
+foo.s3.list dots: no dots
+in foo.s3.default: foo.s3.default(a=NULL)
+foo.s3.default dots: no dots
+in foo.s3.list: foo.s3.list(a=list(m=1,n=2,o=3,p=4,q=5,r=6,s=7,t=8,u=9), b=30)
+foo.s3.list dots: b=30
+foo46(mmmmmmmmmmm=1000, nnnnnnnnnnn=2000, ooooooooooo=3000, ppppppppppp=4000,
+      qqqqqqqqqqq=5000, rrrrrrrrrrr=6000, sssssssssss=7000, ttttttttttt=8000,
+      uuuuuuuuuuu=9000, vvvvvvvvvvv=1000, wwwwwwwwwww=2000, xxxxxxxxxxx=3000,
+      a=30)
+foo46 dots: a=30
+foo47(aa=1, b=30)
+foo48(aa=1, b=30)
+[1] "print(x=plotmo:::call.as.char(all=all))"
+attr(,"fname")
+[1] "print"
+> source("test.epilog.R")

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html>
+<head><title>R: Presentation-Ready Data Summary and Analytic Result Tables</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<link rel="stylesheet" type="text/css" href="R.css">
+</head><body><div class="container">
+<h1> Presentation-Ready Data Summary and Analytic Result Tables
+<img class="toplogo" src="figures/logo.png" alt="[R logo]">
+</h1>
+<hr>
+<div style="text-align: center;">
+<a href="../../../doc/html/packages.html"><img class="arrow" src="../../../doc/html/left.jpg" alt="[Up]"></a>
+<a href="../../../doc/html/index.html"><img class="arrow" src="../../../doc/html/up.jpg" alt="[Top]"></a>
+</div><h2>Documentation for package &lsquo;gtsummary&rsquo; version 2.6.1</h2>
+
+<ul><li><a href="../DESCRIPTION" type="text/plain; charset=utf-8">DESCRIPTION file</a></li>
+<li><a href="../doc/index.html">User guides, package vignettes and other documentation</a></li>
+<li><a href="../NEWS.md">Package NEWS</a></li>
+<li><a href="../README.md">Package README</a></li>
+</ul>
+
+<h2>Help Pages</h2>
+
+
+<p style="text-align: center;">
+<a href="#A">A</a>
+<a href="#B">B</a>
+<a href="#C">C</a>
+<a href="#F">F</a>
+<a href="#G">G</a>
+<a href="#I">I</a>
+<a href="#L">L</a>
+<a href="#M">M</a>
+<a href="#P">P</a>
+<a href="#R">R</a>
+<a href="#S">S</a>
+<a href="#T">T</a>
+<a href="#W">W</a>
+</p>
+
+
+<h2><a id="A">-- A --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="add_ci.html">add_ci</a></td>
+<td>Add CI Column</td></tr>
+<tr><td style="width: 25%;"><a href="add_ci.html">add_ci.tbl_summary</a></td>
+<td>Add CI Column</td></tr>
+<tr><td style="width: 25%;"><a href="add_ci.tbl_svysummary.html">add_ci.tbl_svysummary</a></td>
+<td>Add CI Column</td></tr>
+<tr><td style="width: 25%;"><a href="add_difference.tbl_hierarchical.html">add_difference.tbl_ard_hierarchical</a></td>
+<td>Add rate differences to hierarchical tables</td></tr>
+<tr><td style="width: 25%;"><a href="add_difference.tbl_hierarchical.html">add_difference.tbl_hierarchical</a></td>
+<td>Add rate differences to hierarchical tables</td></tr>
+<tr><td style="width: 25%;"><a href="add_difference.tbl_summary.html">add_difference.tbl_summary</a></td>
+<td>Add differences between groups</td></tr>
+<tr><td style="width: 25%;"><a href="add_difference.tbl_svysummary.html">add_difference.tbl_svysummary</a></td>
+<td>Add differences between groups</td></tr>
+<tr><td style="width: 25%;"><a href="add_difference_row.tbl_summary.html">add_difference_row.tbl_summary</a></td>
+<td>Add differences rows between groups</td></tr>
+<tr><td style="width: 25%;"><a href="add_glance.html">add_glance</a></td>
+<td>Add model statistics</td></tr>
+<tr><td style="width: 25%;"><a href="add_glance.html">add_glance_source_note</a></td>
+<td>Add model statistics</td></tr>
+<tr><td style="width: 25%;"><a href="add_glance.html">add_glance_table</a></td>
+<td>Add model statistics</td></tr>
+<tr><td style="width: 25%;"><a href="add_global_p.html">add_global_p</a></td>
+<td>Add the global p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_global_p.html">add_global_p.tbl_regression</a></td>
+<td>Add the global p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_global_p.html">add_global_p.tbl_uvregression</a></td>
+<td>Add the global p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_summary.html">add_n.tbl_likert</a></td>
+<td>Add column with N</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_regression.html">add_n.tbl_regression</a></td>
+<td>Add N to regression table</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_summary.html">add_n.tbl_summary</a></td>
+<td>Add column with N</td></tr>
+<tr><td style="width: 25%;"><a href="add_n.tbl_survfit.html">add_n.tbl_survfit</a></td>
+<td>Add N</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_summary.html">add_n.tbl_svysummary</a></td>
+<td>Add column with N</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_regression.html">add_n.tbl_uvregression</a></td>
+<td>Add N to regression table</td></tr>
+<tr><td style="width: 25%;"><a href="add_nevent_regression.html">add_nevent</a></td>
+<td>Add event N</td></tr>
+<tr><td style="width: 25%;"><a href="add_nevent_regression.html">add_nevent.tbl_regression</a></td>
+<td>Add event N</td></tr>
+<tr><td style="width: 25%;"><a href="add_nevent.tbl_survfit.html">add_nevent.tbl_survfit</a></td>
+<td>Add event N</td></tr>
+<tr><td style="width: 25%;"><a href="add_nevent_regression.html">add_nevent.tbl_uvregression</a></td>
+<td>Add event N</td></tr>
+<tr><td style="width: 25%;"><a href="add_nevent_regression.html">add_nevent_regression</a></td>
+<td>Add event N</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_regression.html">add_n_regression</a></td>
+<td>Add N to regression table</td></tr>
+<tr><td style="width: 25%;"><a href="add_n_summary.html">add_n_summary</a></td>
+<td>Add column with N</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall_ard.html">add_overall.tbl_ard_summary</a></td>
+<td>ARD add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_continuous</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_custom_summary</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_hierarchical</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_hierarchical_count</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_summary</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall.html">add_overall.tbl_svysummary</a></td>
+<td>Add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_overall_ard.html">add_overall_ard</a></td>
+<td>ARD add overall column</td></tr>
+<tr><td style="width: 25%;"><a href="add_p.tbl_continuous.html">add_p.tbl_continuous</a></td>
+<td>Add p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_p.tbl_cross.html">add_p.tbl_cross</a></td>
+<td>Add p-value</td></tr>
+<tr><td style="width: 25%;"><a href="add_p.tbl_summary.html">add_p.tbl_summary</a></td>
+<td>Add p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_p.tbl_survfit.html">add_p.tbl_survfit</a></td>
+<td>Add p-value</td></tr>
+<tr><td style="width: 25%;"><a href="add_p.tbl_svysummary.html">add_p.tbl_svysummary</a></td>
+<td>Add p-values</td></tr>
+<tr><td style="width: 25%;"><a href="add_q.html">add_q</a></td>
+<td>Add multiple comparison adjustment</td></tr>
+<tr><td style="width: 25%;"><a href="add_significance_stars.html">add_significance_stars</a></td>
+<td>Add significance stars</td></tr>
+<tr><td style="width: 25%;"><a href="add_stat.html">add_stat</a></td>
+<td>Add a custom statistic</td></tr>
+<tr><td style="width: 25%;"><a href="add_stat_label.html">add_stat_label</a></td>
+<td>Add statistic labels</td></tr>
+<tr><td style="width: 25%;"><a href="add_stat_label.html">add_stat_label.tbl_ard_summary</a></td>
+<td>Add statistic labels</td></tr>
+<tr><td style="width: 25%;"><a href="add_stat_label.html">add_stat_label.tbl_summary</a></td>
+<td>Add statistic labels</td></tr>
+<tr><td style="width: 25%;"><a href="add_stat_label.html">add_stat_label.tbl_svysummary</a></td>
+<td>Add statistic labels</td></tr>
+<tr><td style="width: 25%;"><a href="add_variable_group_header.html">add_variable_group_header</a></td>
+<td>Variable Group Header</td></tr>
+<tr><td style="width: 25%;"><a href="add_vif.html">add_vif</a></td>
+<td>Add Variance Inflation Factor</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_categorical</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_continuous</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_continuous2</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_contrasts</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_dichotomous</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_interaction</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_intercepts</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_stat_cols</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">all_tests</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="as_tibble.gtsummary.html">as.data.frame.gtsummary</a></td>
+<td>Convert gtsummary object to a tibble</td></tr>
+<tr><td style="width: 25%;"><a href="assign_summary_digits.html">assign_summary_digits</a></td>
+<td>Assign Default Digits</td></tr>
+<tr><td style="width: 25%;"><a href="assign_summary_type.html">assign_summary_type</a></td>
+<td>Assign Default Summary Type</td></tr>
+<tr><td style="width: 25%;"><a href="assign_tests.html">assign_tests</a></td>
+<td>Assign Test</td></tr>
+<tr><td style="width: 25%;"><a href="assign_tests.html">assign_tests.tbl_continuous</a></td>
+<td>Assign Test</td></tr>
+<tr><td style="width: 25%;"><a href="assign_tests.html">assign_tests.tbl_summary</a></td>
+<td>Assign Test</td></tr>
+<tr><td style="width: 25%;"><a href="assign_tests.html">assign_tests.tbl_survfit</a></td>
+<td>Assign Test</td></tr>
+<tr><td style="width: 25%;"><a href="assign_tests.html">assign_tests.tbl_svysummary</a></td>
+<td>Assign Test</td></tr>
+<tr><td style="width: 25%;"><a href="as_flex_table.html">as_flex_table</a></td>
+<td>Convert gtsummary object to a flextable object</td></tr>
+<tr><td style="width: 25%;"><a href="as_gt.html">as_gt</a></td>
+<td>Convert gtsummary object to gt</td></tr>
+<tr><td style="width: 25%;"><a href="as_gtsummary.html">as_gtsummary</a></td>
+<td>Create gtsummary table</td></tr>
+<tr><td style="width: 25%;"><a href="as_hux_table.html">as_hux_table</a></td>
+<td>Convert gtsummary object to a huxtable object</td></tr>
+<tr><td style="width: 25%;"><a href="as_hux_table.html">as_hux_xlsx</a></td>
+<td>Convert gtsummary object to a huxtable object</td></tr>
+<tr><td style="width: 25%;"><a href="as_kable.html">as_kable</a></td>
+<td>Convert gtsummary object to a kable object</td></tr>
+<tr><td style="width: 25%;"><a href="as_kable_extra.html">as_kable_extra</a></td>
+<td>Convert gtsummary object to a kableExtra object</td></tr>
+<tr><td style="width: 25%;"><a href="as_tibble.gtsummary.html">as_tibble.gtsummary</a></td>
+<td>Convert gtsummary object to a tibble</td></tr>
+</table>
+
+<h2><a id="B">-- B --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_italicize_labels_levels</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_labels</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_labels.gtsummary</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_labels.tbl_cross</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_levels</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_levels.gtsummary</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">bold_levels.tbl_cross</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_p.html">bold_p</a></td>
+<td>Bold significant p-values</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_continuous.html">brdg_continuous</a></td>
+<td>Continuous Summary Table Bridges</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_hierarchical.html">brdg_hierarchical</a></td>
+<td>Hierarchy table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_summary.html">brdg_summary</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_wide_summary.html">brdg_wide_summary</a></td>
+<td>Wide summary table bridge</td></tr>
+</table>
+
+<h2><a id="C">-- C --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">check_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+<tr><td style="width: 25%;"><a href="combine_terms.html">combine_terms</a></td>
+<td>Combine terms</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">custom_tidiers</a></td>
+<td>Custom tidiers</td></tr>
+</table>
+
+<h2><a id="F">-- F --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="filter_hierarchical.html">filter_hierarchical</a></td>
+<td>Filter Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="filter_hierarchical.html">filter_hierarchical.tbl_ard_hierarchical</a></td>
+<td>Filter Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="filter_hierarchical.html">filter_hierarchical.tbl_hierarchical</a></td>
+<td>Filter Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="filter_hierarchical.html">filter_hierarchical.tbl_hierarchical_count</a></td>
+<td>Filter Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="sort_filter_p.html">filter_p</a></td>
+<td>Sort/filter by p-values</td></tr>
+</table>
+
+<h2><a id="G">-- G --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="gather_ard.html">gather_ard</a></td>
+<td>Extract ARDs</td></tr>
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">get_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+</table>
+
+<h2><a id="I">-- I --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="inline_text.gtsummary.html">inline_text.gtsummary</a></td>
+<td>Report statistics from summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_continuous.html">inline_text.tbl_continuous</a></td>
+<td>Report statistics from summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_cross.html">inline_text.tbl_cross</a></td>
+<td>Report statistics from cross table inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_regression.html">inline_text.tbl_regression</a></td>
+<td>Report statistics from regression summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_summary.html">inline_text.tbl_summary</a></td>
+<td>Report statistics from summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_survfit.html">inline_text.tbl_survfit</a></td>
+<td>Report statistics from survfit tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_summary.html">inline_text.tbl_svysummary</a></td>
+<td>Report statistics from summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="inline_text.tbl_uvregression.html">inline_text.tbl_uvregression</a></td>
+<td>Report statistics from regression summary tables inline</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_labels</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_labels.gtsummary</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_labels.tbl_cross</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_levels</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_levels.gtsummary</a></td>
+<td>Bold or Italicize</td></tr>
+<tr><td style="width: 25%;"><a href="bold_italicize_labels_levels.html">italicize_levels.tbl_cross</a></td>
+<td>Bold or Italicize</td></tr>
+</table>
+
+<h2><a id="L">-- L --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="label_style.html">label_style</a></td>
+<td>Style Functions</td></tr>
+<tr><td style="width: 25%;"><a href="label_style.html">label_style_number</a></td>
+<td>Style Functions</td></tr>
+<tr><td style="width: 25%;"><a href="label_style.html">label_style_percent</a></td>
+<td>Style Functions</td></tr>
+<tr><td style="width: 25%;"><a href="label_style.html">label_style_pvalue</a></td>
+<td>Style Functions</td></tr>
+<tr><td style="width: 25%;"><a href="label_style.html">label_style_ratio</a></td>
+<td>Style Functions</td></tr>
+<tr><td style="width: 25%;"><a href="label_style.html">label_style_sigfig</a></td>
+<td>Style Functions</td></tr>
+</table>
+
+<h2><a id="M">-- M --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="modify.html">modify</a></td>
+<td>Modify column headers and spanning headers</td></tr>
+<tr><td style="width: 25%;"><a href="modify_abbreviation.html">modify_abbreviation</a></td>
+<td>Modify Abbreviations</td></tr>
+<tr><td style="width: 25%;"><a href="modify_bold_italic.html">modify_bold</a></td>
+<td>Modify Bold and Italic</td></tr>
+<tr><td style="width: 25%;"><a href="modify_bold_italic.html">modify_bold_italic</a></td>
+<td>Modify Bold and Italic</td></tr>
+<tr><td style="width: 25%;"><a href="modify_caption.html">modify_caption</a></td>
+<td>Modify table caption</td></tr>
+<tr><td style="width: 25%;"><a href="modify_column_alignment.html">modify_column_alignment</a></td>
+<td>Modify column alignment</td></tr>
+<tr><td style="width: 25%;"><a href="modify_column_hide.html">modify_column_hide</a></td>
+<td>Modify hidden columns</td></tr>
+<tr><td style="width: 25%;"><a href="modify_column_merge.html">modify_column_merge</a></td>
+<td>Modify Column Merging</td></tr>
+<tr><td style="width: 25%;"><a href="modify_column_hide.html">modify_column_unhide</a></td>
+<td>Modify hidden columns</td></tr>
+<tr><td style="width: 25%;"><a href="modify_fmt_fun.html">modify_fmt_fun</a></td>
+<td>Modify formatting functions</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">modify_footnote2</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">modify_footnote_body</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">modify_footnote_header</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">modify_footnote_spanning_header</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote_symbol.html">modify_footnote_symbol</a></td>
+<td>Modify Footnote Symbols</td></tr>
+<tr><td style="width: 25%;"><a href="modify.html">modify_header</a></td>
+<td>Modify column headers and spanning headers</td></tr>
+<tr><td style="width: 25%;"><a href="modify_indent.html">modify_indent</a></td>
+<td>Modify column indentation</td></tr>
+<tr><td style="width: 25%;"><a href="modify_bold_italic.html">modify_italic</a></td>
+<td>Modify Bold and Italic</td></tr>
+<tr><td style="width: 25%;"><a href="modify_missing_symbol.html">modify_missing_symbol</a></td>
+<td>Modify Missing Substitution</td></tr>
+<tr><td style="width: 25%;"><a href="modify_post_fmt_fun.html">modify_post_fmt_fun</a></td>
+<td>Modify post formatting</td></tr>
+<tr><td style="width: 25%;"><a href="modify_source_note.html">modify_source_note</a></td>
+<td>Modify source note</td></tr>
+<tr><td style="width: 25%;"><a href="modify.html">modify_spanning_header</a></td>
+<td>Modify column headers and spanning headers</td></tr>
+<tr><td style="width: 25%;"><a href="modify_table_body.html">modify_table_body</a></td>
+<td>Modify Table Body</td></tr>
+</table>
+
+<h2><a id="P">-- P --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="brdg_summary.html">pier_summary_categorical</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_summary.html">pier_summary_continuous</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_summary.html">pier_summary_continuous2</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_summary.html">pier_summary_dichotomous</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_hierarchical.html">pier_summary_hierarchical</a></td>
+<td>Hierarchy table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="brdg_summary.html">pier_summary_missing_row</a></td>
+<td>Summary table bridge</td></tr>
+<tr><td style="width: 25%;"><a href="plot.html">plot</a></td>
+<td>Plot Regression Coefficients</td></tr>
+<tr><td style="width: 25%;"><a href="plot.html">plot.tbl_regression</a></td>
+<td>Plot Regression Coefficients</td></tr>
+<tr><td style="width: 25%;"><a href="plot.html">plot.tbl_uvregression</a></td>
+<td>Plot Regression Coefficients</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">pool_and_tidy_mice</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_split_by.html">print.tbl_split</a></td>
+<td>Split gtsummary table by rows and/or columns</td></tr>
+<tr><td style="width: 25%;"><a href="proportion_summary.html">proportion_summary</a></td>
+<td>Summarize a proportion</td></tr>
+</table>
+
+<h2><a id="R">-- R --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="ratio_summary.html">ratio_summary</a></td>
+<td>Summarize the ratio of two variables</td></tr>
+<tr><td style="width: 25%;"><a href="modify_abbreviation.html">remove_abbreviation</a></td>
+<td>Modify Abbreviations</td></tr>
+<tr><td style="width: 25%;"><a href="modify_bold_italic.html">remove_bold</a></td>
+<td>Modify Bold and Italic</td></tr>
+<tr><td style="width: 25%;"><a href="modify_column_merge.html">remove_column_merge</a></td>
+<td>Modify Column Merging</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">remove_footnote_body</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">remove_footnote_header</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote2.html">remove_footnote_spanning_header</a></td>
+<td>Modify Footnotes</td></tr>
+<tr><td style="width: 25%;"><a href="modify_footnote_symbol.html">remove_footnote_symbol</a></td>
+<td>Modify Footnote Symbols</td></tr>
+<tr><td style="width: 25%;"><a href="modify_bold_italic.html">remove_italic</a></td>
+<td>Modify Bold and Italic</td></tr>
+<tr><td style="width: 25%;"><a href="remove_row_type.html">remove_row_type</a></td>
+<td>Remove rows</td></tr>
+<tr><td style="width: 25%;"><a href="modify_source_note.html">remove_source_note</a></td>
+<td>Modify source note</td></tr>
+<tr><td style="width: 25%;"><a href="modify.html">remove_spanning_header</a></td>
+<td>Modify column headers and spanning headers</td></tr>
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">reset_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+</table>
+
+<h2><a id="S">-- S --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="save_flex_docx.html">save_flex_docx</a></td>
+<td>Save a gtsummary table to a Word file</td></tr>
+<tr><td style="width: 25%;"><a href="select_helpers.html">select_helpers</a></td>
+<td>Select helper functions</td></tr>
+<tr><td style="width: 25%;"><a href="separate_p_footnotes.html">separate_p_footnotes</a></td>
+<td>Create footnotes for individual p-values</td></tr>
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">set_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+<tr><td style="width: 25%;"><a href="modify.html">show_header_names</a></td>
+<td>Modify column headers and spanning headers</td></tr>
+<tr><td style="width: 25%;"><a href="sort_filter_p.html">sort_filter_p</a></td>
+<td>Sort/filter by p-values</td></tr>
+<tr><td style="width: 25%;"><a href="sort_hierarchical.html">sort_hierarchical</a></td>
+<td>Sort Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="sort_hierarchical.html">sort_hierarchical.tbl_ard_hierarchical</a></td>
+<td>Sort Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="sort_hierarchical.html">sort_hierarchical.tbl_hierarchical</a></td>
+<td>Sort Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="sort_hierarchical.html">sort_hierarchical.tbl_hierarchical_count</a></td>
+<td>Sort Hierarchical Tables</td></tr>
+<tr><td style="width: 25%;"><a href="sort_filter_p.html">sort_p</a></td>
+<td>Sort/filter by p-values</td></tr>
+<tr><td style="width: 25%;"><a href="style_number.html">style_number</a></td>
+<td>Style numbers</td></tr>
+<tr><td style="width: 25%;"><a href="style_percent.html">style_percent</a></td>
+<td>Style percentages</td></tr>
+<tr><td style="width: 25%;"><a href="style_pvalue.html">style_pvalue</a></td>
+<td>Style p-values</td></tr>
+<tr><td style="width: 25%;"><a href="style_ratio.html">style_ratio</a></td>
+<td>Style ratios</td></tr>
+<tr><td style="width: 25%;"><a href="style_sigfig.html">style_sigfig</a></td>
+<td>Style significant figure-like rounding</td></tr>
+</table>
+
+<h2><a id="T">-- T --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="tbl_ard_continuous.html">tbl_ard_continuous</a></td>
+<td>Summarize continuous variable</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_ard_hierarchical.html">tbl_ard_hierarchical</a></td>
+<td>ARD Hierarchical Table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_ard_strata.html">tbl_ard_strata</a></td>
+<td>Stratified gtsummary tables from ARD</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_ard_strata.html">tbl_ard_strata2</a></td>
+<td>Stratified gtsummary tables from ARD</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_ard_summary.html">tbl_ard_summary</a></td>
+<td>ARD summary table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_ard_wide_summary.html">tbl_ard_wide_summary</a></td>
+<td>Wide ARD summary table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_butcher.html">tbl_butcher</a></td>
+<td>Butcher table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_continuous.html">tbl_continuous</a></td>
+<td>Summarize continuous variable</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_cross.html">tbl_cross</a></td>
+<td>Cross table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_custom_summary.html">tbl_custom_summary</a></td>
+<td>Create a table of summary statistics using a custom summary function</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_hierarchical.html">tbl_hierarchical</a></td>
+<td>Hierarchical Table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_hierarchical.html">tbl_hierarchical_count</a></td>
+<td>Hierarchical Table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_likert.html">tbl_likert</a></td>
+<td>Likert Summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_merge.html">tbl_merge</a></td>
+<td>Merge tables</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_regression.html">tbl_regression</a></td>
+<td>Regression model summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_regression.html">tbl_regression.default</a></td>
+<td>Regression model summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_split_by.html">tbl_split_by</a></td>
+<td>Split gtsummary table by rows and/or columns</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_split_by.html">tbl_split_by_columns</a></td>
+<td>Split gtsummary table by rows and/or columns</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_split_by.html">tbl_split_by_rows</a></td>
+<td>Split gtsummary table by rows and/or columns</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_stack.html">tbl_stack</a></td>
+<td>Stack tables</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_strata.html">tbl_strata</a></td>
+<td>Stratified gtsummary tables</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_strata.html">tbl_strata2</a></td>
+<td>Stratified gtsummary tables</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_strata_nested_stack.html">tbl_strata_nested_stack</a></td>
+<td>Stratified Nested Stacking</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_summary.html">tbl_summary</a></td>
+<td>Summary table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_survfit.html">tbl_survfit</a></td>
+<td>Survival table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_survfit.html">tbl_survfit.data.frame</a></td>
+<td>Survival table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_survfit.html">tbl_survfit.list</a></td>
+<td>Survival table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_survfit.html">tbl_survfit.survfit</a></td>
+<td>Survival table</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_svysummary.html">tbl_svysummary</a></td>
+<td>Create a table of summary statistics from a survey object</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_uvregression.html">tbl_uvregression</a></td>
+<td>Univariable regression model summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_uvregression.html">tbl_uvregression.data.frame</a></td>
+<td>Univariable regression model summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_uvregression.html">tbl_uvregression.survey.design</a></td>
+<td>Univariable regression model summary</td></tr>
+<tr><td style="width: 25%;"><a href="tbl_wide_summary.html">tbl_wide_summary</a></td>
+<td>Wide summary table</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_compact</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_continuous2</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_eda</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_journal</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_language</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_mean_sd</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="theme_gtsummary.html">theme_gtsummary_printer</a></td>
+<td>Available gtsummary themes</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">tidy_bootstrap</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">tidy_gam</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">tidy_robust</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">tidy_standardize</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="custom_tidiers.html">tidy_wald_test</a></td>
+<td>Custom tidiers</td></tr>
+<tr><td style="width: 25%;"><a href="trial.html">trial</a></td>
+<td>Results from a simulated study of two chemotherapy agents</td></tr>
+</table>
+
+<h2><a id="W">-- W --</a></h2>
+
+<table style="width: 100%;">
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">without_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+<tr><td style="width: 25%;"><a href="set_gtsummary_theme.html">with_gtsummary_theme</a></td>
+<td>Set gtsummary theme</td></tr>
+</table>
+</div></body></html>

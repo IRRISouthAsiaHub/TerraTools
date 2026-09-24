@@ -1,0 +1,190 @@
+useDynLib(spatialreg)
+
+import(spData)
+
+importFrom("stats", "lm.fit", "as.formula", "coef", "lm", "model.extract",
+             "model.matrix", "na.fail", "napredict", "pnorm",
+             "printCoefmat", "quantile", "residuals", "terms", 
+	     "coefficients", "deviance", "nlminb", "optim",
+             "pchisq", "summary.lm", "var", "logLik", "optimHess",
+             "gaussian", "glm.fit", "model.offset", "model.weights",
+             "rnorm", "sd", "predict", "AIC", "nlm", "optimize",
+             "dbeta", "rchisq", "runif", "spline", "fitted", "formula",
+             "model.response", "anova", "delete.response", "fitted.values",
+             "model.frame", "nobs")
+
+importFrom("spdep", "is.symmetric.glist", "lag.listw", "card",
+ "nb2listw", "n.comp.nb", "listw2U", "listw2mat", "Szero", "listw2sn",
+ "mat2listw", "is.symmetric.nb", "chkIDs", "get.spChkOption",
+ "subset.listw", "spweights.constants", "have_factor_preds_mf",
+ "warn_factor_preds")
+
+import(Matrix#, except=c("expm")
+)
+import(sf)
+#importFrom(expm, expAtv, expm)
+importFrom(coda, as.mcmc, HPDinterval)
+importFrom(mvtnorm, rmvnorm)
+importFrom(boot, boot)
+importFrom("methods", "new", "is", "slot", "as")
+importFrom("graphics", "plot")
+importFrom(splines, interpSpline)
+importFrom(LearnBayes, rwmetrop)
+importFrom(nlme, fdHess)
+importFrom(multcomp, glht)
+importFrom("utils", "packageVersion")
+importFrom("marginaleffects", "set_coef")
+
+##################
+# ML SE
+export(errorsarlm, lagsarlm, sacsarlm)
+export(trW, impacts, intImpacts)
+export(bptest.Sarlm, LR.Sarlm, LR1.Sarlm, Wald1.Sarlm, Hausman.test)
+
+S3method(print, Sarlm)
+S3method(summary, Sarlm)
+S3method(residuals, Sarlm)
+S3method(deviance, Sarlm)
+S3method(coef, Sarlm)
+S3method(vcov, Sarlm)
+S3method(fitted, Sarlm)
+S3method(logLik, Sarlm)
+S3method(anova, Sarlm)
+S3method(predict, Sarlm)
+S3method(impacts, Sarlm)
+S3method(Hausman.test, Sarlm)
+S3method(MCMCsamp, Sarlm)
+S3method(nobs, Sarlm)
+S3method(set_coef, Sarlm)
+
+S3method(print, summary.Sarlm)
+S3method(coef, summary.Sarlm)
+
+S3method(print, Sarlm.pred)
+S3method(as.data.frame, Sarlm.pred)
+
+# ML SAR/CAR/SMA
+export(spautolm, LR1.Spautolm)
+
+S3method(MCMCsamp, Spautolm)
+S3method(residuals, Spautolm)
+S3method(deviance, Spautolm)
+S3method(coef, Spautolm)
+S3method(fitted, Spautolm)
+S3method(print, Spautolm)
+S3method(summary, Spautolm)
+S3method(logLik, Spautolm)
+
+S3method(print, summary.Spautolm)
+S3method(coef, summary.Spautolm)
+
+# GMM SE
+export(stsls)
+
+S3method(residuals, Stsls) 
+S3method(deviance, Stsls) 
+S3method(coef, Stsls) 
+S3method(print, Stsls) 
+S3method(summary, Stsls) 
+S3method(impacts, Stsls) 
+
+S3method(print, summary.Stsls) 
+S3method(coef, summary.Stsls) 
+
+export(GMerrorsar, gstsls, GMargminImage)
+
+S3method(residuals, Gmsar)
+S3method(deviance, Gmsar)
+S3method(coef, Gmsar)
+S3method(fitted, Gmsar)
+S3method(print, Gmsar)
+S3method(summary, Gmsar)
+S3method(Hausman.test, Gmsar)
+S3method(impacts, Gmsar)
+
+S3method(coef, summary.Gmsar)
+S3method(print, summary.Gmsar)
+
+# ML MESS
+export(lagmess, LR1.Lagmess)
+
+S3method(print, Lagmess)
+S3method(summary, Lagmess)
+S3method(print, summary.Lagmess)
+S3method(residuals, Lagmess)
+S3method(deviance, Lagmess)
+S3method(coef, Lagmess)
+S3method(coef, summary.Lagmess)
+S3method(fitted, Lagmess)
+S3method(logLik, Lagmess)
+S3method(impacts, Lagmess)
+
+# MCMC SET
+export(spBreg_lag, spBreg_err, spBreg_sac)
+
+S3method(impacts, MCMC_sar_G)
+S3method(impacts, MCMC_sem_G)
+S3method(impacts, MCMC_sac_G)
+
+# SLX
+export(lmSLX, create_WX)
+
+S3method(impacts, SlX)
+S3method(predict, SlX)
+S3method(print, SlX)
+S3method(summary, SlX)
+S3method(print, summary.SlX)
+
+# SF/ME
+export(SpatialFiltering, ME)
+
+S3method(fitted, SfResult)
+S3method(print, SfResult)
+S3method(fitted, Me_res)
+S3method(print, Me_res)
+
+# Impacts
+
+S3method(print, LagImpact)
+S3method(plot, LagImpact)
+S3method(summary, LagImpact)
+S3method(HPDinterval, LagImpact)
+S3method(print, summary.LagImpact)
+
+S3method(print, WXimpact)
+S3method(summary, WXimpact)
+S3method(print, summary.WXimpact)
+
+exportMethods(coerce)
+
+export(as_dgRMatrix_listw, as_dsTMatrix_listw, as_dsCMatrix_I,
+	as_dsCMatrix_IrW, Jacobian_W, listw2U_Matrix)
+
+export(powerWeights, invIrW, invIrM)
+
+export(as.spam.listw, listw2U_spam)
+
+export(lextrB, lextrW, lextrS, l_max)
+
+export(griffith_sone, subgraph_eigenw)
+
+export(mom_calc, mom_calc_int2)
+
+export(MCMCsamp)
+
+export(eigenw, jacobianSetup, can.be.simmed, similar.listw)
+
+export(do_ldet, eigen_setup, mcdet_setup, cheb_setup, spam_setup,
+        Matrix_setup, LU_setup, Matrix_J_setup, spam_update_setup,
+        moments_setup, SE_classic_setup, SE_whichMin_setup, SE_interp_setup,
+        LU_prepermutate_setup, eigen_pre_setup)
+
+export(set.mcOption, get.mcOption, set.coresOption, get.coresOption,
+        set.ClusterOption, get.ClusterOption)
+
+export(set.VerboseOption, get.VerboseOption, set.ZeroPolicyOption, 
+        get.ZeroPolicyOption)
+
+export(aple.plot, localAple, aple, aple.mc)
+
+

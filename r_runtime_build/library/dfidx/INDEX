@@ -1,0 +1,9 @@
+dfidx                   Data frames with indexes
+idx                     Index for dfidx
+idx_name                Get the name and the position of the index
+                        column
+methods.dfidx           Methods for dfidx
+model.frame.dfidx       model.frame and model.matrix methods for dfidx
+                        objects
+munnell                 Productivity in the United States
+unfold_idx              Fold and Unfold a dfidx object

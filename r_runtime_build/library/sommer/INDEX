@@ -1,0 +1,43 @@
+A.mat                   Additive relationship matrix
+AR1                     Autocorrelation matrix of order 1.
+ARMA                    Autocorrelation Moving average.
+CS                      Compound symmetry matrix
+D.mat                   Dominance relationship matrix
+E.mat                   Epistatic relationship matrix
+GWAS                    Genome wide association study analysis
+H.mat                   Combined relationship matrix H
+MNR                     Multivariate Newton-Raphson algorithm
+anova.mmes              anova form a GLMM fitted with mmes
+atm                     atm covariance structure
+coef.mmes               coef form a GLMM fitted with mmes
+corImputation           Imputing a matrix using correlations
+covm                    covariance between random effects
+csm                     customized covariance structure
+dfToMatrix              data frame to matrix
+dsm                     diagonal covariance structure
+fitted.mmes             fitted form a LMM fitted with mmes
+fixm                    fixed indication matrix
+ism                     identity covariance structure
+mmer                    *m*ixed *m*odel *e*quations for *r* records
+mmes                    *m*ixed *m*odel *e*quations *s*olver
+plot.mmes               plot form a LMM plot with mmes
+pmonitor                plot the change of VC across iterations
+predict.mmes            Predict form of a LMM fitted with mmes
+r2                      Reliability
+randef                  extracting random effects
+residuals.mmes          Residuals form a GLMM fitted with mmes
+sommer                  *So*lving *M*ixed *M*odel *E*quations in *R*
+spl2Dc                  Two-dimensional penalised tensor-product of
+                        marginal B-Spline basis.
+spl2Dmats               Get Tensor Product Spline Mixed Model Incidence
+                        Matrices
+summary.mmer            summary form a GLMM fitted with mmer
+summary.mmes            summary form a GLMM fitted with mmes
+tpsmmbwrapper           Get Tensor Product Spline Mixed Model Incidence
+                        Matrices
+unsm                    unstructured indication matrix
+usm                     unstructured covariance structure
+vpredict                vpredict form of a LMM fitted with mmes
+vs                      variance structure specification
+vsm                     variance structure specification
+vsr                     variance structure specification

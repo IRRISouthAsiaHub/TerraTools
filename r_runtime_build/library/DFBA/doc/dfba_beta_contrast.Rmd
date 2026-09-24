@@ -1,0 +1,130 @@
+---
+title: "dfba_beta_contrast"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_beta_contrast}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Overview
+
+The frequentist $\chi^{2}$ test is the standard nonparametric procedure when there are $K$ independent groups and where the dependent measure is a binary random variable (Siegel & Castellan, 1988). This frequentist test assesses the unlikely hypothesis that there are no differences whatsoever among the $K$ different population binomial rate parameters. This sharp null hypothesis is usually only retained for small-sample studies. From the Bayesian framework, the point null hypothesis is a trivial hypothesis. In the limit of larger samples, the sharp null hypothesis is expected to be falsified with near certainty. Chechile (2020) argued that it is not a valuable use of scientific effort to assess a sharp null hypothesis as is done with the frequentist $\chi^{2}$ test. Instead it would be more useful to compare the different rate parameters with a contrast. The `dfba_beta_contrast` function is designed to assess a general linear comparison of $K$ independent conditions where the measurements in each condition are binary outcomes. In the Bayesian analysis, the prior and posterior for each group are beta distributions (*see* `dfba_beta_descriptive`, `dfba_binomial`, and `dfba_beta_bayes_factor` for more information about the beta distribution and its role in the analyses in the `DFBA` package). 
+
+# $K$ Independent Groups with Binary Categorical Data
+
+Given $K$ independent binomial conditions, there are $K$ separate binomial parameters $\phi_i$ for $i=1,\ldots, K$ where each $\phi_i$ has a beta posterior distribution. Condition differences can be assessed by *contrasts* of these variates. A contrast is a linear combination of the independent variates. It is well known how to compute the mean of a linear combination of independent random variates regardless of their distributional form, but *the distributional form* for the contrast of beta variates is not analytically known. However, the quantiles, interval estimates, and other statistical properties of the contrast -- which are functions of the distributional form -- can be approximated by way of Monte Carlo sampling. The `dfba_beta_contrast` function is a tool for doing a Bayesian analysis of a general, user-defined contrast of beta variates.
+
+Because Monte Carlo sampling is employed in the `dfba_beta_contrast` function, it is important to stress that this stochastic process is conventional random sampling and it is not *Markov Chain* Monte Carlo (MCMC), which is often used with other Bayesian *parametric* procedures. The Monte Carlo sampling used for any of the `DFBA` functions, including the `dfba_beta_contrast` function, are from a known probability distribution and employ conventional Monte Carlo procedures. Some mistakenly assume that a Bayesian procedure that employs Monte Carlo sampling is using a Markov chain Monte Carlo method because a MCMC algorithm is frequently used in *parametric* Bayesian models and with other Bayesian software packages. MCMC procedures, such as the Metropolis *et al*. (1953) algorithm and the Gibbs sampler (Geman & Geman, 1984), are approximate methods that are based on ergodicity theory (Birkhoff, 1931), and these procedures enable random sampling from distributions that do not have a known conventional Monte Carlo sampling procedure. MCMC sampling is an approximate procedure that asymptotically converges to the proper distribution. *But Bayesian inference does not require MCMC procedures.* Since all the sampling done in the `DFBA` package are from proper target distributions, these Monte Carlo samples do not require convergence of a Markov chain. This feature is not unusual because there are already many conventional Monte Carlo functions in base R. For example, the `stats` function `rbeta(10000, shape1=30, shape2=40)` generates $10,000$ random values from a beta distribution where the two shape parameters are $30$ and $40$. Unlike with MCMC sampling, no burn-in period is needed, and there are no autocorrelations among the values. All the samples are independent and valid.  
+  
+A contrast is defined by a vector of condition weights. The weights are real-value proportions where the sum of all the positive weights is $1$ and the sum of all the negative weights is $-1$; thus the sum of all the weights is $0$. The contrast used here is similar to the same idea commonly employed with *post hoc* tests of the frequentist Analysis of Variance (ANOVA) (Kirk, 2013). Each contrast in the ANOVA is a one degree-of-freedom effect from the large $K-1$ degrees of freedom for treatment variability. As an example of a contrast, consider the case where there are five conditions and the investigator is interested in the difference in performance for the first three conditions versus the last two conditions; this contrast would have the following vector of weight values: $(\frac{1}{3}, ~\frac{1}{3},~\frac{1}{3},-\frac{1}{2},-\frac{1}{2})$. Alternatively, the researcher might be interested in the comparison between conditions 1 and 4, and therefore use the following contrast weights: $(1,~0,~0,-1,~0)$. If we denote $\psi_i$ as the contrast weight for the $i$th condition, then there is a population parameter $\Delta$ for the contrast, which is $\Delta = \sum_{i=1}^{K} \psi_i \phi_i$. By restricting the contrast coefficients so that (1) they all add to $0$, (2) the sum of the positive coefficients is $1$, and (3) the sum of the negative coefficients is $-1$, restricts $\Delta$ to be a number on the $[-1,~1]$ interval. The posterior centrality and interval estimates of $\Delta$ are informative about the difference among the $K$ conditions. The `dfba_beta_contrast` function provides centrality and interval estimates for any suitably constructed user-defined contrast, and it also computes the posterior probability for $\Delta>0$ along with a Bayes factor value.
+ 
+The posterior interval estimate and the Bayes factor for the contrast $\Delta$ are obtained from Monte Carlo sampling. The random $\Delta$ values are obtained by first drawing random values for each posterior $\phi_i$ for $i=1,~\cdots,~K$. As discussed in the `dfba_binomial` vignette, each of the $K$ conditions is simply a case of a binomial. Thus the posterior distribution for each $\phi_i$, for $i=1~,\ldots,\,K$, is a beta distribution with shape parameters $n_{1_i}+a_{0_i}$ and $n_{2_i}+b_{0_i}$ where $a_{0_i}$ and $b_{0_i}$ are the shape parameters for the prior in the $i$th condition and where $n_{1_i}$ and $n_{2_i}$ are the observed frequencies for the condition. The `dfba_beta_contrast()` function draws $N$ random values for each separate $\phi_i$. Let us denote the $j$th random value from the $i$th condition as $\phi_{ij}$. The $j$th random sample of $\Delta$ is denoted as $\Delta_j$. It follows that
+
+\begin{equation} 
+  \Delta_j = \psi_1 \phi_{1j}+\psi_2 \phi_{2j} +\cdots +\psi_K \phi_{Kj}
+  (\#eq:DeltaJ)
+\end{equation} 
+
+
+where $j= 1, \ldots, N$. The posterior probability that $\Delta>0$ is estimated by the proportion of the $N$ random $\Delta_j$ values that are positive. Similarly the quantiles for the contrast are estimated from the quantiles of the $\Delta_j$ values.  
+
+
+# Using the `dfba_beta_contrast` Function
+
+
+The `dfba_beta_contrast` function has seven arguments where the first three are required and the last four have defaults, so those four arguments are optional. The three required arguments are: `n1_vec`, `n2_vec` and `contrast_vec`. 
+ 
+Each of these arguments are vectors of $K$ elements. The `n1_vec` argument is a vector of the $n1$ values for the $K$ separate binomial groups. The `n2_vec` argument is a vector of the corresponding $n2$ values for the $K$. The $n_1$ and $n_2$ values for each binomial are defined in the same way as for the `dfba_binomial` function. 
+
+In addition to the three required arguments, the `dfba_beta_contrast` function has the following four optional arguments:
+
+* `a0_vec` 
+
+* `b0_vec` 
+
+* `prob_interval` 
+
+* `samples`
+
+The `a0_vec` and `b0_vec` arguments are vectors of, respectively, the $a_0$ and $b_0$ shape parameters of the $K$ prior distributions for the separate beta distributions. The default for both of these inputs is a vector of $1$'s for both prior shape parameters, which corresponds to a uniform prior for each condition. The `prob_interval` argument is the value for the interval estimate; the default value for `prob_interval` is $.95$. Finally, the `samples` argument is the number of Monte Carlo sampled values for the contrast. The default for this input is set to $10000$. Please note that is not recommended to use fewer than $10000$ samples and thus argument values less than $10000$ are not allowed. 
+
+## Example
+
+As an example, for four separate groups of data where the binomial frequencies $(n_1,~n_2)$ are: $G_1:(22,~18)$, $G_2:(15,~25)$, $G_3:(13,~27)$, and $G_4:(21,~19)$, respectively, the corresponding contrast vectors arguments would be:
+
+```{r}
+n1_responses <- c(22, 15, 13, 21)
+
+n2_responses <- c(18, 25, 27, 19)
+```
+
+A contrast vector argument (`contrast_vec`) to compare groups $G1$ and $G3$ versus groups $G2$ and $G4$ can be defined as: 
+
+```{r}
+G13_vs_G24 <- c(.5, -.5, .5, -.5)
+```
+
+Using the defaults for the optional arguments (`a0_vec`, `b0_vec`, `prob_interval`, and `samples`), the Bayesian analysis of the contrast is given by:
+
+```{r}
+contrast_example <- dfba_beta_contrast(n1_vec = n1_responses,
+                                       n2_vec = n2_responses,
+                                       contrast_vec = G13_vs_G24)
+
+contrast_example
+```
+
+The `plot()` method produces a visualization of the prior and posterior distributions for the $\phi$ parameter. Note: a plot of the posterior distribution without the prior distribution is given by including the argument `plot.prior = FALSE` (the default is `plot.prior = TRUE`).  
+
+```{r fig.width = 7}
+plot(contrast_example)
+```
+
+Because the estimates for the probability that $\Delta>0$ and the Bayes factor are based on the random set of $10,000$ vectors drawn for $\Delta$, those values can vary when another random set of vectors are drawn. To decrease the variability between any set of random value, the user can increase the value for `samples` argument from the default value. 
+
+Although Monte Carlo sampling is somewhat variable on different implementations of the `dfba_beta_contrast` function, there is one result that does not vary. The output value *exact posterior contrast mean* (`mean`) has an analytic value that does not depend on Monte Carlo sampling. From elementary probability theory, the expected value $E(\Delta)$ or the mean of a linear combination of $K$ *independent random variables* is 
+
+\begin{equation} 
+  \begin{aligned}
+    E(\Delta) & =  \psi_1 E(\phi_1) +\ldots+ \psi_K E(\phi_K) \\
+              & =  \sum_{i=1}^{K} \psi_i \frac{a_i}{a_i+b_i}
+  \end{aligned}
+  (\#eq:ExpDelta)
+\end{equation} 
+
+
+where $a_i$ and $b_i$, for $i=1,\ldots,K$ are the shape parameters for the $K$ separate posterior beta distributions.
+
+Finally, it should be stressed that a contrast is a specific comparison among the $K$ binomial conditions. Presumably, if a scientist observed $K$ groups, there was a reason for the $K$ conditions in the first place. In the above example, the contrast examined is only one possible way to compare the four groups. Contrasts are widely used in parametric analysis of variance (ANOVA) models (Kirk, 2013). From the ANOVA literature, it is useful to mention the idea of orthogonal contrasts (non-correlated comparisons). Contrast $\Psi_A=(\psi_{1A},\ldots,\psi_{KA})$ and contrast $\Psi_B=(\psi_{1B},\cdots,\psi_{KB})$ are *orthogonal* if $\sum_{i=1}^{K} \psi_{iA} \psi_{iB}=0$. For $K$ groups, there are $K-1$ orthogonal contrasts possible. For the example above, the contrast coefficients are $\Psi_A=(.5,-.5,.5,-.5)$. Two other orthogonal contrasts to this vector might be $\Psi_B=(.5,.5,-.5,-.5)$ and $\Psi_C=(.5,-.5,-.5,.5)$. Note that each of these three contrasts are mutually orthogonal to the others. However, that set of three orthogonal contrasts is not unique. For example, an alternative set of three orthogonal contrasts might be $\Psi_{A'}=(1,-1,0,0)$, $\Psi_{B'}=(0,0,1,-1)$ and $\Psi_{C'}=(.5,.5,-.5,-.5)$. While the `dfba_beta_contrast` function can produce any linear contrast among the $K$ independent beta distributed variates, the user needs to keep in mind the specific contrasts that make sense given the purposes of the research study.   
+
+
+
+# References
+
+ 
+Birkoff, G. D. (1931). Proof of the ergodic theorem. *Proceedings of the National Academic of Sciences*, **17**, 404-408.
+
+Chechile, R.A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+
+Geman, S., and Geman, D. (1984). Stochastic relaxation, Gibbs distributions, and the Bayesian restoration of images. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, **6**, 721-741. 
+
+Kirk, R. E. (2013). *Experimental Design: Procedures for the Behavioral Sciences, 4th ed.*, Los Angles: Sage.
+
+Metropolis, N., Rosenbluth, A. W., Rosenbluth, M.N., Teller, A. H., and Teller, E. (1953). Equations of state calculations by fast computing machines. *Journal of Chemical Physics*, **21**, 1021-1092.
+ 
+Siegel, S., and Castellan, N. J. (1988) *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw Hill.
+

@@ -1,0 +1,89 @@
+%\VignetteIndexEntry{Comparison between lm.beta and scale}
+%\VignetteKeywords{linear regression, standardizing, standardized coefficient, beta}
+% !Rnw weave = knitr
+% \VignetteEngine{knitr::knitr}
+\documentclass[landscape]{article}
+\usepackage[latin1]{inputenc}
+\usepackage[english]{babel}
+
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+
+\usepackage[left=2cm,right=2cm,top=1.5cm,bottom=1.5cm]{geometry}
+\pagestyle{empty}
+
+\author{Stefan Behrendt}
+\title{Comparison between \texttt{lm.beta} and \texttt{scale}}
+\date{July 22, 2018}
+
+\parindent0pt
+\parskip 10pt plus 1pt minus 1pt
+
+\begin{document}
+\maketitle\thispagestyle{empty}
+
+\begin{multicols}{2}
+In the following, three basic examples of standardizing coefficients using (1) \texttt{lm} and \texttt{lm.beta} (left column) and using (2) \texttt{lm} and \texttt{scale} (right column) are shown.
+
+Standardized regression coefficients can be estimated in two different ways:
+\begin{enumerate}
+\item by standardizing the variables before estimating the coefficients or
+\item by standardizing the coefficients after estimating them.
+\end{enumerate}
+Both procedures, and therefore each of the examples below, result in the same standardized coefficients.
+
+The quality of the estimates is also---nearly---equal, because both solutions depend on the same algorithm of \texttt{lm}.
+
+\vspace*{\fill}
+\columnbreak
+
+Differences between the two methods are:
+\begin{enumerate}
+\item When using \texttt{lm.beta}, both the standardized and unstandardized coefficients are available simultaneously, whereas the \texttt{scale}-method requires the specification of the desired coefficient.
+\item In the case of \texttt{scale}, using terms in the regression formula leads to unstandardized coefficients although the variables are standardized.
+\item Differences between the estimates may occur, being caused by numerical inaccuracy. They are usually so small that they can be ignored.
+\end{enumerate}
+
+\vspace*{\fill}
+\end{multicols}
+
+\vspace*{\fill}
+
+\hrule
+
+\vspace*{\fill}
+
+\begin{multicols}{2}[\textit{Example 1}. Regression model with intercept]
+<<eval = F>>=
+lm.beta(lm(y ~ x, data = dat))
+@
+\columnbreak
+<<eval = F>>=
+lm(y ~ x, data = scale(dat))
+@
+\end{multicols}
+
+\hrule
+
+\begin{multicols}{2}[\textit{Example 2}. Regression model without intercept (uncentered solution/ incomplete standardization)]
+<<eval = F>>=
+lm.beta(lm(y ~ 0 + x, data = dat))
+@
+\columnbreak
+<<eval = F>>=
+lm(y ~ 0 + x, data = scale(dat, center = F))
+@
+\end{multicols}
+
+\hrule
+
+\begin{multicols}{2}[\textit{Example 3}. Regression model without intercept (centered solution/ complete standardization)]
+<<eval = F>>=
+lm.beta(lm(y ~ 0 + x, data = dat), complete.standardization = T)
+@
+\columnbreak
+<<eval = F>>=
+lm(y ~ 0 + x, data = scale(dat))
+@
+\end{multicols}
+\end{document}

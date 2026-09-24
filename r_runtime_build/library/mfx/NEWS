@@ -1,0 +1,19 @@
+Changes in Version 1.2-4  (2025-05-30)
+
+  o Removed file 'R/mfx-internal.R' which set the '.Random.seed'
+    as this is not needed and may have unwanted effects.
+
+
+Changes in Version 1.2-2  (2019-02-06)
+
+  o Added a 'vignette' (Marginal Effects for Generalized Linear Models:
+    The mfx Package for R)
+  o Fixed some 'NAMESOPACE' issues
+  o Added test scripts and corresponding output files
+  o Improved the description of the package
+
+
+Changes in Version 1.1
+
+  o Functions added for calculating odds ratios and incidence rate ratios.
+  o Package now includes beta regressions from the betareg package.

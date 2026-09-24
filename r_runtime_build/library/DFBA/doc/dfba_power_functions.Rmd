@@ -1,0 +1,136 @@
+---
+title: "dfba_power_functions"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_power_functions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>")
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction
+
+An important aspect of research is planning a forthcoming empirical study. Time and financial resources are limited, so future studies need to be planned so that there is a good chance that the research question is answered. Too few samples compromises the chance that the research question can be answered, but too many samples sinks more time and money than needed into one experiment. 
+
+The `DFBA` package has two functions that are designed to assist researchers in their planning the design and sample size for a forthcoming study where there are two conditions and where there is a univariate continuous measure for each observation. The `dfba_bayes_vs_t_power()` function and `dfba_power_curve()` function compute frequentist and Bayesian statistical power. These two functions are discussed together in this vignette. These two functions rely heavily on simulated data from the `dfba_sim_data()` function. There is a separate vignette that deals with the `dfba_sim_data()` function. For each function call of the `dfba_sim_data()` function, data are randomly sampled from two different populations that correspond to generically a *control* condition and an *experimental* condition. The difference between the two distributions can be stipulated *via* an argument `delta`. The user can also stipulate the probability distribution for the scores from a list of nine different probability models. 
+
+The `dfba_sim_data()` function performs frequentist and Bayesian distribution-free analyses: $t$-tests and either the Bayesian Wilcoxon signed-rank test or the Bayesian Mann-Whitney test depending on whether a design is repeated-measures or independent-groups study. Given a user-defined criterion stipulated by the `effect_crit()` argument, the posterior distribution from the Bayesian analysis for a difference between the conditions either exceeds the value of `effect_crit()` or it does not. The `dfba_bayes_vs_t_power()` and the `dfba_power_curve()` functions conduct Monte Carlo experiments by repeatedly calling the `dfba_sim_data()` function for a given sample size and the value of the `delta` argument. The proportion of the `dfba_sim_data()` function calls that obtains a posterior probability greater than the value of the `effect_crit` argument is an estimate of Bayesian power. The same Monte Carlo collection of data samples is also examined to find the proportion of the samples that resulted in a frequentist $p$-value from a $t$-test that is less than 1 minus the `effect_crit` value. This proportion is an estimate of the frequentist power. For a user-stipulated experimental design, stochastic model for the variates, and a fixed value `delta` for separation between the conditions, the `dfba_bayes_vs_t_power()` function computes frequentist and Bayesian power estimates for $11$ sample sizes, which vary upward from a user-defined minimum in steps of $5$. This function is designed to help the researcher ascertain a good sample size for a forthcoming study given a stipulated separation between the conditions. For a user stipulated experimental design, stochastic model for the variates, and fixed value for the sample size, the `dfba_power_curve()` function computes power for $21$ cases that vary the separation between the conditions from $0$ in even increasing steps of a magnitude stipulated in the `delta.step` argument. This function is designed to help the researcher discover what the influence of the separation between the conditions has on the power.  The details of the `dfba_bayes_vs_t_power()` are discussed in [Using the `dfba_bayes_vs_t_power()` Function](#using_bayes_v_t); the corresponding discussion of the `dfba_power_curve()` function is in [Using the `dfba_power_curve()` Function](#using_power_curve). 
+
+As a general rule, the power estimates for the frequentist $t$-test are somewhat higher than the corresponding Bayesian power estimates for cases where the data originate from a normal distribution. This follows from the assumption of the frequentist $t$-test -- a parametric statistical procedure -- that the data are sampled from a normal distribution. However, the Bayesian power is based on rank-order information, and as such does not require the assumption of normally distributed data.  Consequently, the user will see that as a general rule the power estimates are higher for the Bayesian distribution-free procedures than the corresponding frequentist power when the data originate from non-normal probability models.     
+
+# Using the `dfba_bayes_vs_t_power()` Function {#using_bayes_v_t}
+
+The `dfba_bayes_vs_t_power()` function has three required arguments and nine optional arguments. The three required arguments are: `delta`, `model`, and `design`. The `delta` argument is the difference between the centrality of the two conditions -- *e.g.*, *experimental* and *control* at the population level. The `model` argument is a string indicating one of nine probability models: `"normal"`, `"weibull"`, `"cauchy"`, `"lognormal"`, `"chisquare"`, `"logistic"`, `"exponential"`, `"gumbel"`, or `"pareto"` (see the vignette for the `dfba_sim_data()` function for a brief tutorial about any of these distributions). The `design` argument is a string that takes either `"independent"` or `"paired"`. When `design = "paired"`, the power estimates are for the case where the scores for the experimental and control conditions are within a block such as scores from the same participant. When `design = "independent"`, the power estimates are for the case where the two conditions are independent (*i.e.*, a repeated-measures design). 
+
+The nine optional arguments (along with their default values) are: `n_min = 20`, `effect_crit = .95`, `shape1 = 1`, `shape2 = 1`, `samples = 1000`, `a0 = 1`, `b0 = 1`, `block.max = 0`, and `hide_progress = FALSE`. It is likely that for a particular value of the `delta` argument the user might vary the value for `n_min` to see the power estimates for a different range of $11$ sample sizes for the two groups. Values greater than $20$ can be entered for the `n_min` argument, but the function will not allow for values *less than* $20$ in order to assure that the sample sizes are large enough to justify the large-$n$ approximation method used for the Bayesian distribution-free analyses. 
+
+The `shape1` and `shape2` inputs allow the user to change features of the population model. The meanings of these two arguments vary with values of the `model` input. For example, when `model = "normal"`, the shape parameters correspond to the standard deviations for the two variates in the population; for the case of `model = "weibull"`, the shape parameters are the Weibull distribution shape parameters (See the vignette about the `dfba_sim_data()` function for more details about each distribution).
+
+The `samples` argument can be adjusted to vary the number of Monte Carlo data sets drawn by the function. The default value of $1000$ means that there are $1000$ function calls to the `dfba_sim_data()` function for each of the $11$ sample sizes run. If the user wishes to vary that number to obtain either more or less precision in the power estimates, then the `samples` argument can be adjusted.
+
+The `a0` and `b0` arguments represent the two shape parameters for the prior beta distribution for the Bayesian distribution-free analyses; the default values `a0 = 1` and `b0 = 1` correspond to a non-informative prior distribution. Other values of `a0` and `b0` may be specified to use a different prior distribution, for example, to use an informative prior.
+
+The `block.max` argument allows the user to examine the effect of block differences on power estimates when `design = "independent"`. 
+
+Finally, because Monte Carlo sampling takes a substantial amount of processing time, the function provides a progress counter indicating the percentage of the sampling that has completed; the counter is shown when `hide_progress` takes the default value of `TRUE` and is hidden when `hide_progress = FALSE` (see the [example](#example) section for an example case where `hide_progress = TRUE` is used to prevent printing the progress steps to this vignette).
+
+## Example 1 {#example}
+
+The following example shows a power analysis for testing the difference between two independent samples, each drawn from normal distributions where the stipulated difference between the means of the distributions is `delta = 0.3`. The argument `n_min` is omitted from the example code, so the default value of `n_min = 20` is used. Prospective frequentist and Bayesian power estimates are therefore given for $n = \{20, 25, \ldots, 70\}$.
+
+```{r eval = FALSE}
+set.seed(1)
+A <- dfba_bayes_vs_t_power(delta = 0.3,
+                           model = "normal",
+                           design = "independent",
+                           hide_progress = TRUE)
+
+A
+```
+
+
+```{r echo = FALSE}
+load("power_ex1")
+A
+```
+
+The `plot()` method produces a visualization of the data in the `outputdf` object from the `dfba_bayes_vs_t_power()` values: frequentist and Bayesian power estimates as a function of prospective sample size. 
+
+```{r fig.width = 7}
+plot(A)
+```
+
+
+# Using the `dfba_power_curve()` Function {#using_power_curve}
+ 
+The `dfba_power_curve()` function has two required arguments and ten optional arguments. The required arguments are `model` and `design`. As in the `dfba_bayes_vs_t_power()` function, the `model` argument is the string name for one of the nine probability models. This argument requires one from the following list: `"normal"`, `"weibull"`, `"cauchy"`, `"lognormal"`, `"chisquare"`, `"logistic"`, `"exponential"`, `"gumbel"`, `"pareto"` (see the vignette for the `dfba_sim_data()` function for a brief tutorial about any of these distributions). The `design` argument is a string variable that takes either `"independent"` or `"paired"` as possible values. When `design = "paired"`, the power estimates are for the case where the experimental and the control condition scores are within a block such as in the case of repeated measures. For an `independent` input, the power estimates are for the case where the two conditions are independent (*i.e.*, a between-groups design). Eight of the optional arguments also belong to the [`dfba_bayes_vs_t_power()` function](#using_bayes_v_t); listed again here with their default values: `a0 = 1`, `b0 = 1`, `effect_crit = .95`, `shape1 = 1`, `shape2 = 1`,  `block.max = 0`, `samples = 1000`, and `hide_progress = FALSE`. The other two optional arguments -- with their default values -- are `n = 20` and `delta.step = .05`. The `n` argument is an integer value for the sample size in each of the two conditions; it must take values greater than or equal to $20$ in order for the Bayesian analyses to use a large-$n$ approximation. Unlike the `dfba_bayes_vs_t_power()` function, all the power estimates calculated by the `dfba_power_curve()` function use the same sample size for each condition; the *separation between* the two condition varies instead. The step-size increments for the $delta$ offset between the conditions is the value for the optional `delta.step` argument.
+
+## Examples {#curve_examples}
+
+### Example 2: Paired Design with Differences Sampled from a Normal Distribution {#curve_example1}
+
+In the following example, power is estimated for frequentist $t$-test analysis and Bayesian Wilcoxon test analysis of paired data where the differences are stipulated to be drawn from a normal distribution. In this example code, the argument `delta_step` is omitted and the default value `delta_step = .05` is used; thus: the power analysis evaluates frequentist and Bayesian power at stipulated mean differences of $\delta = \{0, 0.05, 0.10,\dots, 1\}$. 
+
+```{r eval = FALSE}
+B <- dfba_power_curve(n = 40,
+                      model = "normal",
+                      design = "paired",
+                      hide_progress = TRUE)
+
+B
+```
+
+
+```{r echo = FALSE}
+load("power_ex2")
+B
+```
+Note that the differences in power estimates in this example are small but indicate greater for the parametric $t$-test than for the Bayesian Wilcoxon test at nearly all stipulated mean difference from $0$ to $1$.
+
+
+The `plot()` method produces a visualization of the data in the `outputdf` object from the `dfba_bayes_vs_t_power()` values: frequentist and Bayesian power estimates as a function of stipulated difference means (in this case, from $0$ to $1$ by the default `delta_step` value of $0.05$). 
+
+```{r fig.width = 7}
+plot(B)
+```
+
+
+### Example 3: Paired Design with Differences Sampled from a Weibull Distribution
+
+In the following example, power is estimated for frequentist $t$-test analysis and Bayesian Wilcoxon test analysis of paired data where the differences are stipulated to be drawn from a Weibull distribution. As in the [example 2 above](#curve_example1), the argument `delta_step` is omitted and the default value `delta_step = .05` is used; thus: the power analysis evaluates frequentist and Bayesian power at stipulated mean differences of $\delta = \{0, 0.05, 0.10,\dots, 1\}$. 
+
+```{r eval = FALSE}
+C<- dfba_power_curve(n = 40,
+                     model = "weibull",
+                     design = "paired",
+                     shape1=.8,
+                     shape2=.8,
+                     hide_progress = TRUE)
+
+C
+```
+
+
+```{r echo = FALSE}
+load("power_ex3")
+C
+```
+
+Please note that with the stipulation of differences drawn *not* from a normal distribution (rather, in this case, from a Weibull distribution), that the power estimates are consistently greater in this example for the Bayesian distribution-free analysis than for the corresponding parametric frequentist analysis. The pattern can be visualized using the `plot()` method:
+ 
+
+```{r fig.width=7}
+plot(C)
+```
+

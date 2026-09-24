@@ -1,0 +1,50 @@
+# environment.yml — Isolated R environment for TerraTools.
+#
+# This does NOT install R system-wide. It creates a private, self-contained
+# R installation inside this project (see setup_r_env.sh), so it can't
+# conflict with any other R version on your machine and doesn't need
+# admin/sudo access.
+#
+# To add more packages later (e.g. for the QTL tool), just add them to the
+# list below and re-run: conda env update -f environment.yml -p ./r_env
+
+name: terratools-r
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.3
+  - r-readr
+  - r-dplyr
+  - r-tidyr
+  - r-ggplot2
+  - r-stringr
+  - r-purrr
+  - r-scales
+  - r-jsonlite
+  # Added for the Phenotypic Data Analysis tool:
+  - r-tidyverse
+  - r-readxl
+  - r-lme4
+  - r-emmeans
+  - r-plotly
+  - r-htmlwidgets
+  - r-ggally
+  - r-corrplot
+  - r-agricolae
+  - r-car
+  - r-broom
+  - r-cluster
+  - r-factoextra
+  - r-pheatmap
+  - r-rcolorbrewer
+  - r-moments
+  - r-reshape2
+  - r-gridextra
+  - r-openxlsx
+  - r-nloptr
+  - r-lmertest
+  - r-viridislite
+  - r-sommer
+  - r-rrBLUP
+  - r-ggpubr
+  - r-writexl

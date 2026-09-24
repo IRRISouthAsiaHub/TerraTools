@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>dfba_mann_whitney</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dfba_mann_whitney</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="introduction-and-overview" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Introduction and Overview</h1>
+<p>The two-sample <span class="math inline">\(t\)</span>-test is the standard frequentist parametric statistical method for data analysis when there are two independent groups and where the dependent variable is a continuous measure. This parametric procedure is based on the assumptions that the data are independent observations from two normal distributions that have the same population variance. It is not likely that these assumptions are strictly valid, so it is advantageous to have some nonparametric alternatives for data analysis. The <em>median test</em> and the <em>Mann-Whitney</em> <span class="math inline">\(U\)</span> <em>test</em> are two frequentist nonparametric methods that are the conventional alternatives to the two-sample <span class="math inline">\(t\)</span>-test. The <code>DFBA</code> package has functions for doing a Bayesian form of each of those two procedures; the Mann-Whitney <span class="math inline">\(U\)</span> test is the more powerful method of the two (Siegel &amp; Castellan, 1988).</p>
+<p>This vignette is organized into four sections. <a href="#framework">Theoretical Framework for the Bayesian Mann-Whitney</a> provides the conceptual basis for understanding both frequentist and Bayesian statistical inference of the Mann-Whitney <span class="math inline">\(U\)</span> statistics. <a href="#mathematical-basis">Mathematical Basis for the Large-<span class="math inline">\(n\)</span> Model</a> covers the mathematical basis for the large-<span class="math inline">\(n\)</span> approximation procedure.<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> <a href="#using-mann-whitney">Using the <code>dfba_mann_whitney()</code> Function</a> is focused on the use of the <code>dfba_mann_whitney()</code> function. For additional information about Monte Carlo sampling, approximating the posterior distribution with a beta distribution, the likelihood principle, and the Bayes factor, please see the vignettes for the <code>dfba_beta_bayes_factor()</code> function, the <code>dfba_binomial()</code> function, and the <code>dfba_beta_contrast()</code> function.</p>
+</div>
+<div id="framework" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Theoretical Framework for the Bayesian Mann-Whitney</h1>
+<p>Mann and Whitney (1947) developed the idea of <span class="math inline">\(U\)</span> statistics. Earlier, Wilcoxon (1945) employed a ranking metric that could be used when there are two independent groups, but the <span class="math inline">\(U\)</span> statistics are preferable for testing whether one of two independent, continuous random variables is <em>stochastically larger</em> in the population than the other. Let us denote one of the conditions as <span class="math inline">\(E\)</span> for an <em>experimental group</em> and denote the other condition as <span class="math inline">\(C\)</span> for a <em>control group</em>. Given <span class="math inline">\(n_E\)</span> scores in the <span class="math inline">\(E\)</span> condition and <span class="math inline">\(n_C\)</span> scores in the <span class="math inline">\(C\)</span> condition, there are two <span class="math inline">\(U\)</span> statistics. In the sample, the <span class="math inline">\(U_E\)</span> statistic is the number of times that an <span class="math inline">\(E\)</span> labeled score is larger than a <span class="math inline">\(C\)</span> labeled score and the <span class="math inline">\(U_C\)</span> statistic is the number of times a <span class="math inline">\(C\)</span> variate is larger than an <span class="math inline">\(E\)</span> variate. Consider two examples to see how these metrics are computed. For the first example, suppose there are three scores in each condition, and these values are all distinctly different with the rank ordering (from low to high) of <span class="math inline">\(1.~C~~2.~C~~3.~E~~4.~C~~5.~E~~6.~E\)</span>. The <span class="math inline">\(U_E\)</span> statistic can be found by counting for each <span class="math inline">\(E\)</span> score, the number of <span class="math inline">\(C\)</span> scores that are less than that <span class="math inline">\(E\)</span>. That is, <span class="math inline">\(U_E=2+3+3=8\)</span>. The corresponding <span class="math inline">\(U_C\)</span> calculation is <span class="math inline">\(U_C=0+0+1=1\)</span>. The second example has some tied scores. Suppose there are four scores in each condition, and there is a cluster of three scores with the same value. The ranking in this second example is: <span class="math inline">\(1.~C~~2.~C~~3.~E~~4.~(C,~E,~ C)~~7.~E~~8. E\)</span> where the measures within the parenthesis are tied. Now the <span class="math inline">\(U\)</span> statistics are <span class="math inline">\(U_E=2+2+4+4=12\)</span> and <span class="math inline">\(U_C=0+0+1+1=2\)</span>. If there are no ties, <span class="math inline">\(U_E+U_C=n_E \cdot n_C\)</span>, but if there are clusters of tied scores <span class="math inline">\(U_E+U_C \le n_E \cdot n_C\)</span>. Yet, <em>in all cases</em>, the <span class="math inline">\(U\)</span> statistics can be computed by the following method.</p>
+<p><span class="math display" id="eq:UEEquation">\[\begin{equation}
+  \begin{aligned}
+    U_E &amp;= \sum_{i=1}^{n_E} \sum_{j=1}^{n_C} \delta_E(i,~j), \\
+    \delta_E(i,~j) &amp;= \begin{cases}
+    1 &amp; if~x_{C_j}&lt;x_{E_i}, \\
+              0 &amp; \text{otherwise}
+      \end{cases}
+  \end{aligned}
+  \tag{2.1}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(x_{E_i}\)</span> is a continuous measure for the <span class="math inline">\(i\)</span>th observation for the <span class="math inline">\(E\)</span> variate and <span class="math inline">\(x_{C_j}\)</span> is the <span class="math inline">\(j\)</span>th measure for the <span class="math inline">\(C\)</span> variate. The corresponding <span class="math inline">\(U_C\)</span> formula is</p>
+<p><span class="math display" id="eq:UCEquation">\[\begin{equation}
+  \begin{aligned}
+    U_C &amp;= \sum_{i=1}^{n_E} \sum_{j=1}^{n_C} \delta_C(i,~j), \\
+    \delta_C(i,~j) &amp;= \begin{cases}
+    1 &amp; if~x_{C_j}&gt;x_{E_i}, \\
+              0 &amp; \text{otherwise}
+      \end{cases}
+  \end{aligned}
+  \tag{2.2}
+\end{equation}\]</span></p>
+<p>Following the notation used in Chechile (2020b), let us define a population parameter <span class="math inline">\(\Omega_E\)</span>:</p>
+<p><span class="math display" id="eq:OmegaEEquation">\[\begin{equation}
+  \Omega_E = \lim_{n\to \infty} \frac{U_E}{U_E+U_C}.
+  \tag{2.3}
+\end{equation}\]</span></p>
+<p>If <span class="math inline">\(E\)</span> is <em>stochastically dominant</em>, then <span class="math inline">\(\Omega_E&gt;.5\)</span>. If <span class="math inline">\(\Omega_E&lt;.5\)</span>, then <span class="math inline">\(C\)</span> is stochastically dominant. We can also define the population parameter <span class="math inline">\(\Omega_C=\lim_{n\to \infty} \frac{U_C}{U_E+U_C}\)</span>, but since <span class="math inline">\(\Omega_C=1-\Omega_E\)</span>, we need just one of these two population characteristics. The <code>DFBA</code> package uses the <span class="math inline">\(\Omega_E\)</span> parameter as a fundamental measure of the relative stochastic dominance of the two treatment conditions.</p>
+<p>The frequentist Mann-Whitney test is based on likelihoods exclusively. In general a likelihood is the conditional probability of an outcome given an assumed value for the relevant population parameter. Effectively, the frequentist analysis assumes the population value of <span class="math inline">\(\Omega_E=.5\)</span> and computes the likelihood for the observed <span class="math inline">\(U_E\)</span> <em>plus more extreme (unobserved) outcomes</em>. When <span class="math inline">\(\Omega_E=.5\)</span>, the two conditions are not different, so any pattern for the rank ordering is equally probable. For the first example considered above where <span class="math inline">\(nE=nC=3\)</span>, there are ten possible rank orderings, so each possible outcome has a likelihood value of <span class="math inline">\(\frac{1}{10}\)</span>. Because there is only one more extreme possible event in this example than the observed rank ordering (<em>i.e.</em>, the order of <span class="math inline">\(1.~C~~2.~C~~3.~C~~4.~E~~5.~E~~6.~E\)</span>), the summed likelihood is <span class="math inline">\(.2\)</span>. The summed likelihood is the frequentist <span class="math inline">\(p\)</span>-value for hypothesis testing. If <span class="math inline">\(p\)</span> is less than <span class="math inline">\(\alpha\)</span>, then the null hypothesis is rejected in favor of the alternative hypothesis that <span class="math inline">\(\Omega_E \ne .5\)</span>.<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>.</p>
+<p>Chechile (2020a; 2020b) provided a Bayesian version of the Mann-Whitney test. There are a number of important differences between the frequentist analysis and the Bayesian analysis. Unlike the frequentist approach, the Bayesian analysis is not predicated on the assumption that <span class="math inline">\(\Omega_E=.5\)</span>. Instead, there is an entire prior distribution for <span class="math inline">\(\Omega_E\)</span>. Furthermore, unlike in the frequentist analysis, in the Bayesian analysis of the <span class="math inline">\(U\)</span> statistics, the only likelihood that is computed after the data are collected is the likelihood of the <em>observed</em> <span class="math inline">\(U\)</span> statistics given a value for the population <span class="math inline">\(\Omega_E\)</span> parameter; the likelihoods of non-observed outcomes are irrelevant.<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a> The problem is the likelihood <span class="math inline">\(P(U_E, U_C | \Omega_E)\)</span> is not known. However in the similar fashion as with the Bayesian analysis for the Wilcoxon signed-rank statistic<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>, the unknown likelihood can be approximated via a Monte Carlo sampling process. For small sample sizes, the <code>dfba_mann_whitney()</code> function uses a discrete approximation method. Rather than a continuous prior distribution for the <span class="math inline">\(\Omega_E\)</span> parameter, the small-<span class="math inline">\(n\)</span> method instead considers <span class="math inline">\(200\)</span> values for <span class="math inline">\(\Omega_E\)</span> that range from <span class="math inline">\(.0025\)</span> to <span class="math inline">\(.9975\)</span> in steps of <span class="math inline">\(.005\)</span>. Let us denote one of these possible <span class="math inline">\(200\)</span> values as <span class="math inline">\(\Omega_{E_i}\)</span>. The Monte Carlo process samples <span class="math inline">\(n_E\)</span> and <span class="math inline">\(n_C\)</span> random scores from two distributions that have the same <span class="math inline">\(\Omega_{E_i}\)</span> value. Any one of the random Monte Carlo data sets with <span class="math inline">\(n_E\)</span> and <span class="math inline">\(n_C\)</span> scores can either (1) have the same <span class="math inline">\(U_E\)</span> and <span class="math inline">\(U_C\)</span> values as the observed <span class="math inline">\(U\)</span> statistics or (2) have <span class="math inline">\(U\)</span> statistics that differ from the observed. This Monte Carlo sampling process is repeated many thousands of times. The proportion of the Monte Carlo sets of scores that have the same <span class="math inline">\(U_E\)</span> and <span class="math inline">\(U_C\)</span> values as the observed <span class="math inline">\(U\)</span> statistics is an approximation of the likelihood <span class="math inline">\(P(U_E, U_C | \Omega_{E_i})\)</span>.</p>
+<p>At this point, the reader might wonder how to sample from distributions that have any desired value for <span class="math inline">\(\Omega_E\)</span>. Chechile (2020a) showed how to sample from two different exponential distributions that have the desired value for <span class="math inline">\(\Omega_{Ei}\)</span>. The exponential distribution has a probability density <span class="math inline">\(f(x)=ke^{-x}\)</span>, where <span class="math inline">\(k\)</span> is the rate parameter. Chechile (2020a) showed that if one random set of exponential scores had a rate of <span class="math inline">\(k=1\)</span> while the other random set of exponential scores had a rate of <span class="math inline">\(k=\frac{1-\Omega_{E_i}}{\Omega_{E_i}}\)</span>, then the two exponential variates would have the desired <span class="math inline">\(\Omega_E=\Omega_{E_i}\)</span>. Consequently, for the <span class="math inline">\(200\)</span> candidate values for <span class="math inline">\(\Omega_{E_i}\)</span> evaluated in the <code>dfba_mann_whitney()</code> function, the small-<span class="math inline">\(n\)</span> algorithm approximates the likelihoods via a Monte Carlo sampling process. Given a prior distribution for the set of <span class="math inline">\(\Omega_{E_i}\)</span> values along with the likelihood estimates, there is a corresponding posterior distribution via Bayes theorem. The rest of the statistical inference consists of point and interval estimation of the posterior distribution for <span class="math inline">\(\Omega_E\)</span>. Probabilities for interval hypotheses can also be computed along with Bayes factors.</p>
+<p>Chechile (2020a) showed that the time-consuming small-<span class="math inline">\(n\)</span> algorithm described above can be avoided when <span class="math inline">\(n_E\)</span> and <span class="math inline">\(n_C\)</span> are greater than <span class="math inline">\(15\)</span>. For sufficiently large sample sizes, discrete probability distribution results can be estimated <em>via</em> approximation. In the large-<span class="math inline">\(n\)</span> approximation, the prior and posterior distributions are beta distributions with adjusted shape parameters. The details about the large-<span class="math inline">\(n\)</span> solution are technical. These details are described in <a href="#mathematical-basis">Mathematical Basis for the Large-<span class="math inline">\(n\)</span> Model</a> for the mathematically curious reader. Others are encouraged to skip to <a href="#using-mann-whitney">Using the <code>dfba_mann_whitney()</code> Function</a>.</p>
+</div>
+<div id="mathematical-basis" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Mathematical Basis for the Large-<span class="math inline">\(n\)</span> Model</h1>
+<p>This section contains the mathematical details and the rationale underlying the large-<span class="math inline">\(n\)</span> approximation for the posterior distribution of the <span class="math inline">\(\Omega_E\)</span> parameter. Readers who prefer to bypass learning about these details, may feel free to skip this section and go to the section <a href="#using-mann-whitney">Using the <code>dfba_mann_whitney()</code> Function</a>.</p>
+<p>Chechile (2020a) investigated the properties of the discrete Monte Carlo-based posterior for <span class="math inline">\(\Omega_E\)</span> as a function of sample size in an effort to see if there could be a large-<span class="math inline">\(n\)</span> approximation. He discovered that for larger sample sizes that a combination of the mean of the distribution <span class="math inline">\(E\)</span> and the variance of the distribution <span class="math inline">\(V\)</span> could be accurately predicted with a formula that only depended on <span class="math inline">\(nE\)</span>, <span class="math inline">\(nC\)</span>, <span class="math inline">\(UE\)</span> and <span class="math inline">\(UC\)</span>. The large-<span class="math inline">\(n\)</span> prediction formula is</p>
+<p><span class="math display" id="eq:largeNpredictionformula">\[\begin{equation}
+  \frac{E(1-E)}{V} \approx n_H\left(1.028 + .75\frac{UE}{UE+UC}\right)+3.
+  \tag{3.1}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(n_H\)</span> is the harmonic mean of <span class="math inline">\(n_E\)</span> and <span class="math inline">\(n_C\)</span>, which is <span class="math inline">\(\frac{2 n_E\, n_C}{n_E+n_C}\)</span>. Chechile (2020a) reported that the approximation formula was fairly accurate when <span class="math inline">\(n_E\)</span> and <span class="math inline">\(n_C\)</span> are <span class="math inline">\(15\)</span> or more. In the <code>dfba_mann_whitney()</code> function, the large-<span class="math inline">\(n\)</span> approach is used in a default condition whenever the harmonic mean <span class="math inline">\(n_H\)</span> of the sample sizes of the two groups is equal to or greater than <span class="math inline">\(20\)</span>. Furthermore, for any beta distribution with shape parameters <span class="math inline">\(a^{*}\)</span> and <span class="math inline">\(b^{*}\)</span>, the quantity <span class="math inline">\(\frac{E(1-E)}{V}=a^{*}+b^{*}+1\)</span> (Johnson, Kotz, &amp; Balakrishnan, 1995). Thus it follows that for large <span class="math inline">\(n_H\)</span>:</p>
+<p><span class="math display" id="eq:largeNastarbstar">\[\begin{equation}
+  a^* + b^* \approx n_H\left(1.028 + .75\frac{UE}{UE+UC}\right)+2.
+  \tag{3.2}
+\end{equation}\]</span></p>
+<p>The mean of the large-<span class="math inline">\(n\)</span> beta distribution approximation for <span class="math inline">\(\Omega_E\)</span>, which is denoted here as <span class="math inline">\(\widehat{\Omega}\)</span>, is <span class="math inline">\(\frac{a^{*}}{a^{*}+b^{*}}\)</span>, so <span class="math inline">\(1-\widehat{\Omega}=\frac{b^{*}}{a^{*}+b^{*}}\)</span>. Thus, for the large-<span class="math inline">\(n\)</span> approximation we need a beta distribution where</p>
+<p><span class="math display" id="eq:betadistforlargeNa">\[\begin{equation}
+      a^{*} = \widehat{\Omega} \left[\frac{2n_E,~n_C}{n_E+n_C}\left(1.028 + .75\frac{U_E}{U_E+U_C}\right)+2\right]
+  \tag{3.3}
+\end{equation}\]</span></p>
+<p><span class="math display" id="eq:betadistforlargeNb">\[\begin{equation}
+b^{*} = (1-\widehat{\Omega})\left[\frac{2n_E,~n_C}{n_E+n_C}\left(1.028 + .75\frac{U_E}{U_E+U_C}\right)+2\right].
+  \tag{3.4}
+\end{equation}\]</span></p>
+<p>The above formula enables identification of an approximating beta distribution provided that there is an estimate for <span class="math inline">\(\widehat{\Omega}\)</span> that can be made with only the values for <span class="math inline">\(n_E\)</span>, <span class="math inline">\(n_C\)</span>, <span class="math inline">\(U_E\)</span> and <span class="math inline">\(U_C\)</span>. Based on symmetry considerations, it is clear that <span class="math inline">\(\widehat{\Omega}\)</span> should be <span class="math inline">\(.5\)</span> if <span class="math inline">\(U_E=U_C\)</span>. If <span class="math inline">\(U_E&gt;U_C\)</span>, then <span class="math inline">\(1 \ge \widehat{\Omega}&gt;.5\)</span>, and if <span class="math inline">\(U_E&lt;U_C\)</span>, then <span class="math inline">\(.5 &gt; \widehat{\Omega} \ge 0\)</span>. Chechile (2020a) used a Lagrange interpolation method, which is more accurate than a linear interpolation (see Abramowitz &amp; Stegun, 1972). Lagrange method is based on a polynomial interpolation formula where at some evenly-spaced fixed points the interpolation is constrained to fit perfectly. Let <span class="math inline">\(x\)</span> be the known variate and let <span class="math inline">\(y\)</span> be the predicted variate by means of Lagrange interpolation. Following Chechile (2020a; 2010b), the known variate <span class="math inline">\(x\)</span> is equal to <span class="math inline">\(\frac{U_E}{U_E+U_C}\)</span> when <span class="math inline">\(U_E \ge U_C\)</span>; otherwise <span class="math inline">\(x=\frac{U_C}{U_E+U_C}\)</span>. The predicted value via the interpolation is <span class="math inline">\(\hat{y}=\widehat{\Omega}\)</span> when <span class="math inline">\(U_E \ge U_C\)</span>; otherwise <span class="math inline">\(\hat{y}=1-\widehat{\Omega}\)</span>. Based on these definitions, <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span> must be greater or equal to <span class="math inline">\(.5\)</span>. Chechile (2020a; 2020b) used the six points for <span class="math inline">\(x=.5,\,.6,\,\ldots\,, 1\)</span> to constrain the interpolation to match six predetermined <span class="math inline">\(y\)</span> values. Clearly, <span class="math inline">\(y=.5\)</span> if <span class="math inline">\(x=.5\)</span>. The other five <span class="math inline">\(y\)</span> values at the corresponding five <span class="math inline">\(x\)</span> points were modeled separately. The following <span class="math inline">\(y\)</span> values were determined from this empirical modeling:</p>
+<p><span class="math display" id="eq:EmpiricalInterpolation">\[\begin{equation}
+  y_5 =\frac{n_H^{1.1489}}{n_H^{1.1489}+.4972},
+  \tag{3.5}
+\end{equation}\]</span></p>
+<p>and where the four <span class="math inline">\(y_i\)</span> values for <span class="math inline">\(i=1,\,\ldots,4\)</span> are:
+<span class="math display" id="eq:yiFormula">\[\begin{equation}
+  y_i = y_5 w_i + .5(1-w_i),
+  \tag{3.6}
+\end{equation}\]</span></p>
+<p>where</p>
+<p><span class="math display" id="eq:yiinterpolations">\[\begin{equation}
+  \begin{aligned}
+    w_1 &amp;= .2 - \frac{1}{4.813\,n_H+1},\\
+    w_2 &amp;= .4 - \frac{1}{2.520\,n_H+1},\\
+    w_3 &amp;= .6 - \frac{1}{2.111\,n_H+1},\\
+    w_4 &amp;= .8 - \frac{1}{1.833\,n_H+1}.
+  \end{aligned}
+  \tag{3.7}
+\end{equation}\]</span></p>
+<p>Given a vector <span class="math inline">\(\mathbf{Y}=[ .5~y_1~y_2~y_3~y_4~y_5]\)</span> and a vector <span class="math inline">\(\mathbf{X}=[1~x~x^{2}~x^{3}~x^{4}~x^{5}]\)</span>, the Lagrange polynomial prediction reduces to a single matrix formula:</p>
+<p><span class="math display" id="eq:matrixformula">\[\begin{equation}
+  \hat{y} = \mathbf{Y}\cdot \mathbf{L} \cdot \mathbf{X^{T}},
+  \tag{3.8}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(\mathbf{L}\)</span> is the following matrix:
+<span class="math display">\[
+\mathbf{L}=\left[
+  \begin{array}{cccccc}
+  252 &amp; -1627 &amp; \frac{12500}{3} &amp; -\frac{15875}{3} &amp; \frac{1000}{3} &amp; -\frac{2500}{3}\\
+  &amp;&amp;&amp;&amp;&amp;\\
+  -1050  &amp; \frac{42775}{6} &amp; -\frac{38075}{2} &amp; \frac{75125}{3} &amp; -\frac{48750}{3} &amp; \frac{12500}{3}\\
+  &amp;&amp;&amp;&amp;&amp;\\
+  1800 &amp; -12650 &amp; \frac{104800}{3} &amp; -\frac{142250}{3} &amp; \frac{95000}{3} &amp; -\frac{25000}{3}\\
+   &amp;&amp;&amp;&amp;&amp;\\
+  -1575 &amp; 11350 &amp; -\frac{96575}{3} &amp; \frac{134750}{3} &amp; -\frac{92500}{3} &amp; \frac{25000}{3}\\
+   &amp;&amp;&amp;&amp;&amp;\\
+  700 &amp; -\frac{15425}{3} &amp; 14900 &amp; -\frac{63875}{3} &amp; 15000 &amp; -\frac{12500}{3}\\
+   &amp;&amp;&amp;&amp;&amp;\\
+  -126 &amp; \frac{1879}{2} &amp; -\frac{16625}{6} &amp; \frac{12125}{3} &amp; -\frac{8750}{3} &amp; \frac{2500}{3}\\
+  \end{array}
+  \right]
+  \]</span></p>
+<p>The elements of matrix <span class="math inline">\(\textbf{L}\)</span> are constants, which are the coefficients of the six Lagrange polynomial functions for the six match points for <span class="math inline">\(x\)</span> (<em>i.e.</em>, <span class="math inline">\(x \in (.5,\,.6,\ldots,1)\)</span>). The predicted <span class="math inline">\(\widehat{y}\)</span> from equation <a href="#eq:matrixformula">(3.8)</a> is equal to either <span class="math inline">\(\widehat{\Omega}\)</span>, if <span class="math inline">\(U_E \ge U_C\)</span> or <span class="math inline">\(1-\widehat{\Omega}\)</span>, if <span class="math inline">\(U_E&lt;U_C\)</span>. Equations <a href="#eq:betadistforlargeNa">(3.3)</a> and <a href="#eq:betadistforlargeNb">(3.4)</a> provide the shape parameters <span class="math inline">\(a^{*}\)</span> and <span class="math inline">\(b^{*}\)</span> for the approximating beta distribution.</p>
+<p>Similar to the binomial model, the <span class="math inline">\(a^{*}\)</span> and <span class="math inline">\(b^{*}\)</span> shape parameters can be used to define a <span class="math inline">\(n_a\)</span> and <span class="math inline">\(n_b\)</span> parameters, such that
+<span class="math display" id="eq:naandnb">\[\begin{equation}
+  \begin{aligned}
+    n_a &amp;=a^{*} -1,\\
+    n_b &amp;=b^{*}-1.
+  \end{aligned}
+  \tag{3.9}
+\end{equation}\]</span></p>
+<p>The general large-<span class="math inline">\(n\)</span> beta approximation model is a posterior beta distribution with shape parameters of
+<span class="math display" id="eq:aandb">\[\begin{equation}
+  \begin{aligned}
+    a &amp;= n_a + a_0,\\
+    b &amp;= n_b + b_0,
+  \end{aligned}
+  \tag{3.10}
+\end{equation}\]</span></p>
+<p>where <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span> are the shape parameters for the prior beta distribution.</p>
+<p>To illustrate the large-<span class="math inline">\(n\)</span> approximation, please consider the case where <span class="math inline">\(n_E=20\)</span> and <span class="math inline">\(n_C=24\)</span> scores were randomly sampled from non-normal shifted Weibull distributions. The resulting <span class="math inline">\(U_E=305\)</span> and <span class="math inline">\(U_C=175\)</span>, so <span class="math inline">\(x=\frac{U_E}{U_E+U_C}=.63542\)</span>. Assuming a uniform prior for <span class="math inline">\(\Omega\)</span>, the large-<span class="math inline">\(n\)</span> algorithm resulted in finding a predicted mean <span class="math inline">\(\widehat{\Omega}=.62507\)</span> and found an equal-tail <span class="math inline">\(95\)</span> percent interval of <span class="math inline">\([.4609,~.7757]\)</span>. The posterior probability that <span class="math inline">\(\Omega&gt;.5\)</span> is <span class="math inline">\(.9335\)</span>. The large-<span class="math inline">\(n\)</span> approximating beta distribution has shape parameters of <span class="math inline">\(21.7691\)</span> and <span class="math inline">\(13.05771\)</span>. These results can be compared to results from the Monte Carlo algorithm discussed in <a href="#framework">Section 2 above</a> with <span class="math inline">\(100,000\)</span> random values for each of <span class="math inline">\(200\)</span> candidate values for <span class="math inline">\(\Omega\)</span>. The discrete approach found a mean of <span class="math inline">\(.62607\)</span>, which is off by only <span class="math inline">\(.001\)</span> from the large-<span class="math inline">\(n\)</span> value. The Monte Carlo-based <span class="math inline">\(95\)</span> percent equal-tail interval is <span class="math inline">\([.4603,~.7775]\)</span>, which is again very close to the large-<span class="math inline">\(n\)</span> interval. The posterior probability that <span class="math inline">\(\Omega&gt;.5\)</span> for the Monte Carlo approach is <span class="math inline">\(.9341\)</span>, which is within <span class="math inline">\(.0006\)</span> of the large-<span class="math inline">\(n\)</span> probability. For results of a more extensive set of tests of the large-<span class="math inline">\(n\)</span> approximation, see Chechile (2020a).</p>
+</div>
+<div id="using-mann-whitney" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Using the <code>dfba_mann_whitney()</code> Function</h1>
+<p>The <code>dfba_mann_whitney()</code> function has two required arguments and five optional arguments. The required arguments are <code>E</code> and <code>C</code>, which are vectors of continuous scores for the respective groups (the abbreviations <code>E</code> and <code>C</code> come from, respectively, the terms <em>experimental</em> and <em>control</em>; this naming convention reflects the shared background and interests of the package authors and is not meant to imply that the function is any less useful for nonexperimental data). The five optional arguments are: <code>a0</code>, <code>b0</code>, <code>prob_interval</code>, <code>samples</code>, and <code>method</code>. The <code>a0</code> and <code>b0</code> inputs are the beta distribution shape parameters for the prior distribution. These two arguments have a default value of <span class="math inline">\(1\)</span>, which makes the uniform distribution as the default prior, and may be set to any desired values provided that both shape parameters are positive, finite values. The <code>prob_interval</code> argument is the value used for interval estimation of the <span class="math inline">\(\Omega_E\)</span> parameter; the default for this argument is <span class="math inline">\(.95\)</span>. The <code>method</code> input can be either the string <code>&quot;small&quot;</code> or the string <code>&quot;large&quot;</code>, which directs the function either to use the small-<span class="math inline">\(n\)</span> Monte Carlo sampling algorithm described in <a href="#framework">Section 2</a>, or to use the large-<span class="math inline">\(n\)</span> approximation algorithm described in <a href="#mathematical-basis">Section 3</a>. The default for the <code>method</code> input is <code>NULL</code>: in that default case, the small-<span class="math inline">\(n\)</span> algorithm or the large-<span class="math inline">\(n\)</span> algorithm is deployed based on a simple rule. If the quantity <span class="math inline">\(\frac{2n_En_C}{n_E+n_C}&gt; 19\)</span>, then the program employs the large-<span class="math inline">\(n\)</span> algorithm; otherwise the function will use the small-<span class="math inline">\(n\)</span> algorithm.<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a> The optional argument <code>samples</code> is the number of Monte Carlo samples that are drawn for each of the <span class="math inline">\(200\)</span> discrete cases for <span class="math inline">\(\Omega_E\)</span> that are examined in the small-<span class="math inline">\(n\)</span> algorithm. The default for the <code>samples</code> argument is <span class="math inline">\(30,000\)</span>.</p>
+<div id="example" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Example</h2>
+<p>To illustrate the use of the <code>dfba_mann_whitney()</code> function, let us examine the following:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>G1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">96.49</span>, <span class="fl">96.78</span>, <span class="fl">97.26</span>, <span class="fl">98.85</span>, <span class="fl">99.75</span>, <span class="fl">100.14</span>, <span class="fl">101.15</span>, <span class="fl">101.39</span>, <span class="fl">102.58</span>, </span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>        <span class="fl">107.22</span>, <span class="fl">107.70</span>, <span class="fl">113.26</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a> </span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>G2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">101.16</span>, <span class="fl">102.09</span>, <span class="fl">103.14</span>, <span class="fl">104.70</span>, <span class="fl">105.27</span>, <span class="fl">108.22</span>, <span class="fl">108.32</span>, <span class="fl">108.51</span>, <span class="fl">109.88</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>        <span class="fl">110.32</span>, <span class="fl">110.55</span>, <span class="fl">113.42</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> G1, </span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>                  <span class="at">C =</span> G2, </span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                  <span class="at">hide_progress =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>The above analysis is based on the default uniform prior and it obtains a posterior probability for <span class="math inline">\(\Omega_E\)</span>, which is called <code>omega_E</code> in the output. Because the sample sizes are relatively small, the analysis used the discrete approximation method, which is based on Monte Carlo sampling. The posterior probability for <span class="math inline">\(\Omega_E &gt; .5\)</span> is low, as is the corresponding Bayes factor <span class="math inline">\(BF_{10}\)</span> for that hypothesis. Hence, the probability is high that <span class="math inline">\(\Omega_E&lt;.5\)</span>. The Bayes factor for the hypothesis that <span class="math inline">\(\Omega_E&lt;.5\)</span> is <span class="math inline">\(BF_{01}=\frac{1}{BF_{10}}\)</span>, and that value is high. Because these results are based on Monte Carlo sampling, it is reasonable to expect some variability in observed <code>dfba_mann_whitney()</code> function results, for example, changing the seed from <code>1</code> (as in the above code) to <code>2</code> results in the following:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> G1, </span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                  <span class="at">C =</span> G2,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                  <span class="at">hide_progress =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>mw_ex2 <span class="ot">&lt;-</span> <span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> G1, </span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>                  <span class="at">C =</span> G2,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>                  <span class="at">hide_progress =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<pre><code>#&gt; Descriptive Statistics 
+#&gt; ========================
+#&gt;   n_E             n_C 
+#&gt;   12              12 
+#&gt;   E mean          C mean 
+#&gt;   101.881         107.1317 
+#&gt;   Mann-Whitney Statistics 
+#&gt;   U_E             U_C 
+#&gt;   24              120 
+#&gt; 
+#&gt;   Monte Carlo Sampling with Discrete Probability Values
+#&gt; ========================
+#&gt;   Number of MC Samples
+#&gt;   30000 
+#&gt;   
+#&gt;   Mean of omega_E:
+#&gt;   0.2030363 
+#&gt;   95% Equal-tail interval limits: 
+#&gt;   Lower Limit     Upper Limit 
+#&gt;   0.0630856       0.3978107 
+#&gt;   probability that omega_E exceeds 0.5:
+#&gt;   prior           posterior
+#&gt;   0.5             0.002902218 
+#&gt;   Bayes factor BF10 for omega_E &gt; 0.5:
+#&gt;   0.002910665</code></pre>
+<p>Although there are some small differences between the two implementations, the main conclusions are robust (<em>i.e.</em>, it is highly probable that <span class="math inline">\(\Omega_E&lt;.5\)</span>, which implies that <span class="math inline">\(C\)</span> is stochastically dominant relative to <span class="math inline">\(E\)</span>). The sample <span class="math inline">\(U\)</span> statistics for these data are <span class="math inline">\(U_E=24\)</span> and <span class="math inline">\(U_C=120\)</span> for both analyses regardless of the seed.</p>
+<p>The <code>plot()</code> method produces visualizations of the prior (optional) and posterior distributions (note: the representation of the prior distribution is optional: <code>plot.prior = TRUE</code> – the default – displays both the prior and posterior distribution; <code>plot.prior = FALSE</code> produces only a representation of the posterior distribution).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> G1, </span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                       <span class="at">C =</span> G2,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                       <span class="at">hide_progress =</span> <span class="cn">TRUE</span>))</span></code></pre></div>
+<p><img src="data:image/png;base64,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3N9wKtJA5T/++KPLWMZ1DR061E3H+964T/x3w1h611h7jAPqTSZx+8HeG8POUOMfGragLuMh3PXMM8/odxxiHbKEhkAw98bwtHYZIbFciGVsCKL6O2U8WOv/zoIFC0IzMLbiQcBYrVG+3oHokQgAvzfW+Md2v1EeDUfhDgPRh/mm4cvWcFDRD5zhVeh69NFHXYaWxqPXAgUKuIwlD/cxCDL4EjCMyl2G7ZQLgemRDYYltATs7g0yHRlPg67x48drx0ZsSd3HMV8vZg4J3f0x7NBcRiQI/fwbpicuI/yVy4hP6O7A+964T/x3gwKoN5HQ7QdzbxCM/rHHHtP7ie80ZN6JLxlH6EYbWy0Fc28MBz69H/hOw73B/52xwhNb4CI4W38CKB64cQ+MaAbu0dj9RrkrRulGCozbmDRLmAkghie82rzDy8TXrZH1RcPOGAJqfNV4LpEEgrk3ieySlwdAAF9NBw8elPz587ujQwRwGatEgECw9wahZeDgArMJlvAQCPbeICoBluJhmwunMRbnEEiuv1EUQJ3zGeNISIAESIAESIAESCAmCNAJKSZuMydJAiRAAiRAAiRAAs4hQAHUOfeCIyEBEiABEiABEiCBmCBAATQmbjMnSQIkQAIkQAIkQALOIUAB1Dn3giMhARIgARIgARIggZggQAE0Jm4zJ0kCJEACJEACJEACziFAAdQ594IjIQESIAESIAESIIGYIEABNCZuMydJAiRAAiRAAiRAAs4hQAHUOfeCIyEBEiABEiABEiCBmCBAATQmbjMnSQIkQAIkQAIkQALOIUAB1Dn3giMhARIgARIgARIggZggQAE0Jm4zJ0kCJEACJEACJEACziFAAdQ594IjIQESIAESIAESIIGYIEABNCZuMydJAiRAAiRAAiRAAs4hQAHUOfeCIyEBEiABEiABEiCBmCBAATQmbjMnSQIkQAIkQAIkQALOIUAB1Dn3giMhARIgARIgARIggZggQAE0Jm4zJ0kCJEACJEACJEACziFAAdQ594IjIQESIAESIAESIIGYIEABNCZuMydJAiRAAiRAAiRAAs4hQAHUOfeCIyEBEiABEiABEiCBmCBAATQmbjMnSQIkQAIkQAIkQALOIUAB1Dn3giMhARIgARIgARIggZggQAE0Jm4zJ0kCJEACJEACJEACziFAAdQ594IjIQESIAESIAESIIGYIEABNCZuMydJAiRAAiRAAiRAAs4hQAHUOfeCIyEBEiCBsBE4e/aspEiRIt7Xhg0bwtY/GyYBEiABK4FU1h1ukwAJkAAJJG8CLVq0kH/9618+J1m0aFGfx3mQBEiABEJNgAJoqImyPRIgARJwMIEKFSrIU0895eARcmgkQAKxQIBL8LFwlzlHEiCBeAmcOHFCnnnmGcmXL5/kyJFDGjZsKPv373dfs27dOqlcubLs3LlTHn30UcmWLZs89thjcuDAAdm8ebNUq1ZNcufOLV27dpUjR464r8PGhAkTBEJfxowZpVKlSjJ//nyP8//8848MHDhQypcvL3ny5JEXX3xRPvnkE3nyySfd9dBPkyZNpFChQtpOxYoVZerUqe7z3CABEiCBaCNAATTa7hjHSwIkEFICN27ckFq1asny5ctVEBw9erQKkRDyjh07pn2dP39efvrpJ6ldu7YKkb169ZKtW7dK48aNVTC855575PXXX5dJkybJhx9+6B7fsGHDpH379lK8eHH57LPP5IEHHlDhds6cOe46b731lrzzzjvSsmVL+eCDD2TTpk3SvXt3FXZR6cKFC4KxHD9+XPr27Sto89ZbbxUspe/YscPdDjdIgARIIKoIuFhIgARIIIYJGAKnK2XKlK5du3a5KRhCn+v22293dejQQY8tWrTIZXyxuwYMGOCu8+qrr+oxQ3h0H+vRo4erbNmyun/u3DlX5syZXW3atHGfx0bTpk1dxYoV02OGgOu65ZZbXG+++abu48+lS5dcOXPmdJUqVUqPLVy40GVoPl0HDx5019m9e7f2PW7cOPcxu40///xTr0mVKpUrTZo0cV4PP/ywXRM8TwIkQAIhI0Ab0Kh6XOBgSYAEQk0Ant/33XeflChRwt00lsufeOIJWbt2rfsYNh555BH3fpkyZXT78ccfdx/DEv6ePXt0HxpSaE7RNrSaZrn77rtl5syZcvr0adWi/v3337qcb55Pnz691K9fX7Dsj1K3bl1d6sf21atX5bffftNzhtAsly9fxuEEFZgOGMJmnGvy5s0b5xgPkAAJkEC4CFAADRdZtksCJBAVBGDreccdd8QZK4TJw4cPexzHMbMYmkvdhF2mWcxj2Dc0lnq4S5cu+u79B+cNratAkIRtqLXAFtRaPv74Y12eR330AaHWUEPoy1ovkO2aNWuKoakNpCrrkAAJkEDYCNAGNGxo2TAJkEA0EDCW2gUxMr2LsWQtRYoU8ThsLF977Me3kzVrVj29evVqMZbV47zgmJQ9e3aBE9LFixc9moJ21Cyff/65dOzYUbWvixcv1rEuXbpUT0MIZSEBEiCBaCRAATQa7xrHTAIkEDICWBKHJzucfcwCwe77778Xc5ndPJ6Q95IlS2r1efPmCZbVzdeXX36pAiWcn6D5RHB4w8bU3TSW5E0BEwfnzp0rhj2ojBkzRqC9RDu//PKLaj9Rl4UESIAEopFA4I/z0Tg7jpkESIAEbAgg7BG8z9u1a6fvEPDgmQ5bTnjEB1sMRyMxHI40DBOW6RF7c+PGjRpmCcvyhiOQescj3NILL7ygHu3wdh86dKiGgILQifLQQw9p6CbYhEJg3bZtm7Rq1UrPBWMDCmHbXwincuXKqbCrjfMPCZAACYSRAAXQMMJl0yRAAs4ngPid0EA+99xzAkcc2GRCe/nVV195OB0FMxPDS126deumr86dO2ucz+bNm8sbb7zhbg6hmwyPevniiy80/ue///1vgcBqOjMhPimW8WvUqKHL9VjaHzx4sAqRwaTOnDJliuDlq0DwNgVfX+d5jARIgARCRSAF/OlD1RjbIQESIIFoJnDq1CkdPoLRh7Jcv35dY4tCsMSSu1lg+wnHIgShT506tXlYGjRoIFheX7BggfsYtJ2wS/XlMOWuxA0SIAESiBICtAGNkhvFYZIACYSfAATPUAufGDUCxxcuXNhD+MRxCJnIsNSvXz/dxjE4GkHw9M7XDtMACp8gxEICJJAcCFADmhzuIudAAiQQtQTef/99GTRokMApKW3atAItLOxSR4wYEdCcsGzub0ndbOD++++XiRMnmrt8JwESIIEkJ0ABNMlvAQdAAiQQ6wQQignOQQgHBUcjI4NSwEiOHj0qZ86cibd+hgwZ4oSUivcCniQBEiCBMBOgABpmwGyeBEiABEiABEiABEjAkwBtQD15cI8ESIAESIAESIAESCDMBCiAhhkwmycBEiABEiABEiABEvAkQAHUkwf3SIAESIAESIAESIAEwkyAAmiYAbN5EiABEiABEiABEiABTwIUQD15cI8ESIAESIAESIAESCDMBCiAhhkwmycBEiABEiABEiABEvAkQAHUkwf3SIAESIAESIAESIAEwkyAAmiYAbN5EiABEiABEiABEiABTwIUQD15cI8ESIAESIAESIAESCDMBCiAhhkwmycBEiABEiABEiABEvAkQAHUkwf3SIAESIAESIAESIAEwkyAAmiYAbN5EiABEiABEiABEiABTwIUQD15cI8ESIAESIAESIAESCDMBCiAhhkwmycBEiABEiABEiABEvAkQAHUkwf3SIAESIAESIAESIAEwkyAAmiYAbN5EiABEiABEiABEiABTwIUQD15cI8ESIAESIAESIAESCDMBCiAhhkwmycBEiABEiABEiABEvAkQAHUkwf3SIAESIAESIAESIAEwkzg/wDai01/XPhB9gAAAABJRU5ErkJggg==" /><!-- --></p>
+<p>Although the above analysis used the Monte Carlo sampling approach, let us compare those analyses with the analysis based on the large-<span class="math inline">\(n\)</span> algorithm by specifying the <code>method</code> argument as <code>method = &quot;large&quot;</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">1</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> G1, </span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                  <span class="at">C =</span> G2, </span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                  <span class="at">method =</span> <span class="st">&quot;large&quot;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; Descriptive Statistics </span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;   n_E             n_C </span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;   12              12 </span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;   E mean          C mean </span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;   101.881         107.1317 </span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;   Mann-Whitney Statistics </span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;   U_E             U_C </span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt;   24              120 </span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;  Beta Approximation Model for Omega_E</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt;  for 2*nE*nC/(nE+nC) &gt; 19</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;   Posterior beta shape parameters:</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;   posterior a         posterior b</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;   4.46078             17.37522 </span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt;   posterior mean      posterior median</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt;   0.204286            0.195158 </span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt;   95% Equal-tail interval limits: </span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt;   0.0673851       0.3921002 </span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;   95% Highest-density interval limits: </span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt;   0.0539048       0.370435 </span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt;  </span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt;   probability that omega_E &gt; 0.5:</span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt;   prior           posterior</span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt;   0.5             0.00174078 </span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt;   Bayes factor BF10 for omega_E &gt; 0.5:</span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt;   0.001743816</span></span></code></pre></div>
+<p>Note that a beta distribution with shape parameters of <span class="math inline">\(a=4.460781\)</span> and <span class="math inline">\(b=17.37522\)</span> yields values for the mean for <span class="math inline">\(\Omega_E\)</span> and the <span class="math inline">\(95\)</span>-percent equal-tail interval limits that are close to the results found from the small-<span class="math inline">\(n\)</span> approach.</p>
+<p>The <code>plot(dfba_mann_whitney())</code> method provides a display of the probability densities as a function of <span class="math inline">\(\Omega_E\)</span>. Note that the small-<span class="math inline">\(n\)</span> displays are in terms of discrete probabilities for the <span class="math inline">\(200\)</span> intervals of width <span class="math inline">\(.005\)</span>. However, the large-<span class="math inline">\(n\)</span> plot has a vertical axis that is <em>probability density</em> (rather than probability). Vectors of <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span> data can be extracted from the <code>dfba_mann_whitney()</code> output values to customized data visualizations of prior and posterior probability values (<em>e.g.</em>,to create visualizations using the <code>ggplot2</code> or <code>plotly</code> packages):</p>
+<ol style="list-style-type: decimal">
+<li><p>When <code>method = small</code>, the <span class="math inline">\(x\)</span> values for the prior and posterior distribution plots is given by the <code>omega_E</code> output value. The <span class="math inline">\(y\)</span> values for the prior and posterior distributions are given by, respectively: <code>priorvector</code> and <code>omegapost</code>.</p></li>
+<li><p>When <code>method = large</code>, the prior distribution is given by a beta distribution with shape parameters [<code>a0</code>, <code>b0</code>]; the posterior distribution is given by a beta distribution with shape parameters [<code>a_post</code>, <code>b_post</code>]. The <code>dbeta()</code> function from the <code>stats</code> package produces <span class="math inline">\(y\)</span> values for any defined sequence of <span class="math inline">\(x\)</span> values.</p></li>
+</ol>
+<p>The Monte Carlo algorithm is much slower to complete, especially as the sample sizes get to be increasingly large. It is our opinion, the default of <code>method = NULL</code> results in a reasonable rule-of-thumb that has been pretested over a wide range of sample sizes and data sets. Nonetheless, the user has the option of employing either the small-<span class="math inline">\(n\)</span> Monte Carlo algorithm or the large-<span class="math inline">\(n\)</span> algorithm by entering their choice with an input for <code>method</code>.</p>
+<p>Finally, let us consider a case where there are more than two groups. For example, suppose that there were six independent groups tested in a <span class="math inline">\(3 \times 2\)</span> factorial study, and the following scores were observed.</p>
+<span class="math display">\[\begin{array}{c|ccc}
+&amp; A1 &amp; A2 &amp; A3 \\
+\hline
+  &amp; 11.541 &amp; 11.210 &amp; 4.762 \\
+  &amp; 11.854 &amp; 11.117 &amp; 2.323 \\
+  &amp; 11.313 &amp; 12.967 &amp;  5.890 \\
+B1 &amp; 14.201 &amp; 12.514 &amp; 2.722 \\
+  &amp; 11.333 &amp; 11.232 &amp; 2.499 \\
+  &amp; 11.583 &amp; 13.585 &amp; 2.534 \\
+  &amp; 11.223 &amp; 11.023  &amp; 2.016 \\
+  \hline
+  &amp; 1.500 &amp; 2.663 &amp; 11.067 \\
+   &amp; 1.562 &amp; 1.503 &amp; 11.117 \\
+  &amp; 1.444 &amp; 1.086 &amp;  10.180 \\
+B2 &amp; 1.822 &amp; 1.459 &amp; 10.060 \\
+  &amp; 1.802 &amp; 1.296 &amp; 10.664 \\
+  &amp; 1.075 &amp; 1.009 &amp; 10.074 \\
+  &amp; 1.464 &amp; 3.316  &amp; 10.355 \\
+  \hline
+  
+  \end{array}\]</span>
+<p>Let us code the data for each group as a vector.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>A1B1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">11.541</span>, <span class="fl">11.854</span>, <span class="fl">11.313</span>, <span class="fl">14.201</span>, <span class="fl">11.333</span>, <span class="fl">11.583</span>, <span class="fl">11.223</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>A2B1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">11.210</span>, <span class="fl">11.117</span>, <span class="fl">12.967</span>, <span class="fl">12.514</span>, <span class="fl">11.232</span>, <span class="fl">13.585</span>, <span class="fl">11.023</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>A3B1 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">4.762</span>, <span class="fl">2.323</span>, <span class="fl">5.890</span>, <span class="fl">2.722</span>, <span class="fl">2.499</span>, <span class="fl">2.534</span>, <span class="fl">2.016</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>A1B2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.500</span>, <span class="fl">1.562</span>, <span class="fl">1.444</span>, <span class="fl">1.822</span>, <span class="fl">1.802</span>, <span class="fl">1.075</span>, <span class="fl">1.464</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>A2B2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">2.663</span>, <span class="fl">1.503</span>, <span class="fl">1.086</span>, <span class="fl">1.459</span>, <span class="fl">1.296</span>, <span class="fl">1.009</span>, <span class="fl">3.316</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>A3B2 <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">11.067</span>, <span class="fl">11.117</span>, <span class="fl">10.180</span>, <span class="fl">10.060</span>, <span class="fl">10.664</span>, <span class="fl">10.074</span>, <span class="fl">10.355</span>)</span></code></pre></div>
+<p>Before doing statistical analyses, let us first see a display of the means in the six conditions. Note that the resulting display is a connected graph rather than a more conventional bar chart. This plotting choice was done to better illustrate potential interactions of the two factors in the experiment.</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqAAAAEgCAYAAABrZMGAAAAEDmlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPpu5syskzoPUpqaSDv41lLRsUtGE2uj+ZbNt3CyTbLRBkMns3Z1pJjPj/KRpKT4UQRDBqOCT4P9bwSchaqvtiy2itFCiBIMo+ND6R6HSFwnruTOzu5O4a73L3PnmnO9+595z7t4LkLgsW5beJQIsGq4t5dPis8fmxMQ6dMF90A190C0rjpUqlSYBG+PCv9rt7yDG3tf2t/f/Z+uuUEcBiN2F2Kw4yiLiZQD+FcWyXYAEQfvICddi+AnEO2ycIOISw7UAVxieD/Cyz5mRMohfRSwoqoz+xNuIB+cj9loEB3Pw2448NaitKSLLRck2q5pOI9O9g/t/tkXda8Tbg0+PszB9FN8DuPaXKnKW4YcQn1Xk3HSIry5ps8UQ/2W5aQnxIwBdu7yFcgrxPsRjVXu8HOh0qao30cArp9SZZxDfg3h1wTzKxu5E/LUxX5wKdX5SnAzmDx4A4OIqLbB69yMesE1pKojLjVdoNsfyiPi45hZmAn3uLWdpOtfQOaVmikEs7ovj8hFWpz7EV6mel0L9Xy23FMYlPYZenAx0yDB1/PX6dledmQjikjkXCxqMJS9WtfFCyH9XtSekEF+2dH+P4tzITduTygGfv58a5VCTH5PtXD7EFZiNyUDBhHnsFTBgE0SQIA9pfFtgo6cKGuhooeilaKH41eDs38Ip+f4At1Rq/sjr6NEwQqb/I/DQqsLvaFUjvAx+eWirddAJZnAj1DFJL0mSg/gcIpPkMBkhoyCSJ8lTZIxk0TpKDjXHliJzZPO50dR5ASNSnzeLvIvod0HG/mdkmOC0z8VKnzcQ2M/Yz2vKldduXjp9bleLu0ZWn7vWc+l0JGcaai10yNrUnXLP/8Jf59ewX+c3Wgz+B34Df+vbVrc16zTMVgp9um9bxEfzPU5kPqUtVWxhs6OiWTVW+gIfywB9uXi7CGcGW/zk98k/kmvJ95IfJn/j3uQ+4c5zn3Kfcd+AyF3gLnJfcl9xH3OfR2rUee80a+6vo7EK5mmXUdyfQlrYLTwoZIU9wsPCZEtP6BWGhAlhL3p2N6sTjRdduwbHsG9kq32sgBepc+xurLPW4T9URpYGJ3ym4+8zA05u44QjST8ZIoVtu3qE7fWmdn5LPdqvgcZz8Ww8BWJ8X3w0PhQ/wnCDGd+LvlHs8dRy6bLLDuKMaZ20tZrqisPJ5ONiCq8yKhYM5cCgKOu66Lsc0aYOtZdo5QCwezI4wm9J/v0X23mlZXOfBjj8Jzv3WrY5D+CsA9D7aMs2gGfjve8ArD6mePZSeCfEYt8CONWDw8FXTxrPqx/r9Vt4biXeANh8vV7/+/16ffMD1N8AuKD/A/8leAvFY9bLAAAAOGVYSWZNTQAqAAAACAABh2kABAAAAAEAAAAaAAAAAAACoAIABAAAAAEAAAKgoAMABAAAAAEAAAEgAAAAAPtKMwcAAEAASURBVHgB7Z0HeFTF18YPvRMg9ID03kLvvYp+goBIEbEBf1HEhiAqgooiIEVEBcWCDUQBBem99ypVOoQaSoDQYb95h9zLbtqmbDb37r7zPDd768yZ3+xm352ZcyaFQyVhIgESIAESIAESIAESIAEvEUjppXJYDAmQAAmQAAmQAAmQAAloAhSgfCOQAAmQAAmQAAmQAAl4lQAFqFdxszASIAESIAESIAESIAEKUL4HSIAESIAESIAESIAEvEqAAtSruFkYCZAACZAACZAACZAABSjfAyRAAiRAAiRAAiRAAl4lQAHqVdwsjARIgARIgARIgARIgAKU7wESIAESIAESIAESIAGvEqAA9SpuFkYCJEACJEACJEACJEAByvcACZAACZAACZAACZCAVwlQgHoVNwsjARIgARIgARIgARKgAOV7gARIgARIgARIgARIwKsEKEC9ipuFkQAJkAAJkAAJkAAJUIDyPUACJEACJEACJEACJOBVAhSgXsXNwkiABEiABEiABEiABChA+R4gARIgARIgARIgARLwKgEKUK/iZmEkQAIkQAIkQAIkQAIUoHwPkAAJkAAJkAAJkAAJeJUABahXcbMwEiABEiABEiABEiABClC+B0iABEiABEiABEiABLxKgALUq7hZGAmQAAmQAAmQAAmQAAUo3wMkQAIkQAIkQAIkQAJeJUAB6lXcLIwESIAESIAESIAESIAClO8BEiABEiABEiABEiABrxKgAPUqbhZGAiRAAiRAAiRAAiRAAcr3AAmQAAmQAAmQAAmQgFcJUIB6FTcLIwESIAESIAESIAESoADle4AESIAESIAESIAESMCrBChAvYqbhZEACZAACZAA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ffPNN/WSnj5SLVaDBEiABIQClG8CEiABErAoAaxhjzBFcE5iT6BFG4lmkQAJJIgABWiCsPEhEiABEkh6Apgh5RwfM+lLZAkkQAIk4B0CdELyDmeWQgIkQALxJkDxGW9kfIAESMAmBChAbdJQNJMESIAESIAESIAEfIUABaivtCTrQQIkQAIkQAIkQAI2IUABapOGopkkQAIkQAIkQAIk4CsEKEB9pSVZDxIgARIgARIgARKwCQEKUJs0FM0kARIgARIgARIgAV8hQAHqKy3JepAACZAACZAACZCATQhQgNqkoWgmCZAACZAACZAACfgKAQpQX2lJ1oMESIAESIAESIAEbEKAAtQmDUUzSYAESIAESIAESMBXCFCA+kpLsh4kQAIkQAIkQAIkYBMCFKA2aSiaSQIkQAIkQAIkQAK+QoAC1FdakvUgARIgARIgARIgAZsQoAC1SUPRTBIgARIgARIgARLwFQIUoL7SkqwHCZAACZAACZAACdiEAAWoTRqKZpIACZAACZAACZCArxCgAPWVlmQ9SIAESIAESIAESMAmBChAbdJQNJMESIAESIAESIAEfIUABaivtCTrQQIkQAIkQAIkQAI2IUABapOGopkkQAIkQAIkQAIk4CsEKEB9pSVZDxIgARIgARIgARKwCQEKUJs0FM0kARIgARIgARIgAV8hQAHqKy3JepAACZAACZAACZCATQjYWoA6HI4YMV+/fl2wMZEACZAACZAACZAACViLgC0F6OTJk6VIkSKSPn16qV27tqxevToK1S5dukj37t2jnOcJEiABEiABEiABEiCB5CVgOwG6cOFCLSwLFSok/fr1k3PnzkmDBg3kiy++SF6SLJ0ESIAESIAESIAESCBOBFLH6S4L3TRhwgRp2bKlzJs3T1v14Ycfyvvvvy99+vSRLFmysNfTQm1FU0iABEiABEiABEggOgK2E6BHjx51EZkpUqSQDz74QO7evSs9evSQoKAgadasWXR19ei5zz//XL766isJCAjwaL7MjARIgARIgARIgAQSQwBTFGfNmqU75hKTT1I+azsBmj9/flmyZIm8/PLLLlyGDh0qx48flw4dOsiKFStcriXFwU8//SRjxozxiAC9d++e3Lp1S27evCmZM2eWVKlSJYXJzJMESMBiBO7cuSOY075+/XoJDw+X0qVLy/PPPy/58uWzmKU0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nvdqnuAOCZAACZAACZAACZBAnAjYToDCCap79+4xik/UGuGgnnnmGR0mKr4CFA5WefLkcQsva9aski9fPrf38QYSIAESIAESIAESIAFXArYToHCEWr16tfTo0cO1JpGOlixZIljHPr4Jnv2Gd39sz2KIv2TJkrHdwmskQAIkQAIkQAIkQALRELCdAO3SpYv2xD9z5ox07dpVMMcTDkhYGhRzQI8cOSJYm37OnDmCYXomEiABEiABEiABEiABaxGwnQANDg6WHTt2SK9evfRQvBEU3xlrs2bNZMGCBdKwYUPn0x7dxxzQpUuXyubNmz2S78GDB2Xjxo2SP39+j+THTOxFIDw8XMLCwtj+9mo2j1nL9vcYSltmxPa3ZbN5zGi0P0JKtm7d2mN5okPO6imFqrTD6kbGZN+tW7f0OvXo9cRyoBBvBQoU0D2iMT3jqfPr1q2TH374QVKn9oyG37lzpw70X6hQIU+ZyHxsRADL2+IfBtvfRo3mQVPZ/h6EacOs2P42bDQPmoz2x9a5c2eP5Vq4cGF57bXXdIx0j2Xq4YxsLUA9zCJZs5s9e7ZMmDBBZs2alax2sPDkIcDUZgDRAAARQ0lEQVT2Tx7uVimV7W+VlkgeO9j+ycPdKqX6a/vbMhC9Vd40tIMESIAESIAESIAESCD+BChA48+MT5AACZAACZAACZAACSSCAAVoIuDxURIgARIgARIgARIggfgToACNPzM+QQIkQAIkQAIkQAIkkAgCFKCJgMdHSYAESIAESIAESIAE4k+AAjT+zPgECZAACZAACZAACZBAIghQgCYCHh8lARIgARIgARIgARKIPwEK0Pgz4xMkQAIkQAIkQAIkQAKJIMBA9ImA58lHsQrC+fPnBasXMPkfAba//7W5c43Z/s40/G+f7e9/be5cY39tfwpQ53cB90mABEiABEiABEiABJKcAIfgkxwxCyABEiABEiABEiABEnAmQAHqTIP7JEACJEACJEACJEACSU6AAjTJEbMAEiABEiABEiABEiABZwIUoM40uE8CJEACJEACJEACJJDkBChAkxwxCyABEiABEiABEiABEnAmQAHqTIP7JEACJEACJEACJEACSU6AAjTJEbMAEiABEiABEiABEiABZwIUoM40uE8CJEACJEACJEACJJDkBChAkxwxCyABEiABEiABEiABEnAmQAHqTIP7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drScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEiABEiABEiABGxJgALUls1Go0mABEiABEiABEjAvgQoQO3bdrScBEjAiwQqV64sKVKkkE2bNsWp1HTp0sm4cePidK+nbnrqqaekfv36nsqO+ZAACZBAkhGgAE0ytMyYBEjAVwj8+++/sn37dqlUqZJ8++23vlIt1oMESIAEko0ABWiyoWfBJEACdiEwefJkqVKlivTq1Ut+++03uXbtml1Mp50kQAIkYEkCFKCWbBYaRQIkYBUC9+7dk19++UUefvhhadeunVy9elV+//33eJsXHh4uvXv3liJFikiuXLmkbdu2cuzYMZ3PrVu39ND5pEmTXPI9d+6cVKtWTRYtWqTPx5aHy4MRBxs3bpSGDRtKlixZdLnPPvusXLx4MbpbeY4ESIAEvEqAAtSruFkYCZCA3QhA/J08eVKefPJJyZMnjzRu3Djew/AOh0OaNWsm06ZNk65du8pXX30l58+fl+rVq2tBmDZtWsmXL59MnDjRBc+ff/4pu3fvlpo1a4q7PFweVAcQq61bt5aMGTNqe19//XWZN2+eLj/yvTwmARIgAW8TSO3tAlkeCZAACdiJAIbfy5cvrzfY3aVLF3n++edl7969Urp06ThVBcJz3bp1Mnv2bHnkkUf0MxCH6An97LPP5KOPPhI4ELVp00aOHj0qhQoV0vegp/Wxxx7TPZjYd5eHszG7du2S0NBQ+eSTTyQ4OFhfgshduXKlFrNwqGIiARIggeQiwB7Q5CLPckmABCxPAMPtM2bM0KLTMLZ9+/YCD/f4OCOtWLFCAgICtODcvHmzYNuzZ4/As3716tU6awzxBwYG6l5SnDh9+rQsX77c7LGMSx6GjXgtW7as7v184oknZOTIkbJ//37p0KGDjB07VnvzO9/LfRIgARLwNgEKUG8TZ3kkQAK2IYAhcDgcoYcyW7ZsekPv5O3btwU9o3iNSzpy5IiEhYXpoXTM6TQ2iE9cQ0qTJo107NjRnF/6xx9/SPbs2aVVq1b6elzy0DdG/MmcObPMnz9fi+V+/fpJqVKlpEKFCvqc833cJwESIIHkIMAh+OSgzjJJgARsQQAis0yZMvLmm2+62Ivh9xEjRshff/2lexVdLkZzAPFauHBhQTinyEPfzscYhsf8UAzDY8gdghTCFCmueTgXX69ePV0m7J01a5butcUUgIMHD5rD/M73c58ESIAEvEWAPaDeIs1ySIAEbEXg+PHjsnTpUnnuueeibOgRzZEjR5yH4cuVK6d7OuFQBKcgbBkyZJC+ffvKN998Y3KpU6eO9lb/7rvv9NA8HJaMFNc8jPsxX/TRRx/VTk6Yq4pe0F9//VXu3r0rW7duNW7jKwmQAAkkCwEK0GTBzkJJgASsTuDnn3/WJsL7PXKC13qnTp1k4cKFZiilyPc4HyN+KIbTITgXLFigPeCHDBkiEJoQnc4JonP48OG6h9L5WnzyQH4YbkcYJvTeYvj+1KlT8sMPP0iqVKmkdu3azkVynwRIgAS8ToAC1OvIWSAJkIAdCPz000+CIeyCBQtGa+7TTz8tiBEKEekuobcUYvX69evSsmVL7YyEIfEvv/xSzwd1fh7D8Ddu3NCOT87D8/HJA/llypRJJkyYIPv27ZMSJUpI/vz5ZebMmdoTH+GkmEiABEggOQmkULHlHMlpAMsmARIgAX8igEDwN2/elLx58ya42vHN4/LlyzouKMIwMZEACZCAFQhQgFqhFWgDCZAACZAACZAACfgRAQ7B+1Fjs6okQAIkQAIkQAIkYAUCFKBWaAXaQAIkQAIkQAIkQAJ+RIAC1I8am1UlARIgARIgARIgASsQoAC1QivQBhIgARIgARIgARLwIwIUoH7U2KwqCZAACZAACZAACViBAAWoFVqBNpAACZAACZAACZCAHxGgAPWjxmZVSYAESIAESIAESMAKBChArdAKtIEESIAESIAESIAE/IgABagfNTarSgIkQAIkQAIkQAJWIEABaoVWoA0kQAIkQAIkQAIk4EcEKED9qLFZVRIgARIgARIgARKwAgEKUCu0Am0gARIgARIgARIgAT8iQAHqR43NqpIACZAACZAACZCAFQhQgFqhFWgDCZAACZAACZAACfgRAQpQP2psVpUESIAESIAESIAErECAAtQKrUAbSIAESIAESIAESMCPCFCA+lFjs6okQAIkQAIkQAIkYAUCFKBWaAXaQAIkQAIkQAIkQAJ+RIAC1I8am1UlARIgARIgARIgASsQoAC1QivQBhIgARIgARIgARLwIwIUoH7U2KwqCZAACZAACZAACViBAAWoFVqBNpAACZAACZAACZCAHxH4f4clV4S17zxFAAAAAElFTkSuQmCC" /><!-- --></p>
+<p>To see if there is an effect of the levels for the <span class="math inline">\(B\)</span> factor, we can use the <code>dfba_mann_whitney()</code> function:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> <span class="fu">c</span>(A1B1, </span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                        A2B1, </span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                        A3B1), </span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>                  <span class="at">C =</span> <span class="fu">c</span>(A1B2, </span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>                        A2B2, </span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>                        A3B2))</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; Descriptive Statistics </span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;   n_E             n_C </span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;   21              21 </span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   E mean          C mean </span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;   9.02105         4.596095 </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;   Mann-Whitney Statistics </span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;   U_E             U_C </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;   380             60 </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;  Beta Approximation Model for Omega_E</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;  for 2*nE*nC/(nE+nC) &gt; 19</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;   Posterior beta shape parameters:</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;   posterior a         posterior b</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;   31.2713             5.918987 </span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt;   posterior mean      posterior median</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt;   0.840846            0.8469826 </span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#&gt;   95% Equal-tail interval limits: </span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;   0.709151        0.9380491 </span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt;   95% Highest-density interval limits: </span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="co">#&gt;   0.723621        0.9473272 </span></span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="co">#&gt;  </span></span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a><span class="co">#&gt;   probability that omega_E &gt; 0.5:</span></span>
+<span id="cb8-34"><a href="#cb8-34" tabindex="-1"></a><span class="co">#&gt;   prior           posterior</span></span>
+<span id="cb8-35"><a href="#cb8-35" tabindex="-1"></a><span class="co">#&gt;   0.5             0.999995 </span></span>
+<span id="cb8-36"><a href="#cb8-36" tabindex="-1"></a><span class="co">#&gt;   Bayes factor BF10 for omega_E &gt; 0.5:</span></span>
+<span id="cb8-37"><a href="#cb8-37" tabindex="-1"></a><span class="co">#&gt;   198990.2</span></span></code></pre></div>
+<p>The results show clear evidence that there is a <span class="math inline">\(B\)</span> effect (<em>i.e.</em>, the pooled <span class="math inline">\(B1\)</span> group is stochastically dominant to the pooled <span class="math inline">\(B2\)</span> group because the Bayes factor <span class="math inline">\(BF10\)</span> for the hypothesis that <span class="math inline">\(\Omega_E&gt;.5\)</span> is <span class="math inline">\(198,990\)</span>). However, similar analyses to assess comparisons between any of the levels for the <span class="math inline">\(A\)</span> factor do not yield a sizable Bayes factor. Beside a main effect for the <span class="math inline">\(B\)</span> factor, the above plot of the means suggests that there may be a statistically reliable interaction. This interaction can be examined via a contrast <span class="math inline">\(\Delta\)</span> where</p>
+<p><span class="math display" id="eq:InteractionContrastEquation">\[\begin{equation}
+  \begin{aligned}
+  \Delta &amp;= ([A_1B_1+A_2B_1] -[A_1B_2+A_2B_2]) - (A_3B_1 - A_3B_2)\\
+         &amp;= (A_1B_1+A_2B_1+A_3B_2) - (A_1B_2+A_2B_2+A_3B_1).
+  \end{aligned}
+  \tag{4.1}
+\end{equation}\]</span></p>
+<p>If <span class="math inline">\(\Delta\)</span> were substantially different from <span class="math inline">\(0\)</span>, then there would be a reliable interaction effect. So, by the proper definition of the <code>E</code> and <code>C</code> groups, we can statistically assess the interaction with a Bayesian Mann-Whitney test:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">dfba_mann_whitney</span>(<span class="at">E =</span> <span class="fu">c</span>(A1B1, </span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>                        A2B1, </span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                        A3B2), </span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>                  <span class="at">C =</span> <span class="fu">c</span>(A1B2, </span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>                        A2B2, </span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>                        A3B1))</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; Descriptive Statistics </span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;   n_E             n_C </span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;   21              21 </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;   E mean          C mean </span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt;   11.4387         2.178429 </span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt;   Mann-Whitney Statistics </span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt;   U_E             U_C </span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt;   441             0 </span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt;  Beta Approximation Model for Omega_E</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;  for 2*nE*nC/(nE+nC) &gt; 19</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;   Posterior beta shape parameters:</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt;   posterior a         posterior b</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt;   38.7549             0.5831224 </span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="co">#&gt;   posterior mean      posterior median</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="co">#&gt;   0.985177            0.9922342 </span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="co">#&gt;   95% Equal-tail interval limits: </span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="co">#&gt;   0.931586        0.9999618 </span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="co">#&gt;   95% Highest-density interval limits: </span></span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a><span class="co">#&gt;   0.94649         1 </span></span>
+<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a><span class="co">#&gt;  </span></span>
+<span id="cb9-33"><a href="#cb9-33" tabindex="-1"></a><span class="co">#&gt;   probability that omega_E &gt; 0.5:</span></span>
+<span id="cb9-34"><a href="#cb9-34" tabindex="-1"></a><span class="co">#&gt;   prior           posterior</span></span>
+<span id="cb9-35"><a href="#cb9-35" tabindex="-1"></a><span class="co">#&gt;   0.5             1 </span></span>
+<span id="cb9-36"><a href="#cb9-36" tabindex="-1"></a><span class="co">#&gt;   Bayes factor BF10 for omega_E &gt; 0.5:</span></span>
+<span id="cb9-37"><a href="#cb9-37" tabindex="-1"></a><span class="co">#&gt;   2.473146e+12</span></span></code></pre></div>
+<p>This instruction results in finding an astronomically large Bayes factor of <span class="math inline">\(BF10 &gt; 2.47 \times 10^{12}\)</span> that <span class="math inline">\(\Delta&gt;.5\)</span>.</p>
+<p>This last example underscores how the Bayesian Mann-Whitney procedure can be used when there are more than two independent groups. With the appropriate pooling of the groups, specific contrast effects can be tested.</p>
+</div>
+</div>
+<div id="references" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> References</h1>
+<p>Abramowitz, M., and Stegun, C. A. (1972). <em>Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables</em>. New York: Dover.</p>
+<p>Berger J. O., and Wolpert, R. L. (1988). <em>Likelihood Principle (2nd ed.)</em>. Hayward, CA: Institute of Mathematical Statistics.</p>
+<p>Chechile, R. A. (2020a). A Bayesian analysis for the Mann-Whitney statistic. <em>Communications in Statistics: Theory and Methods</em>}, <strong>49</strong>, 670-696. <a href="https://doi.org/10.1080/03610926.2018.1549247" class="uri">https://doi.org/10.1080/03610926.2018.1549247</a></p>
+<p>Chechile, R. A. (2020b). <em>Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods</em>. Cambridge, MA: MIT Press.</p>
+<p>Johnson, N. L., Kotz, S., and Balakrishnan, N. (1995). <em>Continuous Univariate Distributions, vol. 2</em>, New York: Wiley.</p>
+<p>Lindley, D. V., and Phillips, L. D. (1976). Inference for a Bernoulli process (a Bayesian view). <em>The American Statistician</em>, <strong>30</strong>, 112-119.</p>
+<p>Mann, H. B., and Whitney, D. R. (1947). On a test of whether one of two random variables is stochastically larger than the other. <em>Annals of Mathematical Statistics</em>, <strong>18</strong>, 50-60.</p>
+<p>Siegel, S., and Castellan N. J. (1988). <em>Nonparametric Statistics for the Behavioral Sciences</em>. New York: McGraw-Hill.</p>
+<p>Wilcoxon, F. (1945). Individual comparisons by ranking methods. <em>Biometrics Bulletin</em>, <strong>1</strong>, 80-83.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>This material is technical and perhaps not necessary for many of the less mathematically oriented readers. Such readers, if they are willing to accept the large-<span class="math inline">\(n\)</span> algorithm as accurate, can skip this section.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p>The <code>wilcox.test(..., paired = FALSE)</code> function in the <code>stats</code> package performs the frequentist Mann-Whitney test; the value for <span class="math inline">\(U_E\)</span> defined above is called <code>W</code> in the <code>wilcox.test()</code> output<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>The frequentist inclusion of likelihoods for non-observed events violates an essential principle in Bayesian statistics that is called the <em>likelihood principle</em> (Berger &amp; Wolpert, 1988). In essence, this principle is the idea that upon the completion of data collection, the only likelihood that should be computed is the likelihood of the data. Other possible non-observed events are not part of Bayes theorem, and therefore any non-observed outcomes are irrelevant. Several researchers have demonstrated inferential paradoxes when the likelihood principle is violated (Lindley &amp; Phillips, 1976; Chechile, 2020b). For example, Chechile (2020b) described two studies with Bernoulli data where there are the same number of success outcomes and the same number of failures. The likelihood for the observed outcome is thus the same for the two experiments. However, because the two experiments used different stopping rules, the non-observed outcomes are different in the two studies. With the inclusion of the likelihoods for the non-observed events, the frequentist analyses arrive at different conclusions for the two experiments. In one study the inclusion of the likelihood from non-observed more extreme events resulted in <span class="math inline">\(p&gt;.05\)</span>; whereas in the other experiment the inclusion of non-observed extreme likelihoods resulted in <span class="math inline">\(p&lt;.05\)</span>. So, the two studies with the same frequencies for the Bernoulli processes have different conclusions when frequentist tests are used.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
+<li id="fn4"><p>See the vignette for the <code>dfba_wilcoxon()</code> function<a href="#fnref4" class="footnote-back">↩︎</a></p></li>
+<li id="fn5"><p>The quantity <span class="math inline">\(\frac{2nEnC}{nE+nC}\)</span> is the harmonic mean of the sample sizes in the two conditions. The harmonic mean is less than or equal to the arithmetic mean. Chechile (2020a) found that the harmonic mean was a more precise predictor (than either the arithmetic mean or the geometric mean) as to when the sample sizes were sufficiently large to justify the large-<span class="math inline">\(n\)</span> method. However, when <span class="math inline">\(n_E=n_C\)</span>, the three types of means of the two sample size values are equivalent.<a href="#fnref5" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,208 @@
+### Import from other Packages ---------------------------------------------
+
+importFrom("graphics", legend, lines, par, plot, polygon,
+           strheight, strwidth, text)
+importFrom("stats", anova, as.formula, binomial, coef,
+           delete.response, deviance, dgamma, dlnorm, dnorm,
+           drop.scope, dweibull, factor.scope, fitted,
+           formula, glm.fit,
+           hatvalues,
+           lm, lsfit, mad, mahalanobis,
+           median, model.extract, model.frame, model.matrix,
+           na.fail, napredict, naprint, nlm, pchisq,
+           pgamma, pnorm, printCoefmat, pt, pweibull,
+           qchisq, qgamma, qnorm, quantile, qweibull,
+           resid, residuals, rnorm, runif, stat.anova,
+           terms, uniroot, update, update.formula, var,
+           weighted.mean)
+importFrom("utils", menu)
+
+importFrom("lattice", histogram,
+           panel.abline, panel.histogram, panel.mathdensity, panel.text, panel.xyplot,
+           prepanel.default.histogram,
+           simpleKey, strip.default, xyplot)
+
+importFrom("MASS", fitdistr, lmsreg)
+
+importFrom("robustbase", covMcd, rrcov.control)
+
+importFrom("fit.models", fit.models, fmclass.register, fmclass.add.class,
+           plot.glmfm, designMD)
+
+importFrom("rrcov", CovControlOgk, CovMest, CovOgk, CovSde,
+           getCenter, getCov, getDistance)
+
+
+### Export Functions and Methods -------------------------------------------
+
+export(
+  ## lmRob ##
+  lmRob,
+  lmRob.fit,
+  lmRob.wfit,
+  lmRob.fit.compute,
+  lmRob.control,
+  summary.lmRob,
+  plot.lmRob,
+  drop1.lmRob,
+  step.lmRob,
+  anova.lmRob,
+  anova.lmRoblist,
+  predict.lmRob,
+  rb.lmRob,
+  lmRob.RFPE,
+  test.lmRob,
+  lsRobTest,
+  update.lmRob,
+
+  psi.weight,
+  rho.weight,
+  psp.weight,
+  chi.weight,
+
+
+  ## glmRob ##
+  glmRob,
+  glmRob.control,
+  glmRob.cubif,
+  glmRob.cubif.control,
+  glmRob.misclass,
+  glmRob.misclass.control,
+  glmRob.mallows,
+  glmRob.mallows.control,
+  summary.glmRob,
+  plot.glmRob,
+  anova.glmRob,
+  anova.glmRoblist,
+  predict.glmRob,
+  residuals.glmRob,
+
+
+  # covRob / covClassic
+  covRob,
+  covRob.control,
+  summary.covRob,
+  plot.covRob,
+  covClassic,
+  summary.covClassic,
+  plot.covClassic,
+
+  # Covariance Comparison
+
+## VT::24.10.2021 - these are now in fit.models
+
+##  summary.covfm,
+##  plot.covfm,
+##  ddPlot.covfm,
+##  ellipsesPlot.covfm,
+##  screePlot.covfm,
+##  distancePlot.covfm,
+
+
+  ## Robust univariate parameter estimation ##
+
+  fitdstnRob,
+  fitdstn,
+  gammaRob,
+  gammaRob.control,
+  lognormRob,
+  lognormRob.control,
+  weibullRob,
+  weibullRob.control,
+
+
+  #Robust univariate parameter estimation
+  plot.fdfm,
+  overlaidDenPlot.fdfm,
+  qqPlot.fdfm,
+
+
+  ## Other ##
+  gen.data
+)
+
+## S3 methods for lmRob ##
+
+S3method(anova, lmRob)
+S3method(drop1, lmRob)
+S3method(labels, lmRob)
+S3method(plot, lmRob)
+S3method(predict, lmRob)
+S3method(summary, lmRob)
+S3method(update, lmRob)
+S3method(designMD, lmRob)
+S3method(residuals, lmRob)
+S3method(model.matrix, lmRob)
+S3method(model.frame, lmRob)
+S3method(print, lmRob)
+
+S3method(print, summary.lmRob)
+
+S3method(print, lsRobTest)
+
+
+## S3 methods for glmRob ##
+
+S3method(anova, glmRob)
+S3method(print, glmRob)
+S3method(summary, glmRob)
+S3method(labels, glmRob)
+S3method(predict, glmRob)
+S3method(designMD, glmRob)
+S3method(residuals, glmRob)
+S3method(model.matrix, glmRob)
+S3method(model.frame, glmRob)
+S3method(print, glmRob)
+importFrom(stats, family)
+S3method(family, glmRob)
+S3method(plot, glmRob)
+
+S3method(print, summary.glmRob)
+
+
+## S3 methods for covRob/covClassic ##
+
+S3method(print, covRob)
+S3method(summary, covRob)
+S3method(plot, covRob)
+
+S3method(print, covClassic)
+S3method(summary, covClassic)
+S3method(plot, covClassic)
+
+S3method(print, summary.covRob)
+S3method(print, summary.covClassic)
+
+
+## S3 methods for fitdstnRob ##
+
+S3method(print, fitdstn)
+S3method(summary, fitdstn)
+S3method(plot, fitdstn)
+
+
+## S3 methods for fit.models ##
+
+## VT::24.10.2021 - these are now in fit.models
+
+##  S3method(plot, covfm)
+##  S3method(print, covfm)
+##  S3method(summary, covfm)
+##  S3method(print, summary.covfm)
+
+S3method(print, fdfm)
+S3method(summary, fdfm)
+S3method(plot, fdfm)
+
+## S3 methods for [g]lmRoblist ##
+
+S3method(anova,glmRoblist)
+S3method(anova, lmRoblist)
+
+
+## S3 methods for other packages ##
+
+S3method(designMD, rlm)
+S3method(designMD, lmrob)
+S3method(designMD, glmrob)
+

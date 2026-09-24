@@ -1,0 +1,173 @@
+---
+title: "Estimating the Tobit-1 model with the charitable data set"
+date: today
+date-format: long
+bibliography: ../inst/REFERENCES.bib
+vignette: >
+  %\VignetteIndexEntry{Estimating the Tobit-1 model with the charitable data set}
+  %\VignetteEngine{quarto::pdf}
+  %\VignetteEncoding{UTF-8}
+---
+
+We'll reproduce here some results obtained by @WILH:08 using a data
+set which deals with charitable giving. The `charitable` data set is
+shipped with the **micsr** package.
+
+```{r}
+library(micsr)
+```
+
+```{r}
+head(charitable, 5)
+```
+
+The response is called `donation`, it measures annual charitable
+givings in $US. This variable is left-censored for the value of 25, as
+this value corresponds to the item "less than 25 $US
+donation". Therefore, for this value, we have households who didn't
+make any charitable giving and some which made a small giving (from 1
+to 24 $US).
+
+The covariates used are the donation made by the parents
+(`donparents`), two factors indicating the educational level and
+religious beliefs (respectively `education` and `religion`), annual
+income (`income`) and two dummies for living in the south (`south`)
+and for married couples (`married`). 
+
+@WILH:08 considers the value of the donation in logs and subtract $\ln
+25$, so that the response is 0 for households who gave no donation or
+a small donation.
+
+
+```{r}
+charitable$logdon <- with(charitable, log(donation) - log(25))
+```
+
+The tobit model can be estimated by maximum likelihood using
+`AER::tobit`, `censReg::censReg` or with the `tobit1` package. 
+
+```{r}
+#| message: false
+char_form <- logdon ~ log(donparents) + log(income) +
+    education + religion + married + south
+if (requireNamespace("AER")){
+    library("AER")
+    ml_aer <- tobit(char_form, data = charitable)
+}
+if (requireNamespace("censReg")){
+    library("censReg")
+    ml_creg <- censReg(char_form, data = charitable)
+}
+ml <- tobit1(char_form, data = charitable)
+```
+
+**tobit1** provides a rich set of estimation methods, especially the
+trimmed or **SCLS** (symmetrically censored least squares) estimator
+proposed by @POWE:86. We also, for pedagogical purposes, estimate the
+OLS estimator although it is known to be inconsistent.
+
+
+```{r }
+scls <- update(ml, method = "trimmed")
+ols <- update(ml, method = "lm")
+```
+
+The results of the three models are presented in table 1:
+
+```{r}
+#| label: tbl-models
+#| echo: false
+#| tbl-cap: "Estimation of charitable giving models"
+#| message: false
+#| eval: false
+#| include: false
+if (requireNamespace("modelsummary")){
+    modelsummary::msummary(list("OLS" = ols, "maximum likehihood" = ml, "SCLS" = scls),
+                           single.row = TRUE, digits = 3)
+}
+```
+
+The results match exactly the first two columns of [@WILH:08, table 3
+page 577].
+
+Note that the OLS estimators are all lower in absolute values than
+those of the two other estimators, which illustrate the fact that OLS
+estimators are biased toward zero when the response is censored. The
+maximum likelihood is consistent and asymptotically efficient if the
+conditional distribution of $y^*$ (the latent variable) is
+homoskedastic and normal.
+
+Specification tests for the maximum likelihood estimator can  be conducted
+using conditional moments tests. This can easily be done using the
+`micsr::cmtest` function, which can take as input a model fitted by
+either `AER::tobit`, `censReg::censReg` or `tobit1::tobit1`:
+
+
+```{r}
+#| collapse: true
+cmtest(ml) |> gaze()
+```
+
+```{r}
+#| include: false
+cmtest(ml_aer)
+cmtest(ml_creg)
+```
+
+`cmtest` has a `test` argument with default value equal to
+`normality`. To get a heteroskedasticity test, we would use:
+
+```{r}
+#| collapse: true
+cmtest(ml, test = "heterosc") |> gaze()
+```
+Normality and heterosledasticity are strongly rejected. The values are
+different from @WILH:08 as he used the "outer product of the gradient"
+form of the test. These versions of the test can be obtained by
+setting the `OPG` argument to `TRUE`.
+
+```{r}
+#| collapse: true
+cmtest(ml, test = "normality", opg = TRUE) |> gaze()
+cmtest(ml, test = "heterosc", opg = TRUE) |> gaze()
+```
+
+Non-normality can be further investigate by testing separately
+the fact that the skewness and kurtosis indicators are respectively
+different from 0 and 3.
+
+```{r}
+#| collapse: true
+cmtest(ml, test = "skewness") |> gaze()
+cmtest(ml, test = "kurtosis") |> gaze()
+```
+
+The hypothesis that the conditional distribution of the response is
+mesokurtic is not rejected at the 1% level and the main problem seems
+to be the asymmetry of the distribution, even after taking the
+logarithm of the response. 
+
+This can be illustrated (see @fig-histnorm) by plotting the
+(unconditional) distribution of the response (for positive values) and
+adding to the histogram the normal density curve.
+
+
+```{r}
+#| label: fig-histnorm
+#| fig-cap: "Empirical distribution of the response and normal approximation"
+#| echo: false
+#| message: false
+if (requireNamespace("ggplot2")){
+    library(ggplot2)
+    mu <- mean(subset(charitable, logdon > 0)$logdon)
+    std <- sd(subset(charitable, logdon > 0)$logdon)
+    ggplot(subset(charitable, logdon > 0), aes(logdon)) +
+        geom_histogram(aes(y = after_stat(density)), color = "black",
+                       fill = "white", bins = 10) +
+        geom_function(fun = dnorm, args = list(mean = mu,
+                                               sd = std)) +
+        labs(x = "log of charitable giving", y = NULL)
+}
+```
+
+# References

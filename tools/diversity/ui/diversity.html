@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — Diversity Analysis</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+    :root {
+        --primary: #1a3a2a;
+        --primary-mid: #2d6a4f;
+        --accent: #52b788;
+        --accent-light: #95d5b2;
+        --bg-card: rgba(245,250,247,0.97);
+        --text-dark: #1a2e22;
+        --text-muted: #5a7566;
+        --border: rgba(82,183,136,0.18);
+        --shadow-card: 0 4px 24px rgba(26,58,42,0.08);
+        --radius: 12px;
+        --radius-sm: 7px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: #f5faf7;
+        color: var(--text-dark);
+        min-height: 100vh;
+        padding: 24px;
+    }
+    .container { max-width: 1300px; margin: 0 auto; }
+
+    header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+    .logo-icon {
+        width: 44px; height: 44px;
+        background: linear-gradient(135deg, var(--accent), var(--primary-mid));
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; color: white;
+        box-shadow: 0 4px 18px rgba(82,183,136,0.35);
+    }
+    header h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.7rem; color: var(--primary); font-weight: 700;
+    }
+    header p { color: var(--text-muted); font-size: 0.9rem; }
+
+    .dashboard {
+        background: white;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(26,58,42,0.10);
+        border: 1px solid var(--border);
+    }
+
+    .tabs {
+        display: flex; flex-wrap: wrap;
+        background: rgba(245,250,247,0.98);
+        border-bottom: 1.5px solid var(--border);
+        padding: 0 8px;
+    }
+    .tab-btn {
+        padding: 14px 20px; cursor: pointer; background: none; border: none;
+        font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+        color: var(--text-muted); display: flex; align-items: center; gap: 8px;
+        border-bottom: 3px solid transparent; position: relative; top: 1.5px;
+    }
+    .tab-btn:hover { color: var(--primary-mid); background: rgba(82,183,136,0.07); }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--accent); background: white; font-weight: 600; }
+
+    .tab-content { padding: 26px 30px 34px; min-height: 480px; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .section-header h2 {
+        font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--primary); font-weight: 600;
+    }
+    .section-header p { color: var(--text-muted); font-size: 0.88rem; margin-top: 4px; margin-bottom: 20px; }
+
+    .card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-card);
+        border: 1px solid var(--border);
+        margin-bottom: 18px;
+    }
+    .card h3 {
+        color: var(--primary); font-size: 0.95rem; font-weight: 600; margin-bottom: 12px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .card h3 i { color: var(--accent); }
+
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 300px; }
+
+    label { display: block; font-size: 0.82rem; color: var(--text-muted); font-weight: 500; margin: 10px 0 5px; }
+    input[type=text] {
+        width: 100%; padding: 9px 12px; border-radius: var(--radius-sm);
+        border: 1.5px solid var(--border); font-family: 'DM Sans'; font-size: 0.88rem;
+        background: white; color: var(--text-dark);
+    }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .file-row { display: flex; gap: 8px; }
+    .file-row input { flex: 1; }
+
+    .btn {
+        padding: 9px 16px; border-radius: var(--radius-sm); border: none;
+        font-weight: 600; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans';
+        transition: background 0.2s;
+    }
+    .btn-secondary { background: transparent; color: var(--primary-mid); border: 1.5px solid var(--accent); }
+    .btn-secondary:hover { background: rgba(82,183,136,0.10); }
+    .btn-run {
+        width: 100%; padding: 14px; font-size: 1rem; margin-top: 6px;
+        background: linear-gradient(135deg, var(--accent), var(--primary-mid)); color: white;
+        display: flex; align-items: center; justify-content: center; gap: 10px; border: none;
+    }
+    .btn-run:hover { opacity: 0.92; }
+    .btn-run:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status-bar {
+        display: flex; align-items: center; gap: 10px; margin-top: 14px;
+        font-size: 0.85rem; color: var(--text-muted);
+    }
+    .spinner {
+        width: 16px; height: 16px; border: 2.5px solid var(--border);
+        border-top-color: var(--accent); border-radius: 50%;
+        animation: spin 0.8s linear infinite; display: none;
+    }
+    .spinner.active { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { text-align: center; color: var(--text-muted); padding: 60px 20px; font-size: 0.95rem; }
+    .empty-state i { font-size: 2.2rem; color: var(--accent-light); margin-bottom: 12px; display: block; }
+
+    .downloads { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+
+    /* Sub-tabs inside Results (mirrors the nested gr.Tabs() plot groups) */
+    .subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 4px; border-bottom: 1.5px solid var(--border); padding-bottom: 0; }
+    .subtab-btn {
+        padding: 9px 16px; cursor: pointer; background: none; border: none;
+        font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+        color: var(--text-muted); border-bottom: 2.5px solid transparent;
+    }
+    .subtab-btn:hover { color: var(--primary-mid); }
+    .subtab-btn.active { color: var(--primary); font-weight: 700; border-bottom: 2.5px solid var(--accent); }
+    .subtab-pane { display: none; padding-top: 16px; }
+    .subtab-pane.active { display: block; }
+
+    .plot-frame-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .plot-frame { width: 100%; border: none; display: block; background: white; }
+    .plot-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .plot-grid-2 { grid-template-columns: 1fr; } }
+
+    .summary-box {
+        background: #f5faf7; border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 20px 24px; margin-top: 6px; color: var(--text-dark); font-size: 0.9rem; line-height: 1.65;
+    }
+    .summary-box h2 { font-family: 'Playfair Display', serif; color: var(--primary); font-size: 1.2rem; margin: 14px 0 8px; }
+    .summary-box h3 { color: var(--primary-mid); font-size: 1rem; margin: 12px 0 6px; }
+    .summary-box table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.85rem; }
+    .summary-box th, .summary-box td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    .summary-box th { background: rgba(82,183,136,0.10); color: var(--primary); }
+    .summary-box strong { color: var(--primary); }
+
+    .table-wrap {
+        max-height: 420px; overflow: auto; border-radius: var(--radius); border: 1px solid var(--border); margin-top: 6px;
+    }
+    table.results-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    table.results-table th, table.results-table td {
+        padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+    }
+    table.results-table th {
+        background: rgba(245,250,247,0.98); color: var(--primary); font-weight: 600; position: sticky; top: 0;
+    }
+    table.results-table tr:hover td { background: rgba(82,183,136,0.05); }
+</style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo-icon"><i class="fas fa-sitemap"></i></div>
+        <div>
+            <h1>Diversity Analysis</h1>
+            <p>Haplotypic diversity metrics, clustering, PCA and neighbour-joining tree across varieties</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="input-settings"><i class="fas fa-sliders-h"></i> Input &amp; Settings</button>
+            <button class="tab-btn" data-tab="results"><i class="fas fa-th-large"></i> Results</button>
+        </div>
+
+        <div class="tab-content">
+
+            <!-- INPUT & SETTINGS -->
+            <div class="tab-pane active" id="input-settings">
+                <div class="section-header">
+                    <h2>Input Data &amp; Parameters</h2>
+                    <p>Upload your haplotype matrix and configure the analysis.</p>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-file-csv"></i> Haplotype Matrix</h3>
+                    <div class="file-row">
+                        <input type="text" id="filePath" placeholder="Select CSV (Column 1: Variety, Column 2: Sample ID, Columns 3+: haplotype blocks)" readonly>
+                        <button class="btn btn-secondary" onclick="browseFile()"><i class="fas fa-folder-open"></i> Browse</button>
+                    </div>
+                    <label style="margin-top:12px;">Expected CSV format</label>
+                    <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.6;">
+                        Column 1: Variety/Cultivar name &nbsp;•&nbsp; Column 2: Sample ID &nbsp;•&nbsp; Columns 3+: haplotype block values (numeric)
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col card">
+                        <h3><i class="fas fa-object-group"></i> Number of Clusters</h3>
+                        <label>Groups for hierarchical clustering: <span id="nClustersVal">5</span></label>
+                        <input type="range" id="nClusters" min="2" max="20" step="1" value="5" oninput="nClustersVal.textContent=this.value">
+                    </div>
+                    <div class="col card">
+                        <h3><i class="fas fa-chart-bar"></i> Top Variable Blocks</h3>
+                        <label>Most informative blocks to display: <span id="topBlocksVal">25</span></label>
+                        <input type="range" id="topBlocks" min="5" max="50" step="5" value="25" oninput="topBlocksVal.textContent=this.value">
+                    </div>
+                </div>
+
+                <button id="runBtn" class="btn btn-run" onclick="runDiversity()">
+                    <span id="spinner" class="spinner"></span>
+                    <i class="fas fa-play"></i> Run Full Analysis
+                </button>
+                <div class="status-bar">
+                    <span id="statusText">Ready.</span>
+                </div>
+            </div>
+
+            <!-- RESULTS -->
+            <div class="tab-pane" id="results">
+                <div class="section-header">
+                    <h2>Results</h2>
+                    <p>Diversity visualizations, summary statistics, and downloadable results table.</p>
+                </div>
+
+                <div id="resultsEmpty" class="empty-state">
+                    <i class="fas fa-sitemap"></i>
+                    Run the analysis to see results here.
+                </div>
+
+                <div id="resultsBody" style="display:none;">
+
+                    <div class="summary-box" id="summaryBox"></div>
+
+                    <div class="downloads" id="downloads" style="margin-top:18px;"></div>
+
+                    <div class="subtabs">
+                        <button class="subtab-btn active" data-subtab="st-block"><i class="fas fa-chart-bar"></i> Block Analysis</button>
+                        <button class="subtab-btn" data-subtab="st-heatmap"><i class="fas fa-th"></i> Metrics Heatmap</button>
+                        <button class="subtab-btn" data-subtab="st-variety"><i class="fas fa-leaf"></i> Variety Comparison</button>
+                        <button class="subtab-btn" data-subtab="st-pca"><i class="fas fa-braille"></i> PCA &amp; Clustering</button>
+                        <button class="subtab-btn" data-subtab="st-tree"><i class="fas fa-code-branch"></i> NJ Tree</button>
+                        <button class="subtab-btn" data-subtab="st-table"><i class="fas fa-table"></i> Results Table</button>
+                    </div>
+
+                    <div class="subtab-pane active" id="st-block">
+                        <div class="plot-frame-wrap"><iframe id="frame-block_variance" class="plot-frame" style="height:560px;"></iframe></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-heatmap">
+                        <div class="plot-frame-wrap"><iframe id="frame-heatmap" class="plot-frame" style="height:560px;"></iframe></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-variety">
+                        <div class="plot-grid-2">
+                            <div class="plot-frame-wrap"><iframe id="frame-violin" class="plot-frame" style="height:540px;"></iframe></div>
+                            <div class="plot-frame-wrap"><iframe id="frame-radar" class="plot-frame" style="height:620px;"></iframe></div>
+                        </div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-pca">
+                        <div class="plot-grid-2">
+                            <div class="plot-frame-wrap"><iframe id="frame-pca" class="plot-frame" style="height:540px;"></iframe></div>
+                            <div class="plot-frame-wrap"><iframe id="frame-clusters_pca" class="plot-frame" style="height:540px;"></iframe></div>
+                        </div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-tree">
+                        <div class="plot-frame-wrap"><iframe id="frame-nj_tree" class="plot-frame" style="height:750px;"></iframe></div>
+                    </div>
+
+                    <div class="subtab-pane" id="st-table">
+                        <div class="table-wrap"><table class="results-table" id="resultsTable"></table></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+    let diversityBridge;
+    console.log("[DIVERSITY] Initializing QWebChannel...");
+    new QWebChannel(qt.webChannelTransport, function(channel) {
+        diversityBridge = channel.objects.diversityBridge;
+        if (!diversityBridge) {
+            console.error("[DIVERSITY] diversityBridge not found on channel.objects");
+            return;
+        }
+        diversityBridge.resultReady.connect(function(jsonStr) {
+            console.log("[DIVERSITY] resultReady received, length:", jsonStr.length);
+            try {
+                onResult(jsonStr);
+            } catch (err) {
+                console.error("[DIVERSITY] onResult() threw:", err);
+                document.getElementById('statusText').textContent = "Frontend error: " + err.message;
+                resetRunButton();
+            }
+        });
+        diversityBridge.statusUpdate.connect(txt => {
+            console.log("[DIVERSITY] statusUpdate:", txt);
+            document.getElementById('statusText').textContent = txt;
+        });
+        console.log("[DIVERSITY] bridge connected");
+    });
+
+    // Main tab switching
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+        // Sub-tab switching (inside Results)
+        document.querySelectorAll('.subtab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.subtab).classList.add('active');
+            });
+        });
+    });
+
+    function browseFile() {
+        if (!diversityBridge) return;
+        diversityBridge.browse_file(function(path) {
+            if (path) document.getElementById('filePath').value = path;
+        });
+    }
+
+    function resetRunButton() {
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('spinner').classList.remove('active');
+    }
+
+    function collectConfig() {
+        return {
+            input_file: document.getElementById('filePath').value,
+            n_clusters: parseInt(document.getElementById('nClusters').value, 10),
+            top_blocks: parseInt(document.getElementById('topBlocks').value, 10),
+        };
+    }
+
+    function runDiversity() {
+        if (!diversityBridge) { console.error("[DIVERSITY] Bridge not ready"); return; }
+        const cfg = collectConfig();
+        console.log("[DIVERSITY] runDiversity() called with config:", cfg);
+        if (!cfg.input_file) {
+            document.getElementById('statusText').textContent = "Please select an input file.";
+            return;
+        }
+        document.getElementById('runBtn').disabled = true;
+        document.getElementById('spinner').classList.add('active');
+        document.getElementById('statusText').textContent = "Running diversity analysis...";
+        diversityBridge.run_diversity(JSON.stringify(cfg));
+    }
+
+    function downloadFile(sourcePath, suggestedName) {
+        if (!diversityBridge) { console.error("[DIVERSITY] Bridge not ready"); return; }
+        diversityBridge.save_file(sourcePath, suggestedName);
+    }
+
+    // Windows paths contain backslashes (e.g. C:\Users\...\plot.png).
+    // Embedding a raw path into a JS string literal inside an onclick="..."
+    // attribute corrupts it silently: \U, \A, \T etc. aren't valid JS
+    // escapes, so the backslash just gets dropped, turning the path into
+    // something like "C:UsersbabooAppData...plot.png" with no separators
+    // at all. This is why "Download" appeared to work (the dialog opened)
+    // but the file was never actually found to copy. Escaping backslashes
+    // before embedding preserves the real path.
+    function escapeForJsAttr(str) {
+        return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function onResult(jsonStr) {
+        resetRunButton();
+        const result = JSON.parse(jsonStr);
+        console.log("[DIVERSITY] parsed result, status:", result.status);
+
+        if (result.status !== "success") {
+            document.getElementById('statusText').textContent = "Error: " + result.message;
+            return;
+        }
+        document.getElementById('statusText').textContent =
+            `Done. ${result.n_samples} samples, ${result.n_varieties} varieties, ${result.n_informative_blocks} informative blocks.`;
+
+        // Switch to Results tab
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="results"]').classList.add('active');
+        document.getElementById('results').classList.add('active');
+
+        document.getElementById('resultsEmpty').style.display = 'none';
+        document.getElementById('resultsBody').style.display = 'block';
+
+        // Summary (already rendered as HTML server-side — no client-side
+        // markdown parser needed, so this works fully offline)
+        document.getElementById('summaryBox').innerHTML = result.summary_html;
+
+        // Plot iframes — src set only if that plot exists (violin/radar can be null)
+        const plots = result.plots;
+        for (const [name, path] of Object.entries(plots)) {
+            const frame = document.getElementById('frame-' + name);
+            if (!frame) continue;
+            const wrap = frame.parentElement;
+            if (path) {
+                frame.src = 'file://' + path;
+                wrap.style.display = 'block';
+            } else {
+                wrap.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-info-circle"></i>Not applicable for this dataset.</div>';
+            }
+        }
+
+        // Downloads
+        document.getElementById('downloads').innerHTML = `
+            <button class="btn btn-secondary" onclick="downloadFile('${escapeForJsAttr(result.results_csv)}', 'diversity_results.csv')"><i class="fas fa-file-csv"></i> Results Table (CSV)</button>
+        `;
+
+        // Table
+        loadTable(result.results_json);
+    }
+
+    async function loadTable(resultsJsonPath) {
+        // results.json is a local file — fetch() works for file:// in QWebEngineView
+        try {
+            const resp = await fetch('file://' + resultsJsonPath);
+            const rows = await resp.json();
+            renderTable(rows);
+        } catch (err) {
+            console.error("[DIVERSITY] Failed to load results table:", err);
+        }
+    }
+
+    function renderTable(rows) {
+        const table = document.getElementById('resultsTable');
+        if (!rows || rows.length === 0) { table.innerHTML = "<tr><td>No rows.</td></tr>"; return; }
+        const cols = Object.keys(rows[0]);
+        let html = '<thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+        for (const row of rows) {
+            html += '<tr>' + cols.map(c => {
+                let v = row[c];
+                if (typeof v === 'number') v = Number.isInteger(v) ? v : v.toFixed(4);
+                return `<td>${v === null || v === undefined ? '' : v}</td>`;
+            }).join('') + '</tr>';
+        }
+        html += '</tbody>';
+        table.innerHTML = html;
+    }
+</script>
+</body>
+</html>

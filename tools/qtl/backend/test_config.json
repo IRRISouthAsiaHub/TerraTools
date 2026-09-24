@@ -1,0 +1,28 @@
+{
+    "genotype_file": "/home/irrisah/Downloads/TerraTools/trait_mapping/qtl_mapping/genotypic_data.csv",
+    "phenotype_file": "/home/irrisah/Downloads/TerraTools/trait_mapping/qtl_mapping/phenotypic_data.csv",
+    "phenotype_column": "YIELD",
+    "mapping_method": "SIM",
+    "lod_threshold": 2.5,
+    "validation_fraction": 0.2,
+    "n_cofactors": 5,
+    "window_size": 10,
+    "lod_drop": 1.5,
+    "plot": {
+        "manhattan_width": 1600,
+        "manhattan_height": 1000,
+        "ideogram_width": 1600,
+        "ideogram_height": 1000,
+        "nonsig_point_size": 3,
+        "sig_point_size": 5,
+        "nonsig_color": "grey70",
+        "sig_color": "red",
+        "threshold_style": "dash",
+        "threshold_width": 2,
+        "chr_dark": "grey40",
+        "chr_light": "grey85",
+        "chr_border": "black",
+        "qtl_marker_size_min": 4,
+        "qtl_marker_size_max": 10
+    }
+}

@@ -1,0 +1,80 @@
+---
+title: "dfba_sign_test"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_sign_test}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Introduction
+
+Given two *paired continuous* variates $Y_1$ and $Y_2$, the parametric statistical test for differences between the two variates is based on an examination of difference scores $d$, which are defined as $d = Y_1 - Y_2$. The *repeated-measures* $t$-*test* is the conventional frequentist parametric procedure to assess the $d$ values. Yet, if there are outlier scores for either metric or if the $d$ values are not normally distributed, the $t$-test is a misspecified model. To avoid these concerns, there are two common frequentist nonparametric tests for assessing condition differences: the *sign test* and the *Wilcoxon signed-rank test*. It is standard procedure for both the frequentist sign test and for the frequentist Wilcoxon signed-rank procedure to remove the $d$ values that are equal to zero (*i.e.* cases where pairs of repeated measurements are identical). The Wilcoxon test is based on both the sign and the rank information of the $d$ scores, whereas the sign test only uses the sign information. Consequently, the sign test is generally less powerful than the Wilcoxon signed-rank test (Siegel & Castellan, 1988). But, for some researchers, the sign test has appeal because it is simple and yet in some cases sufficient for demonstrating a significant difference between the two continuous variates. The `dfba_sign_test()` function provides a Bayesian version of the sign test (the function `dfba_wilcoxon()` implements the Bayesian version of the Wilcoxon signed-rank test; see the `dfba_wilcoxon()` vignette for more information on that function).
+
+Given the input of paired continuous measures $Y_1$ and $Y_2$, the `dfba_sign_test()` function finds the nonzero $d$ scores and the frequencies for positive and negative signs. The signs are *binary outcomes*; thus, the sign-test procedure results in a *Bernoulli process*. Let us define $\phi$ as the population proportion of positive signs. The Bayesian sign-test analysis thus reduces to an application of the Bayesian binomial model. So, if there is a high posterior probability that $\phi>.5$, then that conclusion corresponds to a high probability for the hypothesis that, in the population, $Y_1>Y_2$. There are interval Bayes factors that can also be found. Because the `dfba_sign_test()` function relies heavily on the binomial model and reports Bayes factors, we recommend seeing the vignettes for the `dfba_binomial()` and the `dfba_beta_bayes_factor()` functions for more information.
+  
+# Using the `dfba_sign_test()` Function
+
+The `dfba_sign_test()` function has two required arguments and three optional arguments. The required arguments `Y1` and `Y2` are vectors of continuous paired measures. Consequently, the length of the two vectors must be the same, and it must be the case that the $i$th observation for measure `Y1` is meaningfully associated with the $i$th observation for measure `Y2`, such as the case of two observations in different conditions for the same research participant. The optional arguments `a0` and `b0` are the shape parameters for the prior beta distribution. The default value for both shape parameters is $1$, which corresponds to the uniform prior distribution. The input `prob_interval` is the value used for the interval estimate for the population proportion of positive differences; the default value is `prob_interval = .95`. 
+
+## Example
+
+For an example of the Bayesian sign test, consider the following results from a repeated-measures design:  
+
+|M1      | M2      |
+|:------:|:-------:|
+|1.49 | 0.53|
+0.64| 0.55 | 
+0.96| 0.58 | 
+2.34| 0.97 | 
+0.78| 0.60 | 
+1.29| 0.22 | 
+0.72| 0.05 | 
+1.52| 13.14| 
+0.62| 0.63 |
+1.67| 0.33 |
+1.19| 0.91 |
+0.86| 0.37 |
+
+```{r}
+M1 <-c(1.49, 0.64, 0.96, 2.34, 0.78, 1.29, 0.72, 1.52, 0.62, 1.67, 1.19, 0.860)
+
+M2 <- c(0.53, 0.55, 0.58, 0.97, 0.60, 0.22, 0.05, 13.14, 0.63, 0.33, 0.91, 0.37)
+
+dfba_sign_test(Y1 = M1, 
+               Y2 = M2)
+```
+
+
+Besides the frequencies for the positive signs $n_{pos}$ and negative signs $n_{neg}$, the analysis provides centrality estimates for the population $\phi$ parameter. The posterior distribution for $\phi$ is a beta distribution with shape parameters $a=n_{pos}+a_0$ and $b=n_{neg}+b_0$.^[To prevent confusion between the prior and posterior shape parameters, the `dfba_sign_test()` function uses the variable names `a0` and `b0` to refer to $a_0$ and $b_0$ and `a_post` and `b_post` to refer to the posterior $a$ and $b$, respectively] The posterior probability that $\phi>.5$ is $.9887695$. There is a large Bayes factor $BF_{10}$ value of $88.04348$ in favor of the alternative hypothesis $H_1: \phi > .5$. 
+
+The `plot()` method produces visualizations of the prior (optional) and posterior distributions (note: the representation of the prior distribution is optional: `plot.prior = TRUE` -- the default -- displays both the prior and posterior distribution; `plot.prior = FALSE` produces only a representation of the posterior distribution).
+
+```{r fig.width = 7}
+plot(dfba_sign_test(Y1 = M1, 
+                    Y2 = M2))
+```
+
+
+Finally it is interesting to examine the above data with a parametric $t$-test rather than the Bayesian sign test. Given a two-sided null hypothesis that $\mu_d\ne0$ (`t.test(M1, M2, paired = TRUE)`), the parametric test fails to reject the null hypothesis ($t(11) = -0.39,~p = .7049$). To understand why the Bayesian nonparametric sign test detected a highly probable difference between the two conditions while the parametric $t$-test failed to find an effect, we need to recognize the fact that there is an outlier score in the data. The eighth value for `M2` is an extreme score, which results in a large influence on the parametric $t$-test (*i.e.*, it distorts downward the difference in the means between the two conditions, and it increases the standard error). But the outlier value has no undo influence on the signs of the differences. So, there are cases where the nonparametric analysis uncovers an effect that is missed by the parametric analysis. This example also illustrates the robustness of the conclusions made with nonparametric methods such as the sign test.
+
+
+# References
+
+ 
+Chechile, R. A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge, MIT Press.
+
+Siegel, S., and Castellan, N. J. (1988). *Nonparametric Statistics for the Behavioral Sciences*. New York: McGraw Hill.

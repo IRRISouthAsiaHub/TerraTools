@@ -1,0 +1,11 @@
+betamfx                 Marginal effects for a beta regression.
+betaor                  Odds ratios for a beta regression.
+logitmfx                Marginal effects for a logit regression.
+logitor                 Odds ratios for a logit regression.
+negbinirr               Incidence rate ratios for a negative binomial
+                        regression.
+negbinmfx               Marginal effects for a negative binomial
+                        regression.
+poissonirr              Incidence rate ratios for a Poisson regression.
+poissonmfx              Marginal effects for a Poisson regression.
+probitmfx               Marginal effects for a probit regression.

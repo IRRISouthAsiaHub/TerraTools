@@ -1,0 +1,8 @@
+cv.glmnet               Formula interface for elastic net
+                        cross-validation with cv.glmnet
+cva.glmnet              Do elastic net cross-validation for alpha and
+                        lambda simultaneously
+glmnet                  Formula interface for elastic net modelling
+                        with glmnet
+glmnet.model.matrix     Model matrix options for glmnet
+glmnetUtils             Utilities for glmnet

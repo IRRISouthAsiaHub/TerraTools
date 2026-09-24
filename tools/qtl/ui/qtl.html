@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerraTools — QTL Mapping</title>
+<link rel="stylesheet" href="../../../dashboard/assets/fontawesome/css/all.min.css">
+<link rel="stylesheet" href="../../../dashboard/assets/fonts.css">
+<style>
+:root{--green:#1A4A1F;--green2:#2E6B35;--green3:#3A7D44;--light:#F7F7F5;--card:#FFF;--border:#DDE5DC;--text:#1A1A1A;--muted:#6B746B;--blue:#4A8FA0;--orange:#C8760A;--red:#990000;--shadow:0 3px 14px rgba(25,60,30,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--light);color:var(--text);font-family:"DM Sans",Arial,sans-serif}button,input,select{font:inherit}
+.header{background:linear-gradient(135deg,#173f1b,#2E6B35);color:#fff;padding:22px 34px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.brand-icon{width:46px;height:46px;border-radius:12px;background:#ffffff22;display:flex;align-items:center;justify-content:center;font-size:25px}
+.brand h1{margin:0;font-family:"Playfair Display",serif;font-size:25px}.brand p{margin:3px 0 0;color:#D5E8D5;font-size:12px}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#D9ECD9}.status-dot{width:9px;height:9px;background:#7DCE88;border-radius:50%}
+.nav{background:#fff;border-bottom:1px solid var(--border);padding:0 30px;display:flex;gap:4px;overflow-x:auto}.nav button{border:0;background:transparent;padding:14px 18px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}.nav button:hover{color:var(--green2)}.nav button.active{color:var(--green);font-weight:600;border-bottom-color:var(--green2)}
+.main{padding:28px 34px 42px;max-width:1500px;margin:auto}.tab{display:none}.tab.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.card-title{font-weight:700;color:var(--green);font-size:15px;margin-bottom:15px;display:flex;align-items:center;gap:8px}.section-label{font-size:12px;font-weight:600;color:var(--green2);border-bottom:1px solid #D9E7D9;padding-bottom:7px;margin:17px 0 12px}
+.info{background:#EAF4EA;border:1px solid #B9D9B9;border-left:4px solid var(--green2);padding:11px 13px;border-radius:7px;font-size:12px;color:var(--green);margin-top:10px}
+.form-row{margin-bottom:14px}label{display:block;font-size:12px;font-weight:600;margin-bottom:6px}
+input[type=text],input[type=number],select{width:100%;border:1px solid #C9D4C8;border-radius:7px;padding:9px 10px;background:#fff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--green2);box-shadow:0 0 0 3px #2e6b3517}.file-row{display:flex;gap:8px}.file-row input{flex:1}
+.btn{border:0;border-radius:7px;padding:9px 14px;cursor:pointer;font-weight:600;font-size:12px}.btn-primary{background:var(--green2);color:#fff}.btn-primary:hover{background:var(--green)}.btn-secondary{background:#EDF2ED;color:var(--green)}.btn-info{background:#E8F2F5;color:#347284}.btn-success{background:#E8F3E9;color:#27652F}.btn-warning{background:#FFF2DE;color:#9A5C05}
+.run{width:100%;margin-top:8px;padding:13px;font-size:14px}
+.range-wrap{display:flex;align-items:center;gap:10px}.range-wrap input[type=range]{flex:1}.range-value{min-width:50px;text-align:right;font-weight:600;color:var(--green)}input[type=range]{accent-color:var(--green2)}
+.check-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.check{display:flex;gap:8px;align-items:center;font-size:12px}.check input{accent-color:var(--green2)}
+.dataset{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#F5F8F4;border:1px solid #DCE7DA;border-radius:9px;padding:14px;text-align:center}.stat-number{font-size:21px;font-weight:700;color:var(--green)}.stat-label{font-size:10px;color:var(--muted);margin-top:3px}
+.result-placeholder{min-height:330px;border:1px dashed #B9CDB8;border-radius:10px;background:#FBFCFA;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:30px}.result-placeholder .icon{font-size:40px;margin-bottom:10px}
+.plot-container{width:100%;min-height:360px;border:1px solid var(--border);border-radius:10px;background:#fff;overflow:auto}.plot-container img{max-width:100%;display:block;margin:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;background:#EFF5EE;color:var(--green);padding:10px;border-bottom:1px solid #D3E1D1}td{padding:9px 10px;border-bottom:1px solid #E9EEE8}.empty-table{text-align:center;color:var(--muted);padding:35px}
+.model-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.model-card{border:1px solid var(--border);border-radius:9px;padding:13px;background:#FAFCF9}.model-card strong{color:var(--green)}.model-card p{margin:5px 0 0;color:var(--muted);font-size:11px}
+.footer{text-align:center;color:#899289;font-size:11px;padding:20px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:750px){.grid,.model-grid{grid-template-columns:1fr}.main{padding:18px}.header{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="brand"><div class="brand-icon"><i class="fas fa-dna"></i></div><div><h1>TerraTools — QTL Mapping</h1><p>Quantitative Trait Locus analysis and multi-model comparison</p></div></div>
+<div class="status"><span class="status-dot"></span><span id="connectionStatus">Ready</span></div>
+</header>
+
+<nav class="nav">
+<button class="active" data-tab="analysis"><i class="fas fa-folder-open"></i> Analysis</button>
+<button data-tab="results"><i class="fas fa-chart-bar"></i> Results</button>
+<button data-tab="plot"><i class="fas fa-palette"></i> Plot Settings</button>
+<button data-tab="compare"><i class="fas fa-balance-scale"></i> Compare Models</button>
+<button data-tab="common"><i class="fas fa-bullseye"></i> Common QTL</button>
+</nav>
+
+<main class="main">
+<section id="analysis" class="tab active">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-folder-open"></i> Input Files</div>
+<div class="form-row"><label>Genotype CSV</label><div class="file-row"><input type="text" id="genoPath" placeholder="Select genotype CSV..." readonly><button class="btn btn-secondary" onclick="browseGenotype()">Browse</button></div>
+<div class="info">Expected format: row 1 = marker names, row 2 = chromosome, row 3 = position, followed by sample genotype rows.</div></div>
+<div class="form-row"><label>Phenotype CSV</label><div class="file-row"><input type="text" id="phenoPath" placeholder="Select phenotype CSV..." readonly><button class="btn btn-secondary" onclick="browsePhenotype()">Browse</button></div></div>
+<div class="form-row"><label>Trait / Phenotype</label><select id="trait"><option value="">Load phenotype file first</option></select></div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-cogs"></i> Analysis Settings</div>
+<div class="form-row"><label>Mapping Method</label><select id="mappingMethod">
+<option value="SIM">Simple Interval Mapping (SIM)</option><option value="CIM" selected>Composite Interval Mapping (CIM)</option><option value="MQM">Multiple QTL Model (MQM)</option><option value="RF">Random Forest QTL</option><option value="SVR">Support Vector Regression</option><option value="XGBOOST">XGBoost QTL</option>
+</select></div>
+<div class="form-row"><label>LOD Threshold</label><div class="range-wrap"><input type="range" id="lodThreshold" min=".5" max="10" value="2.5" step=".1" oninput="updateRange('lodThreshold','lodValue')"><span class="range-value" id="lodValue">2.5</span></div></div>
+<div class="form-row"><label>Validation Fraction</label><div class="range-wrap"><input type="range" id="validationFraction" min=".1" max=".4" value=".2" step=".05" oninput="updateRange('validationFraction','validationValue')"><span class="range-value" id="validationValue">0.20</span></div></div>
+<div id="cimSettings"><div class="section-label">CIM Parameters</div><div class="form-row"><label>Cofactors (K)</label><input type="number" id="nCofactors" value="5" min="1" max="20"></div><div class="form-row"><label>Window (± markers)</label><input type="number" id="windowSize" value="10" min="3" max="30"></div></div>
+<div class="form-row"><label>LOD Drop — Support Interval</label><input type="number" id="lodDrop" value="1" min=".3" max="2" step=".1"></div>
+<button class="btn btn-primary run" onclick="runQTL()"><i class="fas fa-play"></i> Run QTL Analysis</button>
+<div class="info" id="analysisStatus">Ready. Select genotype and phenotype files.</div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-database"></i> Dataset Information</div>
+<div class="dataset"><div class="stat"><div class="stat-number" id="sampleCount">—</div><div class="stat-label">Samples</div></div><div class="stat"><div class="stat-number" id="markerCount">—</div><div class="stat-label">Markers</div></div><div class="stat"><div class="stat-number" id="chromosomeCount">—</div><div class="stat-label">Chromosomes</div></div></div>
+<div class="section-label">Available Models</div>
+<div class="model-grid"><div class="model-card"><strong>SIM</strong><p>Single-marker regression</p></div><div class="model-card"><strong>CIM</strong><p>Composite interval mapping</p></div><div class="model-card"><strong>MQM</strong><p>Multiple QTL model</p></div><div class="model-card"><strong>RF</strong><p>Random Forest importance</p></div><div class="model-card"><strong>SVR</strong><p>Kernel-based regression</p></div><div class="model-card"><strong>XGBOOST</strong><p>Gradient boosting</p></div></div>
+<div class="info">QTL Mapper supports six mapping approaches and chromosome-wise visualization of detected QTL.</div>
+</div>
+</div>
+</section>
+
+<section id="results" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-download"></i> Results &amp; Downloads</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-info" onclick="downloadResult('manhattan')"><i class="fas fa-image"></i> Manhattan PNG</button><button class="btn btn-info" onclick="downloadResult('ideogram')"><i class="fas fa-map"></i> Ideogram PNG</button><button class="btn btn-success" onclick="downloadResult('qtl_csv')"><i class="fas fa-file-csv"></i> QTL Table CSV</button><button class="btn btn-warning" onclick="downloadResult('full_csv')"><i class="fas fa-file-csv"></i> Full Scan CSV</button></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-chart-area"></i> Chromosome-wise Manhattan Plot</div><div class="plot-container" id="manhattanPlot"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-chart-line"></i></div><div>Run a QTL analysis to display the Manhattan plot.</div></div></div></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-map"></i> Chromosome Ideogram</div><div class="plot-container" id="ideogramPlot"><div class="result-placeholder"><div><div class="icon"><i class="fas fa-dna"></i></div><div>The chromosome ideogram will appear here after analysis.</div></div></div></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-list"></i> Significant QTL</div><div style="overflow-x:auto"><table id="qtlTable"><thead><tr><th>Marker</th><th>Chromosome</th><th>Position</th><th>LOD</th><th>P-Value</th><th>PVE %</th><th>Additive Effect</th><th>Interval</th><th>Method</th></tr></thead><tbody><tr><td colspan="9" class="empty-table">No QTL results yet.</td></tr></tbody></table></div></div>
+</section>
+
+<section id="plot" class="tab">
+<div class="grid">
+<div class="card">
+<div class="card-title"><i class="fas fa-chart-area"></i> Manhattan Plot</div><div class="section-label">Plot Dimensions</div>
+<div class="form-row"><label>Height (pixels)</label><input type="number" id="manhattanHeight" value="800" min="400" max="1200" step="50"></div>
+<div class="form-row"><label>Width (pixels)</label><input type="number" id="manhattanWidth" value="1400" min="800" max="2000" step="100"></div>
+<div class="section-label">Point Styling</div>
+<div class="form-row"><label>Non-significant Point Size</label><input type="number" id="nonsigPointSize" value="6" min="2" max="12"></div>
+<div class="form-row"><label>Significant Point Size</label><input type="number" id="sigPointSize" value="10" min="4" max="20"></div>
+<div class="form-row"><label>Non-significant Color</label><input type="text" id="nonsigColor" value="#3A7D44"></div>
+<div class="form-row"><label>Significant Color</label><input type="text" id="sigColor" value="#CC0000"></div>
+<div class="section-label">Threshold</div>
+<div class="form-row"><label>Line Width</label><input type="number" id="thresholdWidth" value="1.5" min=".5" max="4" step=".5"></div>
+<div class="form-row"><label>Line Style</label><select id="thresholdStyle"><option value="solid">Solid</option><option value="dash" selected>Dashed</option><option value="dot">Dotted</option><option value="dashdot">Dash-Dot</option></select></div>
+</div>
+
+<div class="card">
+<div class="card-title"><i class="fas fa-map"></i> Ideogram</div><div class="section-label">Plot Dimensions</div>
+<div class="form-row"><label>Height (pixels)</label><input type="number" id="ideogramHeight" value="900" min="400" max="1200" step="50"></div>
+<div class="form-row"><label>Width (pixels)</label><input type="number" id="ideogramWidth" value="1400" min="800" max="2000" step="100"></div>
+<div class="section-label">Chromosome Colors</div>
+<div class="form-row"><label>Dark Band Color</label><input type="text" id="chrDark" value="#2E6B35"></div>
+<div class="form-row"><label>Light Band Color</label><input type="text" id="chrLight" value="#6AAB6E"></div>
+<div class="form-row"><label>Border Color</label><input type="text" id="chrBorder" value="#1A4A1F"></div>
+<div class="section-label">QTL Marker Sizing</div>
+<div class="form-row"><label>Minimum Marker Size</label><input type="number" id="qtlSizeMin" value=".7" min=".3" max="1.5" step=".1"></div>
+<div class="form-row"><label>Maximum Marker Size</label><input type="number" id="qtlSizeMax" value="2" min="1" max="3" step=".1"></div>
+<button class="btn btn-primary" onclick="savePlotSettings()">Save Plot Settings</button>
+</div>
+</div>
+</section>
+
+<section id="compare" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-balance-scale"></i> Compare QTL Mapping Models</div><div class="section-label">Select Models</div>
+<div class="check-grid"><label class="check"><input type="checkbox" class="compareModel" value="SIM" checked> SIM</label><label class="check"><input type="checkbox" class="compareModel" value="CIM" checked> CIM</label><label class="check"><input type="checkbox" class="compareModel" value="MQM" checked> MQM</label><label class="check"><input type="checkbox" class="compareModel" value="RF"> Random Forest</label><label class="check"><input type="checkbox" class="compareModel" value="SVR"> SVR</label><label class="check"><input type="checkbox" class="compareModel" value="XGBOOST"> XGBoost</label></div>
+<button class="btn btn-primary" style="margin-top:16px" onclick="runComparison()"><i class="fas fa-rocket"></i> Run Comparison</button><div class="info" id="compareStatus">Select at least two models to compare.</div></div>
+<div class="grid"><div class="card"><div class="card-title"><i class="fas fa-map"></i> Multi-Model Ideogram</div><div class="result-placeholder" id="compareIdeogram">Comparison ideogram will appear here.</div></div><div class="card"><div class="card-title"><i class="fas fa-chart-bar"></i> QTL Counts per Model</div><div class="result-placeholder" id="compareBar">Comparison chart will appear here.</div></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-table"></i> Comparison Table</div><div style="overflow-x:auto"><table id="compareTable"><thead><tr><th>Marker</th><th>Chromosome</th><th>Position</th><th>Models</th><th>Mean LOD</th><th>Max LOD</th><th>Mean PVE</th></tr></thead><tbody><tr><td colspan="7" class="empty-table">No comparison results yet.</td></tr></tbody></table></div></div>
+</section>
+
+<section id="common" class="tab">
+<div class="card"><div class="card-title"><i class="fas fa-bullseye"></i> Common QTL Across Models</div><div class="form-row" style="max-width:450px"><label>Minimum Models Detecting QTL</label><div class="range-wrap"><input type="range" id="minModels" min="2" max="6" value="2" step="1" oninput="document.getElementById('minModelsValue').textContent=this.value"><span class="range-value" id="minModelsValue">2</span></div></div><button class="btn btn-primary" onclick="findCommonQTL()"><i class="fas fa-search"></i> Find Common QTL</button></div>
+<div class="grid"><div class="card"><div class="card-title"><i class="fas fa-map"></i> Common QTL Ideogram</div><div class="result-placeholder" id="commonIdeogram">Common-QTL ideogram will appear here.</div></div><div class="card"><div class="card-title"><i class="fas fa-chart-bar"></i> Common QTL Counts</div><div class="result-placeholder" id="commonBar">Common-QTL counts will appear here.</div></div></div>
+<div class="card"><div class="card-title"><i class="fas fa-table"></i> Common QTL Table</div><div style="overflow-x:auto"><table id="commonTable"><thead><tr><th>Marker</th><th>Chromosome</th><th>Position</th><th>Models Detected</th><th>Models</th><th>Mean LOD</th><th>Max LOD</th><th>Mean PVE</th></tr></thead><tbody><tr><td colspan="8" class="empty-table">No common QTL results yet.</td></tr></tbody></table></div></div>
+</section>
+</main>
+<footer class="footer">TerraTools · QTL Mapping</footer>
+</div>
+
+<script>
+let qtlBridge=null;
+
+function initQTLBridge(){
+    console.log("[QTL] Initializing QWebChannel...");
+    if(typeof qt==="undefined" || !qt.webChannelTransport){
+        setConnection("Browser preview");
+        return;
+    }
+    try{
+        new QWebChannel(qt.webChannelTransport,function(channel){
+            console.log("[QTL] QWebChannel callback fired");
+            qtlBridge=channel.objects.qtlBridge;
+            if(!qtlBridge){
+                console.error("[QTL] qtlBridge object NOT found on channel.objects. Available objects:",Object.keys(channel.objects));
+                setConnection("Bridge not found");
+                return;
+            }
+            qtlBridge.resultReady.connect(function(jsonStr){
+                console.log("[QTL] resultReady signal received, length:",jsonStr?jsonStr.length:0);
+                try{
+                    showQTLResult(JSON.parse(jsonStr));
+                }catch(err){
+                    console.error("[QTL] showQTLResult() threw an error:",err);
+                    setStatus("analysisStatus","Frontend error: "+err.message);
+                }
+            });
+            qtlBridge.statusUpdate.connect(function(txt){
+                console.log("[QTL] statusUpdate:",txt);
+                setStatus("analysisStatus",txt);
+            });
+            setConnection("Connected");
+            console.log("[QTL] bridge connected successfully");
+        });
+    }catch(err){
+        console.error("[QTL] QWebChannel setup threw an error:",err);
+    }
+}
+
+window.addEventListener("error",function(e){
+    console.error("[QTL] Uncaught JS error:",e.message,"at",e.filename,":",e.lineno);
+});
+(function(){
+    if(typeof qt!=="undefined"){
+        const script=document.createElement("script");
+        script.src="qrc:///qtwebchannel/qwebchannel.js";
+        script.onload=initQTLBridge;
+        document.head.appendChild(script);
+    }else{initQTLBridge();}
+})();
+
+function setConnection(text){document.getElementById("connectionStatus").textContent=text}
+function updateRange(id,valueId){const v=document.getElementById(id).value;document.getElementById(valueId).textContent=id==="validationFraction"?Number(v).toFixed(2):v}
+
+document.querySelectorAll(".nav button").forEach(button=>{
+    button.addEventListener("click",()=>{
+        document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(button.dataset.tab).classList.add("active");
+    });
+});
+
+document.getElementById("mappingMethod").addEventListener("change",function(){
+    document.getElementById("cimSettings").style.display=this.value==="CIM"?"block":"none";
+});
+
+function browseGenotype(){
+    if(qtlBridge && qtlBridge.browse_genotype){
+        qtlBridge.browse_genotype(function(path){
+            console.log("[QTL] browse_genotype returned:",path);
+            if(path)document.getElementById("genoPath").value=path;
+        });
+    }else{
+        console.error("[QTL] Bridge not ready");
+        setStatus("analysisStatus","Qt bridge not connected. Run this page through TerraTools.");
+    }
+}
+function browsePhenotype() {
+    if (!qtlBridge) {
+        console.error("[QTL] Bridge not ready");
+        setStatus(
+            "analysisStatus",
+            "Qt bridge not connected."
+        );
+        return;
+    }
+
+    qtlBridge.browse_phenotype(function(path) {
+
+        console.log("[QTL] browse_phenotype returned:", path);
+
+        if (!path) return;
+
+        document.getElementById(
+            "phenoPath"
+        ).value = path;
+
+        qtlBridge.get_phenotype_columns(
+            path,
+            function(columnsJson) {
+
+                console.log("[QTL] get_phenotype_columns returned:", columnsJson);
+
+                const columns =
+                    JSON.parse(columnsJson);
+
+                const select =
+                    document.getElementById(
+                        "trait"
+                    );
+
+                select.innerHTML = "";
+
+                if (columns.length === 0) {
+
+                    select.innerHTML =
+                        '<option value="">No traits found</option>';
+
+                    return;
+                }
+
+                columns.forEach(function(column) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value = column;
+                    option.textContent = column;
+
+                    select.appendChild(
+                        option
+                    );
+                });
+
+                setStatus(
+                    "analysisStatus",
+                    "Phenotype loaded. Select a trait."
+                );
+            }
+        );
+    });
+}
+
+function collectConfig(){
+    return {
+        genotype_file:document.getElementById("genoPath").value,
+        phenotype_file:document.getElementById("phenoPath").value,
+        phenotype_column:document.getElementById("trait").value,
+        mapping_method:document.getElementById("mappingMethod").value,
+        lod_threshold:Number(document.getElementById("lodThreshold").value),
+        validation_fraction:Number(document.getElementById("validationFraction").value),
+        n_cofactors:Number(document.getElementById("nCofactors").value),
+        window_size:Number(document.getElementById("windowSize").value),
+        lod_drop:Number(document.getElementById("lodDrop").value),
+        plot:collectPlotSettings()
+    };
+}
+function collectPlotSettings(){
+    return {
+        manhattan_height:Number(document.getElementById("manhattanHeight").value),
+        manhattan_width:Number(document.getElementById("manhattanWidth").value),
+        nonsig_point_size:Number(document.getElementById("nonsigPointSize").value),
+        sig_point_size:Number(document.getElementById("sigPointSize").value),
+        nonsig_color:document.getElementById("nonsigColor").value,
+        sig_color:document.getElementById("sigColor").value,
+        threshold_width:Number(document.getElementById("thresholdWidth").value),
+        threshold_style:document.getElementById("thresholdStyle").value,
+        ideogram_height:Number(document.getElementById("ideogramHeight").value),
+        ideogram_width:Number(document.getElementById("ideogramWidth").value),
+        chr_dark:document.getElementById("chrDark").value,
+        chr_light:document.getElementById("chrLight").value,
+        chr_border:document.getElementById("chrBorder").value,
+        qtl_marker_size_min:Number(document.getElementById("qtlSizeMin").value),
+        qtl_marker_size_max:Number(document.getElementById("qtlSizeMax").value)
+    };
+}
+function runQTL(){
+    const config=collectConfig();
+    console.log("[QTL] runQTL() called with config:",config);
+    if(!config.genotype_file || !config.phenotype_file){setStatus("analysisStatus","Please select both genotype and phenotype files.");return}
+    if(!config.phenotype_column){setStatus("analysisStatus","Please select a phenotype/trait.");return}
+    setStatus("analysisStatus","Running QTL analysis...");
+    if(qtlBridge && qtlBridge.run_qtl){
+        console.log("[QTL] calling qtlBridge.run_qtl()...");
+        qtlBridge.run_qtl(JSON.stringify(config));
+        console.log("[QTL] qtlBridge.run_qtl() call returned (this just means the async call was dispatched)");
+        return;
+    }
+    console.error("[QTL] Bridge not ready, configuration:",config);
+    setStatus("analysisStatus","Configuration collected. QTL bridge is not connected yet.");
+}
+function runComparison(){
+    const models=Array.from(document.querySelectorAll(".compareModel:checked")).map(x=>x.value);
+    if(models.length<2){setStatus("compareStatus","Select at least two models.");return}
+    const config={genotype_file:document.getElementById("genoPath").value,phenotype_file:document.getElementById("phenoPath").value,phenotype_column:document.getElementById("trait").value,models:models,lod_threshold:Number(document.getElementById("lodThreshold").value),lod_drop:Number(document.getElementById("lodDrop").value),plot:collectPlotSettings()};
+    console.log("[QTL] runComparison() called with config:",config);
+    setStatus("compareStatus","Running model comparison...");
+    if(qtlBridge && qtlBridge.run_compare){
+        console.log("[QTL] calling qtlBridge.run_compare()...");
+        qtlBridge.run_compare(JSON.stringify(config));
+    }else{
+        console.error("[QTL] Bridge not ready");
+        setStatus("compareStatus","Comparison configuration collected.");
+    }
+}
+function findCommonQTL(){
+    const config={min_models:Number(document.getElementById("minModels").value),lod_threshold:Number(document.getElementById("lodThreshold").value)};
+    console.log("[QTL] findCommonQTL() called with config:",config);
+    if(qtlBridge && qtlBridge.find_common){
+        qtlBridge.find_common(JSON.stringify(config));
+    }else{
+        console.error("[QTL] Bridge not ready");
+        setStatus("analysisStatus","Common-QTL configuration collected.");
+    }
+}
+function savePlotSettings(){
+    console.log("[QTL] savePlotSettings() called");
+    if(qtlBridge && qtlBridge.save_plot_settings)qtlBridge.save_plot_settings(JSON.stringify(collectPlotSettings()));
+    else console.error("[QTL] Bridge not ready");
+    setStatus("analysisStatus","Plot settings saved.")
+}
+function downloadResult(type){
+    console.log("[QTL] downloadResult() called for:",type);
+    if(qtlBridge && qtlBridge.download_result){
+        qtlBridge.download_result(type);
+    }else{
+        console.error("[QTL] Bridge not ready");
+        setStatus("analysisStatus","Results are not available until an analysis is completed.");
+    }
+}
+function setStatus(id,text){document.getElementById(id).textContent=text}
+
+function showQTLResult(result){
+    console.log("[QTL] showQTLResult() starting, status:",result?result.status:result);
+    if(!result)return;
+    if(result.status==="error"){setStatus("analysisStatus","Error: "+(result.message||"QTL analysis failed."));return}
+    setStatus("analysisStatus","QTL analysis completed successfully.");
+    if(result.summary){
+        document.getElementById("sampleCount").textContent=result.summary.samples??"—";
+        document.getElementById("markerCount").textContent=result.summary.markers??"—";
+        document.getElementById("chromosomeCount").textContent=result.summary.chromosomes??"—";
+    }
+    if(result.manhattan)document.getElementById("manhattanPlot").innerHTML='<img src="'+result.manhattan+'" alt="QTL Manhattan Plot">';
+    if(result.ideogram)document.getElementById("ideogramPlot").innerHTML='<img src="'+result.ideogram+'" alt="QTL Chromosome Ideogram">';
+    if(result.qtl_table)populateTable("qtlTable",result.qtl_table,["Marker","Chromosome","Position","LOD","P_Value","PVE_Marker_Percent","Additive_Effect","Interval_Size_cM","Method"]);
+    document.querySelector('[data-tab="results"]').click();
+    console.log("[QTL] showQTLResult() finished, switched to results tab");
+}
+function showCompareResult(result){
+    console.log("[QTL] showCompareResult() called, status:",result?result.status:result);
+    if(!result)return;
+    setStatus("compareStatus",result.status==="success"?"Model comparison completed.":(result.message||"Comparison failed."));
+    if(result.ideogram)document.getElementById("compareIdeogram").innerHTML='<img src="'+result.ideogram+'" alt="Comparison Ideogram" style="width:100%">';
+    if(result.bar)document.getElementById("compareBar").innerHTML='<img src="'+result.bar+'" alt="QTL Comparison" style="width:100%">';
+    if(result.table)populateTable("compareTable",result.table,["Marker","Chromosome","Position","Models_List","Mean_LOD","Max_LOD","Mean_PVE"]);
+}
+function showCommonResult(result){
+    console.log("[QTL] showCommonResult() called, status:",result?result.status:result);
+    if(!result)return;
+    if(result.ideogram)document.getElementById("commonIdeogram").innerHTML='<img src="'+result.ideogram+'" alt="Common QTL Ideogram" style="width:100%">';
+    if(result.bar)document.getElementById("commonBar").innerHTML='<img src="'+result.bar+'" alt="Common QTL Counts" style="width:100%">';
+    if(result.table)populateTable("commonTable",result.table,["Marker","Chromosome","Position","N_Models_Detected","Models_List","Mean_LOD","Max_LOD","Mean_PVE"]);
+}
+function populateTable(tableId,rows,columns){
+    const tbody=document.querySelector("#"+tableId+" tbody");tbody.innerHTML="";
+    if(!rows||rows.length===0){tbody.innerHTML='<tr><td colspan="'+columns.length+'" class="empty-table">No results.</td></tr>';return}
+    rows.forEach(row=>{const tr=document.createElement("tr");columns.forEach(c=>{const td=document.createElement("td");const v=row[c];td.textContent=v===null||v===undefined?"—":v;tr.appendChild(td)});tbody.appendChild(tr)})
+}
+window.showQTLResult=showQTLResult;
+window.showCompareResult=showCompareResult;
+window.showCommonResult=showCommonResult;
+</script>
+</body>
+</html>

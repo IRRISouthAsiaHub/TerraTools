@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>dfba_beta_bayes_factor</title>
+
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dfba_beta_bayes_factor</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(DFBA)</span></code></pre></div>
+<div id="introduction-and-overview" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Introduction and Overview</h1>
+<p>The <code>dfba_beta_bayes_factor()</code> function one of of three functions in the <code>DFBA</code> package – along with <code>dfba_beta_descriptive()</code> and <code>dfba_binomial()</code> – that are devoted to the beta distribution. The <em>Bayes Factor</em> is a statistic that can be useful in Bayesian hypothesis testing. Although the Bayes factor can be used more generally, the <code>dfba_beta_bayes_factor()</code> function is for finding Bayes factors for a beta variate. For more information on Bayesian analysis of binomial and beta distributions, see the vignettes for the <code>dfba_beta_descriptive()</code> function and the <code>dfba_binomial()</code> function. The section <a href="#BF_Interpretation">Types of Bayes Factors and Their Interpretation</a>, there is a general discussion about Bayes factors, along with recommendations about the interpretation and use of Bayes factors. In the section <a href="#using_dfba_bbf">Using the <code>dfba_beta_bayes_factor()</code> function</a>, the <code>dfba_beta_bayes_factor()</code> function is demonstrated by way of several examples.</p>
+</div>
+<div id="BF_Interpretation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Types of Bayes Factors and Their Interpretation</h1>
+<p>Scientists often conduct research to assess conflicting hypotheses. In frequentist theory the researcher has to assume a null hypothesis to assess if that hypothesis is reasonable. But Bayesian statistics does not require the assumption of a null hypothesis. Both the null and alternative hypotheses are rival models. The questions are: which model is more reasonable, and is the evidence strong enough to endorse one of the two hypotheses as a scientific finding? These are complex issues without a single answer for all cases. Yet a useful tool in addressing these issue is the Bayes factor.</p>
+<p>There are two related Bayes factors, which are usually denoted as <span class="math inline">\(BF_{10}\)</span> and <span class="math inline">\(BF_{01}\)</span>, and coded as <code>BF10</code> and <code>BF01</code>, respectively. The relationship between these two Bayes factors is <span class="math inline">\(BF01 = \frac{1}{BF_{10}}\)</span>. <span class="math inline">\(BF_{10}\)</span> is a number that reflects the relative strength of the alternative hypothesis to the null. If <span class="math inline">\(BF_{10} &gt; 1\)</span>, then the data have increased the belief in the alternative hypothesis. Similarly, if <span class="math inline">\(BF10 &lt; 1\)</span> (and thus <span class="math inline">\(BF_{01}&gt;1\)</span>), then the data have decreased the belief in the alternative hypothesis. If <span class="math inline">\(BF_{10}=BF_{01}=1\)</span>, then the data have not altered the credibility of either hypothesis. In all cases, the Bayes factors are non-negative numbers.</p>
+<p>In general, the Bayes factor can be expressed in two alternative forms. One form is in terms of odds ratios. In this form:</p>
+<p><span class="math display" id="eq:BFOR">\[\begin{equation}
+  BF10 = \frac{P(H_1|D)/P(H_0|D)}{P(H_1)/P(H_0)}
+  \tag{2.1}
+\end{equation}\]</span></p>
+<p>where the numerator of <a href="#eq:BFOR">(2.1)</a> is the posterior odds ratio of <span class="math inline">\(H_1\)</span> to <span class="math inline">\(H_0\)</span>, and the denominator of <a href="#eq:BFOR">(2.1)</a> is the prior odds ratio for <span class="math inline">\(H_1\)</span> to <span class="math inline">\(H_0\)</span> and where <span class="math inline">\(D\)</span> denotes the data. Thus if the data has caused the odds ratio between the two rival hypotheses to increase from the prior odds ratio then <span class="math inline">\(BF_{10}\)</span> is greater than <span class="math inline">\(1\)</span>.</p>
+<p>The other form for expressing the Bayes factor is as a ratio of the likelihood of the data between two models or hypotheses. In this form:</p>
+<p><span class="math display" id="eq:BFlike">\[\begin{equation}
+  BF10 = \frac{P(D|H_1)}{P(D|H_0)}
+  \tag{2.2}
+\end{equation}\]</span></p>
+<p>Thus <span class="math inline">\(BF_{10}&gt;1\)</span> means that the data are more likely for model <span class="math inline">\(H_1\)</span> than for model <span class="math inline">\(H_0\)</span>. Generally, the models being compared can represent any pair of rival models for the data. So, it is possible to use a Bayes factor to compare two models for the <em>measurement error</em>, <em>e.g.</em>, a normal distribution versus a mixture of normal distributions. However, in this case the two rival models are not exhaustive of <em>all possible models</em> for the measurement error. When the Bayes factor compares only two of many models, it has questionable utility, assessing only the relative merit of two of many possible models.</p>
+<p>In the <code>DFBA</code> package, the Bayes factor deals with two rival hypotheses about a population parameter that are <em>mutually exclusive and exhaustive</em>. For example, an investigator might be interested in comparing a null model of the binomial rate parameter <span class="math inline">\(\phi\)</span> that is <span class="math inline">\(H_0: \phi \le .5\)</span> versus the alternative model of <span class="math inline">\(H_1: \phi &gt; .5\)</span>. This example corresponds to the case where the null and alternative hypotheses are <em>mutually exclusive intervals for the parameter</em>, and these hypotheses are <em>exhaustive of all possible models</em> for the <span class="math inline">\(\phi\)</span> parameter. Another example of interval hypothesis might be the case for a null hypothesis of <span class="math inline">\(H_0:\phi \in [.495,\,.505]\)</span> versus the alternative hypothesis <span class="math inline">\(H_1:\phi \notin [.495,\,.505]\)</span> (the <span class="math inline">\(\in\)</span> and <span class="math inline">\(\notin\)</span> symbols denote, respectively “in” and “not in”). Besides interval hypotheses, the Bayes factor can also be used to examine a <em>point null hypothesis</em>. A point null hypothesis might be the hypothesis that <span class="math inline">\(H_0:\phi=.5\)</span>, which is compared to the alternative hypothesis of <span class="math inline">\(H_1:\phi \ne .5\)</span>.</p>
+<p>For binomial sampling, the prior and posterior beta distribution provide values for the both the prior and posterior odds for the two hypotheses when the null and alternative are interval hypotheses. But what happens if the null is a single point, such as the sharp hypothesis <span class="math inline">\(H_0:\phi =.5\)</span>?. The population parameter <span class="math inline">\(\phi\)</span> is distributed on the continuous interval <span class="math inline">\([0,1]\)</span>. Because <span class="math inline">\(\phi\)</span> is a continuous variable, the prior and posterior beta distributions are probability density functions. To obtain a probability, the probability density must be integrated over some interval for <span class="math inline">\(\phi\)</span>. Because of this fundamental property, there is no probability for any single point because a mathematical point lacks interval width. Even the mode of the distribution has a probability mass of 0. Yet all points for the beta distribution do have a nonzero probability density that can be different for the prior and posterior distributions. Thus, there still is a meaningful Bayes factor for a point hypothesis. As described in Chechile (2020), the Bayes factor <span class="math inline">\(BF_{10}\)</span> can be re-expressed as</p>
+<p><span class="math display" id="eq:SavageDickey">\[\begin{equation}
+  BF10 = \left[\frac{p(H_1|D)}{p(H_1)}\right]\cdot\left[\frac{p(H_0)}{p(H_0|D)}\right]
+  \tag{2.3}
+\end{equation}\]</span></p>
+<p>The first term in equation <a href="#eq:SavageDickey">(2.3)</a> is <span class="math inline">\(1/1 = 1\)</span>. The second term is of the form of <span class="math inline">\(0/0\)</span>, which appears to be undefined. However, by using L’Hôspital’s rule, it can be proved the term <span class="math inline">\(p(H_0)/p(H_0|D)\)</span> is the ratio of prior probability density at the null point divided by the posterior probability density. That is, if the null hypothesis is <span class="math inline">\(\phi=\phi*\)</span>, then <span class="math inline">\(BF10=f(\phi*)/f(\phi*|D)\)</span>. So, if the posterior probability density at the null hypothesis point is less than the prior probability density at that null point, then <span class="math inline">\(BF10&gt;1\)</span>. This method for finding the Bayes factor for a point is called the Savage-Dickey method because of the separate contributions from both of those statisticians (Dickey &amp; Lientz, 1970).</p>
+<p>There is no standard guideline for recommending a decision about the prevailing hypothesis, but several statisticians have suggested criteria. Let <span class="math inline">\(BF=\max(BF10, BF01)\)</span> (<em>i.e</em>, the larger of two Bayes factors). Jeffreys (1961) suggested that <span class="math inline">\(BF &gt; 10\)</span> was <em>strong</em> and <span class="math inline">\(BF &gt; 100\)</span> was <em>decisive</em>, but Kass and Raffrey (1995) suggested that <span class="math inline">\(BF &gt; 20\)</span> was <em>strong</em> and <span class="math inline">\(BF &gt; 150\)</span> was <em>decisive</em>. Chechile (2020) argued from a decision-theory framework for a third option for the user to <em>decide not to decide</em> if the prevailing Bayes factor is not sufficiently large. From this decision-making perspective, Chechile (2020) suggested that <span class="math inline">\(BF &gt; 19\)</span> was a <em>good bet – too good to disregard</em>, <span class="math inline">\(BF &gt; 99\)</span> was a <em>strong bet – irresponsible to avoid</em>, and <span class="math inline">\(BF &gt; 20,001\)</span> was <em>virtually certain</em>. But Chechile also pointed out that despite the Bayes factor value, there is often some probability, however small, for either hypothesis. Ultimately, each academic discipline has to set the standard for their field for the strength of evidence. Yet even when the Bayes factor is below the user’s threshold for making claims about the hypotheses, the value of the Bayes factor from one study can be nonetheless valuable to other researchers and might be combined via a product rule in a meta-analysis.</p>
+<p>As a simple example of how Bayes factors can be combined across studies, suppose that there are two studies with the same binomial protocols and each study has the same interval null hypothesis of <span class="math inline">\(H_0:\phi \le .5\)</span>. Suppose that the prior for the first study is <span class="math inline">\(a_0=1\)</span> and <span class="math inline">\(b_0=1\)</span> (<em>i.e.</em>, the flat prior on the <span class="math inline">\([0,1]\)</span> interval). Also suppose that the data are the frequencies of <span class="math inline">\(n_1=16\)</span> and <span class="math inline">\(n_2=4\)</span>, so the posterior shape parameters are <span class="math inline">\(a=17\)</span> and <span class="math inline">\(b=5\)</span>. This study results in the Bayes factor of <span class="math inline">\(BF_{10}=276.8789\)</span>. The second study in this example uses the posterior shape parameters from the first study as the <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span> values for the second study; hence <span class="math inline">\(a_0=17\)</span> and <span class="math inline">\(b_0=5\)</span>. The second study finds <span class="math inline">\(n_1=23\)</span> and <span class="math inline">\(n_2=15\)</span>, so posterior shape parameters are <span class="math inline">\(a=40\)</span> and <span class="math inline">\(b=20\)</span>. These values for the second study result in a Bayes factor <span class="math inline">\(BF_{10}=0.832282\)</span>. Yet the observations from both studies had more responses that are consistent with <span class="math inline">\(H_1\)</span>, but not to the same degree. The first study resulted in strong evidence for the alternative hypothesis. When the prior odds ratio for the second study was taken to be the posterior odds ratio from the first study, the Bayes factor <span class="math inline">\(BF_{10}\)</span> resulted in a value less than <span class="math inline">\(1\)</span> because the frequencies in the two response categories were not as lopsided as in the first study. But, when the prior of the second study is based on the posterior from the first study, the two Bayes factors combine by a product rule. That is, the <span class="math inline">\(BF_{10(combined)}=BF_{10(S_1)} \cdot BF_{10(S_2|S_1)}\)</span>, where <span class="math inline">\(S_1\)</span> denotes the first study and <span class="math inline">\(S2|S1\)</span> denotes the second study when its prior is the posterior from <span class="math inline">\(S_1\)</span> (Chechile, 2020). So, <span class="math inline">\(BF_{10(combined)}\)</span> in this example is equal to <span class="math inline">\(276.8789 \times 0.832282=230.4413\)</span>. Note that if the data were simply pooled for the two studies (<em>i.e.</em>, <span class="math inline">\(n_1=16+23=39\)</span> and <span class="math inline">\(n_2=4+15=19\)</span>) and the uniform prior of <span class="math inline">\(a0=1\)</span> and <span class="math inline">\(b0=1\)</span> is employed, then the resulting Bayes factor would be <span class="math inline">\(230.4413\)</span>, which is the same value that was found using the product rule for combining Bayes factors.</p>
+</div>
+<div id="using_dfba_bbf" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Using the <code>dfba_beta_bayes_factor()</code> Function</h1>
+<p>There are six arguments for this function, which are <code>(a_post, b_post, method, H0, a0 = 1, b0 = 1)</code>. For binomial data, the posterior beta distribution has <span class="math inline">\(a\)</span> (<code>a_post</code>) and <span class="math inline">\(b\)</span> (<code>b_post</code>) shape parameters where <span class="math inline">\(a=n_1+a_0\)</span>, <span class="math inline">\(b=n_2+b_0\)</span> where <span class="math inline">\(a_0\)</span> and <span class="math inline">\(b_0\)</span> are the beta shape parameters for the prior and <span class="math inline">\(n_1\)</span> and <span class="math inline">\(n_2\)</span> are the observed values for the two binomial response frequencies (values of <span class="math inline">\(n_1\)</span> and <span class="math inline">\(n_2\)</span> are inferred by values of the shape parameters and do not need to be separately specified). The <code>method</code> argument takes one of two possible string values: <code>interval</code> or <code>point</code>, which result in <em>interval-type</em> or <em>point-type</em> Bayes factor outputs (respectively). The <code>H0</code> argument also takes two possible forms, one for when <code>method = &quot;interval&quot;</code> and the other for when <code>method = &quot;point&quot;</code>. For interval-type Bayes factors, the <code>H0</code> input is a vector of two elements that consist of the lower and upper limits for the null hypothesis range for the binomial <span class="math inline">\(\phi\)</span> parameter. For example: if the null hypothesis were <span class="math inline">\(H_0:\phi \le .5\)</span>, then input for <code>H0</code> would be <code>H0 = c(0, .5)</code>. When <code>method = &quot;point&quot;</code>, the <code>H0</code> argument is the value of the null hypothesis point (<em>e.g.</em>, <code>H0 = .5</code>). The arguments <code>a0</code> and <code>b0</code> are the shape parameters for the prior beta distribution. The default for the prior is a uniform distribution; other priors can be specified using the <code>a0</code> and <code>b0</code> arguments. As an example, suppose the user has a uniform prior, a null hypothesis of <span class="math inline">\(H_0:\,\phi \le .5\)</span> and observes <span class="math inline">\(n_1=16\)</span> and <span class="math inline">\(n_2=4\)</span>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> <span class="dv">17</span>, <span class="co"># a_post = n1 + 1</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>                       <span class="at">b_post =</span> <span class="dv">5</span>,  <span class="co"># b_post = n2 + 1</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;interval&quot;</span>, </span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>                       <span class="at">H0 =</span> <span class="fu">c</span>(<span class="dv">0</span>, .<span class="dv">5</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Interval Estimates </span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   Interval Null Hypothesis </span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;   0               0.5 </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;   17              5 </span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Null Hypothesis </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;   0.5 </span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Null Hypothesis </span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   0.00359869 </span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Alternative Hypothesis </span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt;   0.5 </span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Alternative Hypothesis </span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt;   0.9964013 </span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt;   276.8789 </span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt;   0.003611687</span></span></code></pre></div>
+<p>Suppose the user instead wanted to use the Jeffreys prior of <span class="math inline">\(a_0=b_0=.5\)</span> for the same problem:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> <span class="fl">16.5</span>, <span class="co"># a_post = n1 + 0.5</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                       <span class="at">b_post =</span> <span class="fl">4.5</span>,  <span class="co"># b_post = n2 + 0.5</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;interval&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>                       <span class="fu">c</span>(<span class="dv">0</span>, .<span class="dv">5</span>),</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>                       <span class="at">a0 =</span> .<span class="dv">5</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>                       <span class="at">b0 =</span> .<span class="dv">5</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Interval Estimates </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   Interval Null Hypothesis </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   0               0.5 </span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   0.5             0.5 </span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;   16.5            4.5 </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Null Hypothesis </span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt;   0.5 </span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Null Hypothesis </span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt;   0.002863098 </span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Alternative Hypothesis </span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt;   0.5 </span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Alternative Hypothesis </span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt;   0.9971369 </span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt;   348.2721 </span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co">#&gt;   0.002871318</span></span></code></pre></div>
+<p>Note that the prior odds ratio for both of the above two cases is <span class="math inline">\(1\)</span>. This result occurs because both the uniform prior and the Jeffreys prior are symmetric about <span class="math inline">\(.5\)</span>. Nonetheless, the resulting Bayes factor for those two cases are not identical because the two posterior probabilities for the alternative hypothesis differ slightly. This might seem puzzling, but remember the posterior mean for the Jeffreys prior case is <span class="math inline">\(\frac{16.5}{16.5+4.5}=.785714286\)</span>; whereas the posterior mean for the uniform prior is <span class="math inline">\(\frac{17}{17+5}=.77\bar{27}\)</span>.</p>
+<p>The greater value for <span class="math inline">\(BF10\)</span> for the Jeffreys prior is because the posterior probability for <span class="math inline">\(\phi&gt;.5\)</span> is slightly larger for the Jeffreys prior case than for the uniform prior (i.e. <span class="math inline">\(.997136\)</span> versus <span class="math inline">\(.9964013\)</span>).</p>
+<p>As another example, let us consider the case where the user has the tight interval of <span class="math inline">\([.4975,\,.5025]\)</span> as the null hypothesis, and the user has a uniform prior. Moreover, suppose that the user observes <span class="math inline">\(n_1=272\)</span> and <span class="math inline">\(n_2=277\)</span>. In this case:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> <span class="dv">273</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                       <span class="at">b_post =</span> <span class="dv">278</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;interval&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>                       <span class="at">H0 =</span> <span class="fu">c</span>(.<span class="dv">4975</span>, .<span class="dv">5025</span>))</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Interval Estimates </span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;   Interval Null Hypothesis </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;   Lower Limit     Upper Limit </span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;   0.4975          0.5025 </span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;   273             278 </span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Null Hypothesis </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;   0.005 </span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Null Hypothesis </span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;   0.09130004 </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt;   Prior Probability for Alternative Hypothesis </span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt;   0.995 </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability for Alternative Hypothesis </span></span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="co">#&gt;   0.9087 </span></span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="co">#&gt;   0.05001456 </span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;   19.99418</span></span></code></pre></div>
+<p>Notice that the prevailing Bayes factor is now <span class="math inline">\(BF_{01}\)</span>, which is <span class="math inline">\(19.99418\)</span>. The data has thus built a case for the null hypothesis. This example illustrates, unlike the frequentist tests of hypotheses, that the Bayes factor can provide evidence for either the alternative or the null hypothesis.</p>
+<p>For another example, suppose that instead of an interval, the user wants to test the point-null hypothesis of <span class="math inline">\(.5\)</span> for the same data using the (default) uniform prior:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> <span class="dv">273</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                       <span class="at">b_post =</span> <span class="dv">278</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;point&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                       <span class="at">H0 =</span> .<span class="dv">5</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Point Estimates </span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   Point Null Hypothesis </span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   0.5 </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;   273             278 </span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;   Prior Probability Density for Null Hypothesis </span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt;   1 </span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability Density for Null Hypothesis </span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt;   18.29988 </span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#&gt;   0.05464515 </span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#&gt;   18.29988</span></span></code></pre></div>
+<p>The Bayes factor <span class="math inline">\(BF_{01}\)</span> is still large (<span class="math inline">\(BF_{01} = 18.28888\)</span>), but not identical to that of the previous example because this case deals with a <em>ratio of probability densities</em> rather than posterior-to-prior odds ratios of the two non-zero probabilities. For a point-null hypothesis, even in this case with a large Bayes factor, there is still a probability of zero for the null because all points lack area under the probability density function.</p>
+<p>As a final example, let us consider testing the point-null hypothesis <span class="math inline">\(H_0: \phi=.65\)</span> for the same data:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">dfba_beta_bayes_factor</span>(<span class="at">a_post =</span> <span class="dv">273</span>,</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>                       <span class="at">b_post =</span> <span class="dv">278</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>                       <span class="at">method =</span> <span class="st">&quot;point&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>                       <span class="at">H0 =</span> .<span class="dv">65</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; Bayes Factor for Point Estimates </span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; ========================</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;   Point Null Hypothesis </span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;   0.65 </span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Prior Beta Distribution </span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;   a0              b0 </span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;   1               1 </span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;   Shape Parameters for Posterior Beta Distribution </span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt;   a_post          b_post </span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;   273             278 </span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;   Prior Probability Density for Null Hypothesis </span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt;   1 </span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt;   Posterior Probability Density for Null Hypothesis </span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;   2.22432e-11 </span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Alternative over the Null Hypothesis </span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;   44957559746 </span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt;   Bayes Factor Estimate for the Null over the Alternative Hypothesis </span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt;   2.22432e-11</span></span></code></pre></div>
+<p>Note that the Bayes factor <span class="math inline">\(BF_{10}\)</span> is now astronomically large for this null (<em>i.e.</em>, <span class="math inline">\(BF_{10} &gt; 4.9 \times 10^ {9}\)</span>). Clearly, the null hypothesis of <span class="math inline">\(\phi=.65\)</span> has no credibility. But, since <em>all point-null hypotheses have zero probability</em>, this result is neither surprising nor informative. Unlike interval Bayes factors, point-hypothesis testing is only useful if (1) the specific point hypothesis is important for scientific reasons, and (2) the data are centered near the null point. While point Bayes factor calculations can support the null hypothesis when the posterior probability density at the null point is much larger than the prior probability density, the hypothesis itself cannot have a non-zero probability.</p>
+</div>
+<div id="references" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> References</h1>
+<p>Chechile, R. A. (2020). <em>Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods</em>. Cambridge, MA: MIT Press.</p>
+<p>Dickey, J. M., and Lientz, B. P. (1970). The weighted likelihood ratio, sharp hypotheses about chance, the order of a Markov chain. <em>The Annals of Mathematical Statistics</em>, <strong>41</strong>, 214-226.</p>
+<p>Jeffreys, H. (1961). <em>Theory of Probability (3rd ed.)</em>. Oxford: Oxford University Press.</p>
+<p>Kass, R. E., and Raftery, A. E. (1995). Bayes factors. <em>Journal of the American Statistical Association</em>, <strong>90</strong>, 773-795.</p>
+<p>Johnson, N. L., Kotz S., and Balakrishnan, N. (1995). <em>Continuous Univariate Distributions, Vol. 1</em>, New York: Wiley.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

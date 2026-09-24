@@ -1,0 +1,47 @@
+export(bgtCI, bgtPower, bgtTest, bgtvs,
+binCI, binTest, binCP, binBlaker, binWilson, binSOC, binAC, binWald,
+estDesign, nDesign, sDesign, bgtWidth, binDesign, binPower, binWidth,
+gtreg.mp, EM.mp, gtreg, gtreg.fit, gtreg.halving, EM, EM.ret, EM.halving,
+sim.gt, sim.mp, sim.halving, gt.control,
+residuals.gt, predict.gt,
+pooledBin, pooledBinDiff
+)
+
+export(OTC, NI.Dorf, Inf.Dorf, NI.D3, Inf.D3, NI.Array, Inf.Array, NI.A2M, hierarchical.desc2, inf.dorf.measures, Array.Measures, MasterPool.Array.Measures, beta.dist, p.vec.func, Informative.array.prob, opt.info.dorf, characteristics.pool, accuracy.dorf, pool.specific.dorf, opt.pool.size, thresh.val.dorf)
+
+import(graphics)
+importFrom("partitions", "parts")
+importFrom("Rdpack", "reprompt")
+importFrom("stats","binomial", "binom.test", "coef", "dbinom", "delete.response", "dbeta", "dnorm", "glm.fit", "integrate", "is.empty.model", "lm", "lm.fit", "model.extract", "model.frame", "model.matrix", "model.response", "na.omit", "na.pass", "optim", "pbeta", "pbinom", "plogis", "pnorm", "printCoefmat", "qbeta", "qbinom", "qchisq", "qnorm", "quantile", "rbeta", "rbinom", "residuals", "rgamma", "terms", "uniroot")
+importFrom("utils", "tail")
+
+S3method(plot, nDesign)
+S3method(plot, sDesign)
+S3method(plot, binDesign)
+S3method(plot, poolbin)
+
+S3method(predict, gt)
+S3method(residuals, gt)
+
+S3method(summary, gt)
+S3method(summary, gt.mp)
+S3method(summary, poolbin)
+S3method(summary, poolbindiff)
+
+S3method(print, bgtCI)
+S3method(print, binCI)
+S3method(print, bgtTest)
+S3method(print, binTest)
+S3method(print, bgtvs)
+S3method(print, nDesign)
+S3method(print, sDesign)
+S3method(print, binDesign)
+
+S3method(print, gt)
+S3method(print, summary.gt)
+S3method(print, summary.gt.mp)
+
+S3method(print, poolbin)
+S3method(print, poolbindiff)
+
+

@@ -1,0 +1,564 @@
+> # test.partykit.R: test partykit and evtree packages
+> 
+> source("test.prolog.R")
+> library(plotmo)
+Loading required package: Formula
+Loading required package: plotrix
+> library(partykit)
+Loading required package: grid
+Loading required package: libcoin
+Loading required package: mvtnorm
+> data("BostonHousing", package = "mlbench")
+> data("PimaIndiansDiabetes", package = "mlbench")
+> 
+> # lmtree
+> 
+> boston <- transform(BostonHousing,
++   chas = factor(chas, levels = 0:1, labels = c("no", "yes")),
++   rad = factor(rad, ordered = TRUE))
+> set.seed(2018)
+> lmtree.boston1 <- lmtree(medv ~ log(lstat) + rm^2 |
++   crim + ptratio + tax + dis + rad + chas,
++   data = boston, minsize = 40)
+> 
+> boston2 <- boston
+> boston2$log.lstat <- log(boston2$lstat)
+> boston2$lstat <- NULL
+> boston2$rm.squared <- boston2$rm^2
+> boston2$rm <- NULL
+> set.seed(2018)
+> lmtree.boston2 <- lmtree(medv ~ log.lstat + rm.squared |
++   crim + ptratio + tax + dis + rad + chas,
++   data = boston2, minsize = 40)
+> 
+> plot(lmtree.boston1)
+> plot(lmtree.boston2)
+> 
+> plotmo(lmtree.boston1, SHOWCALL=TRUE)
+ plotmo grid:    lstat     rm    crim ptratio tax     dis rad chas
+                 11.36 6.2085 0.25651   19.05 330 3.20745  24   no
+> plotmo(lmtree.boston2, trace=2, SHOWCALL=TRUE)
+plotmo trace 2: plotmo(object=lmtree.boston2, trace=2, SHOWCALL=TRUE)
+--get.model.env for object with class lmtree
+object call is
+                      lmtree(formula=medv~log.lstat+rm.squared|crim+ptratio+tax+dis+rad+chas,
+                      data=boston2, minsize=40)
+using the environment saved in $terms of the lmtree model: R_GlobalEnv
+--plotmo_prolog for lmtree object 'lmtree.boston2'
+variable importance: log.lstat rm.squared tax ptratio 
+changing class of 'lmtree.boston2' from c("lmtree", "modelparty", "party") to "party_plotmo" for standard "[["
+--plotmo_x for party_plotmo object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is lmtree(formula=medv~log.lstat+rm.squared|crim+ptratio+tax+dis+rad+chas, data=...
+
+get.x.from.model.frame:
+formula(object) is medv ~ log.lstat + rm.squared + (crim + ptratio + tax + d...
+naked formula is medv ~ log.lstat + rm.squared + crim + ptratio + tax + dis + rad + chas
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names crim zn indus chas nox age dis rad tax ptratio b medv log.lstat rm.squared
+na.action(object) is "na.pass"
+stats::model.frame(medv ~ log.lstat + rm.squared + crim ..., data=call$data, na.action="na.pass")
+x=model.frame[,-1] is usable and has column names log.lstat rm.squared crim ptratio tax dis rad chas
+plotmo_x returned[506,8]:
+    log.lstat rm.squared    crim ptratio tax    dis rad chas
+1    1.605430   43.23063 0.00632    15.3 296 4.0900   1   no
+2    2.212660   41.22924 0.02731    17.8 242 4.9671   2   no
+3    1.393766   51.62422 0.02729    17.8 242 4.9671   2   no
+...  1.078410   48.97200 0.03237    18.7 222 6.0622   3   no
+506  2.064328   36.36090 0.04741    21.0 273 2.5050   1   no
+  factors: rad(ordered) chas
+
+----Metadata: plotmo_predict with nresponse=NULL and newdata=NULL
+plotmo_predict with NULL newdata (nrows=3), using plotmo_x to get the data
+--plotmo_x for party_plotmo object
+
+get.object.x:
+object$x is NULL (and it has no colnames)
+
+object call is lmtree(formula=medv~log.lstat+rm.squared|crim+ptratio+tax+dis+rad+chas, data=...
+
+get.x.from.model.frame:
+formula(object) is medv ~ log.lstat + rm.squared + (crim + ptratio + tax + d...
+naked formula is medv ~ log.lstat + rm.squared + crim + ptratio + tax + dis + rad + chas
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names crim zn indus chas nox age dis rad tax ptratio b medv log.lstat rm.squared
+na.action(object) is "na.pass"
+stats::model.frame(medv ~ log.lstat + rm.squared + crim ..., data=call$data, na.action="na.pass")
+x=model.frame[,-1] is usable and has column names log.lstat rm.squared crim ptratio tax dis rad chas
+plotmo_x returned[506,8]:
+    log.lstat rm.squared    crim ptratio tax    dis rad chas
+1    1.605430   43.23063 0.00632    15.3 296 4.0900   1   no
+2    2.212660   41.22924 0.02731    17.8 242 4.9671   2   no
+3    1.393766   51.62422 0.02729    17.8 242 4.9671   2   no
+...  1.078410   48.97200 0.03237    18.7 222 6.0622   3   no
+506  2.064328   36.36090 0.04741    21.0 273 2.5050   1   no
+  factors: rad(ordered) chas
+will use the above data instead of newdata=NULL for predict.party_plotmo
+stats::predict(lmtree.object, data.frame[3,8], type="response")
+predict returned[3,1] with no column names:
+          
+1 26.03975
+2 26.21389
+3 35.63227
+predict after processing with nresponse=NULL is [3,1] with no column names:
+          
+1 26.03975
+2 26.21389
+3 35.63227
+
+----Metadata: plotmo_fitted with nresponse=NULL
+stats::fitted(object=party_plotmo.object)
+fitted(object) returned[506,1]:
+    (fitted)
+1          7
+2          6
+3          6
+...        6
+506        8
+fitted(object) after processing with nresponse=NULL is [506,1]:
+    (fitted)
+1          7
+2          6
+3          6
+...        6
+506        8
+
+----Metadata: plotmo_y with nresponse=NULL
+--plotmo_y with nresponse=NULL for party_plotmo object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is lmtree(formula=medv~log.lstat+rm.squared|crim+ptratio+tax+dis+rad+chas, data=...
+
+get.y.from.model.frame:
+formula(object) is medv ~ log.lstat + rm.squared + (crim + ptratio + tax + d...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names crim zn indus chas nox age dis rad tax ptratio b medv log.lstat rm.squared
+na.action(object) is "na.pass"
+stats::model.frame(medv ~ log.lstat + rm.squared + (crim..., data=call$data, na.action="na.pass")
+y=model.frame[,1] is usable and has column name medv
+plotmo_y returned[506,1]:
+    medv
+1   24.0
+2   21.6
+3   34.7
+... 33.4
+506 11.9
+plotmo_y after processing with nresponse=NULL is [506,1]:
+    medv
+1   24.0
+2   21.6
+3   34.7
+... 33.4
+506 11.9
+converted nresponse=NA to nresponse=1
+nresponse=1 (was NA) ncol(fitted) 1 ncol(predict) 1 ncol(y) 1
+
+----Metadata: plotmo_y with nresponse=1
+--plotmo_y with nresponse=1 for party_plotmo object
+
+get.object.y:
+object$y is NULL (and it has no colnames)
+
+object call is lmtree(formula=medv~log.lstat+rm.squared|crim+ptratio+tax+dis+rad+chas, data=...
+
+get.y.from.model.frame:
+formula(object) is medv ~ log.lstat + rm.squared + (crim + ptratio + tax + d...
+formula is valid, now looking for data for the model.frame
+object$model is NULL (and it has no colnames)
+argument 2 of the call is 'data'
+eval(call$data, R_GlobalEnv)
+call$data is usable and has column names crim zn indus chas nox age dis rad tax ptratio b medv log.lstat rm.squared
+na.action(object) is "na.pass"
+stats::model.frame(medv ~ log.lstat + rm.squared + (crim..., data=call$data, na.action="na.pass")
+y=model.frame[,1] is usable and has column name medv
+got model response from model.frame(medv ~ log.lstat + rm.squared + (crim...,
+                                    data=call$data, na.action="na.pass")
+plotmo_y returned[506,1]:
+    medv
+1   24.0
+2   21.6
+3   34.7
+... 33.4
+506 11.9
+plotmo_y after processing with nresponse=1 is [506,1]:
+    medv
+1   24.0
+2   21.6
+3   34.7
+... 33.4
+506 11.9
+got response name "medv" from yfull
+resp.levs is NULL
+
+----Metadata: done
+
+number of x values: log.lstat 455 rm.squared 446 crim 504 ptratio 46 tax 66 d...
+
+----plotmo_singles for party_plotmo object
+singles: 1 log.lstat, 2 rm.squared, 4 ptratio, 5 tax 
+
+----plotmo_pairs for party_plotmo object
+pairs:
+     [,1]           [,2]          
+[1,] "1 log.lstat"  "2 rm.squared"
+[2,] "1 log.lstat"  "4 ptratio"   
+[3,] "1 log.lstat"  "5 tax"       
+[4,] "2 rm.squared" "4 ptratio"   
+[5,] "2 rm.squared" "5 tax"       
+[6,] "4 ptratio"    "5 tax"       
+
+graphics::par(mfrow=c(4,4), mgp=c(1.5,0.4,0), tcl=-0.3, font.main=2,
+              mar=c(3,2,1.2,0.8), oma=c(0,0,4,0), cex.main=1.1, cex.lab=1,
+              cex.axis=1, cex=0.66)
+
+----Figuring out ylim
+--get.ylim.by.dummy.plots
+--plot.degree1(draw.plot=FALSE)
+degree1 plot1 (pmethod "plotmo") variable log.lstat
+newdata[50,8]:
+    log.lstat rm.squared    crim ptratio tax     dis rad chas
+1   0.5481214   38.54547 0.25651   19.05 330 3.20745  24   no
+2   0.6111556   38.54547 0.25651   19.05 330 3.20745  24   no
+3   0.6741898   38.54547 0.25651   19.05 330 3.20745  24   no
+... 0.7372240   38.54547 0.25651   19.05 330 3.20745  24   no
+50  3.6367964   38.54547 0.25651   19.05 330 3.20745  24   no
+  factors: rad(ordered) chas
+stats::predict(lmtree.object, data.frame[50,8], type="response")
+predict returned[50,1] with no column names:
+            
+1   23.25924
+2   23.24236
+3   23.22549
+... 23.20861
+50  22.43238
+predict after processing with nresponse=1 is [50,1]:
+     predict
+1   23.25924
+2   23.24236
+3   23.22549
+... 23.20861
+50  22.43238
+Reducing trace level for subsequent degree1 plots
+degree1 plot2 (pmethod "plotmo") variable rm.squared
+degree1 plot3 (pmethod "plotmo") variable ptratio
+degree1 plot4 (pmethod "plotmo") variable tax
+--plot.degree2(draw.plot=FALSE)
+degree2 plot1 (pmethod "plotmo") variables log.lstat:rm.squared
+newdata[400,8]:
+    log.lstat rm.squared    crim ptratio tax     dis rad chas
+1   0.5481214   12.68072 0.25651   19.05 330 3.20745  24   no
+2   0.7106832   12.68072 0.25651   19.05 330 3.20745  24   no
+3   0.8732451   12.68072 0.25651   19.05 330 3.20745  24   no
+... 1.0358069   12.68072 0.25651   19.05 330 3.20745  24   no
+400 3.6367964   77.08840 0.25651   19.05 330 3.20745  24   no
+  factors: rad(ordered) chas
+stats::predict(lmtree.object, data.frame[400,8], type="response")
+predict returned[400,1] with no column names:
+             
+1    6.346628
+2    6.303109
+3    6.259590
+...  6.216071
+400 47.635075
+predict after processing with nresponse=1 is [400,1]:
+      predict
+1    6.346628
+2    6.303109
+3    6.259590
+...  6.216071
+400 47.635075
+Reducing trace level for subsequent degree2 plots
+degree2 plot2 (pmethod "plotmo") variables log.lstat:ptratio
+degree2 plot3 (pmethod "plotmo") variables log.lstat:tax
+degree2 plot4 (pmethod "plotmo") variables rm.squared:ptratio
+degree2 plot5 (pmethod "plotmo") variables rm.squared:tax
+degree2 plot6 (pmethod "plotmo") variables ptratio:tax
+--done get.ylim.by.dummy.plots
+
+ylim c(3.124, 53.64)    clip TRUE
+
+--plot.degree1(draw.plot=TRUE)
+
+ plotmo grid:    log.lstat rm.squared    crim ptratio tax     dis rad chas
+                  2.430097   38.54547 0.25651   19.05 330 3.20745  24   no
+
+graphics::plot.default(x=c(0.548,0.611,0...), y=c(23.26,23.24,2...), type="n",
+                       main="1 log.lstat", xlab="", ylab="", xaxt="s",
+                       yaxt="s", xlim=c(0.548,3.637), ylim=c(3.12,53.64))
+--plot.degree2(draw.plot=TRUE)
+persp(log.lstat:rm.squard) theta 55
+persp(log.lstat:ptratio) theta 145
+persp(log.lstat:tax) theta 55
+persp(rm.squard:ptratio) theta 235
+persp(rm.squard:tax) theta 235
+persp(ptratio:tax) theta 145
+> plotmo(lmtree.boston2, trace=1, all1=TRUE, degree2=c("ptratio", "log.lstat"), SHOWCALL=TRUE)
+variable importance: log.lstat rm.squared tax ptratio 
+stats::predict(lmtree.object, data.frame[3,8], type="response")
+stats::fitted(object=party_plotmo.object)
+got model response from model.frame(medv ~ log.lstat + rm.squared + (crim...,
+                                    data=call$data, na.action="na.pass")
+
+ plotmo grid:    log.lstat rm.squared    crim ptratio tax     dis rad chas
+                  2.430097   38.54547 0.25651   19.05 330 3.20745  24   no
+
+> plotmo(lmtree.boston2, all1=TRUE, all2=TRUE, SHOWCALL=TRUE)
+ plotmo grid:    log.lstat rm.squared    crim ptratio tax     dis rad chas
+                  2.430097   38.54547 0.25651   19.05 330 3.20745  24   no
+> 
+> # TODO gives warnings because of because of price/citations in formula
+> # data("Journals", package = "AER")
+> # Journals <- transform(Journals,
+> #   age = 2000 - foundingyear,
+> #   chars = charpp * pages)
+> # j_tree <- lmtree(log(subs) ~ log(price/citations) | price + citations +
+> #   age + chars + society, data = Journals, minsize = 10)
+> # plotmo(j_tree, SHOWCALL=TRUE)
+> 
+> # Works, but commented out to save testing time:
+> # data("TeachingRatings", package = "AER")
+> # tr_tree <- lmtree(eval ~ beauty | age + gender + division,
+> #    data = TeachingRatings, weights = students, subset = credits == "more",
+> #    caseweights = FALSE)
+> # plot(tr_tree)
+> # plotmo(tr_tree, all1=TRUE, all2=TRUE, SHOWCALL=TRUE)
+> 
+> # glmtree
+> 
+> glmtree1 <- glmtree(diabetes ~ glucose | mass + age,
++                     data = PimaIndiansDiabetes, family = binomial)
+> plot(glmtree1)
+Loading required namespace: vcd
+> plotmo(glmtree1, SHOWCALL=TRUE)
+ plotmo grid:    glucose mass age
+                     117   32  29
+> plotmo(glmtree1, all2=TRUE, SHOWCALL=TRUE)
+ plotmo grid:    glucose mass age
+                     117   32  29
+> 
+> # mob
+> 
+> pima <- PimaIndiansDiabetes[1:50,] # small set of data for fast test
+> 
+> logit1 <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     # note that a complicated formula is necessary
++     formula <- as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))) # -1 drops intercept
++     glm(formula=formula, data=as.data.frame(x), family=binomial, start=start, ...)
++ }
+> mob1 <- mob(diabetes ~ glucose | mass + age,
++             data = PimaIndiansDiabetes, fit = logit1)
+> plot(mob1)
+> plotmo(mob1, trace=1, SHOWCALL=TRUE)
+variable importance: glucose mass age 
+stats::predict(modelparty.object, data.frame[3,3], type="response")
+stats::fitted(object=party_plotmo.object)
+got model response from model.frame(diabetes ~ glucose + (mass + age),
+                                    data=call$data, na.action="na.pass")
+
+ plotmo grid:    glucose mass age
+                     117   32  29
+
+> plotmo(mob1, pmethod="partdep", degree1=0,
++        degree2=c("glucose", "mass"), persp.ticktype="detailed", SHOWCALL=TRUE)
+calculating partdep for glucose:mass 01234567890
+> plotmo(mob1, all1=TRUE, all2=TRUE, SHOWCALL=TRUE)
+ plotmo grid:    glucose mass age
+                     117   32  29
+> 
+> logit2 <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     glm(y ~ 0 + x, family = binomial, start = start, ...)
++ }
+> mob2 <- mob(diabetes ~ glucose | mass, data = pima, fit = logit2)
+> expect.err(try(plotmo(mob2)), "The formula in the mob fit function is not supported by plotmo")
+
+The following formula in the mob fit function is not supported by plotmo:
+
+    glm(y ~ 0 + x, family = binomial, start = start, ...)
+
+Possible workaround: Replace the fit function with:
+
+    logit2 <- function (y, x, start = NULL, weights = NULL, offset = NULL, ...) 
+    {
+        glm(as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))),
+            data=x, family = binomial, start = start, ...)
+    }
+    
+Error : The formula in the mob fit function is not supported by plotmo (see above)
+       This is because predict.mob often fails with newdata and type="response"
+       e.g. example(mob); predict(pid_tree, newdata=PimaIndiansDiabetes[1:3,], type="response")
+Got expected error from try(plotmo(mob2))
+> 
+> logit3 <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     glm(y ~ 0+x  , family = binomial, start = start, ...)
++ }
+> mob3 <- mob(diabetes ~ glucose | age, data = pima, fit = logit3)
+> expect.err(try(plotmo(mob3)), "The formula in the mob fit function is not supported by plotmo")
+
+The following formula in the mob fit function is not supported by plotmo:
+
+    glm(y ~ 0 + x, family = binomial, start = start, ...)
+
+Possible workaround: Replace the fit function with:
+
+    logit3 <- function (y, x, start = NULL, weights = NULL, offset = NULL, ...) 
+    {
+        glm(as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))),
+            data=x, family = binomial, start = start, ...)
+    }
+    
+Error : The formula in the mob fit function is not supported by plotmo (see above)
+       This is because predict.mob often fails with newdata and type="response"
+       e.g. example(mob); predict(pid_tree, newdata=PimaIndiansDiabetes[1:3,], type="response")
+Got expected error from try(plotmo(mob3))
+> 
+> logit4 <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     glm(y ~ x - 1, family = binomial, start = start, ...)
++ }
+> mob4 <- mob(diabetes ~ glucose | age, data = pima, fit = logit4)
+> expect.err(try(plotmo(mob4)), "The formula in the mob fit function is not supported by plotmo")
+
+The following formula in the mob fit function is not supported by plotmo:
+
+    glm(y ~ x - 1, family = binomial, start = start, ...)
+
+Possible workaround: Replace the fit function with:
+
+    logit4 <- function (y, x, start = NULL, weights = NULL, offset = NULL, ...) 
+    {
+        glm(as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))),
+            data=x, family = binomial, start = start, ...)
+    }
+    
+Error : The formula in the mob fit function is not supported by plotmo (see above)
+       This is because predict.mob often fails with newdata and type="response"
+       e.g. example(mob); predict(pid_tree, newdata=PimaIndiansDiabetes[1:3,], type="response")
+Got expected error from try(plotmo(mob4))
+> 
+> logit5 <- function(y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     glm(y~x-1 , family = binomial, start = start, ...)
++ }
+> mob5 <- mob(diabetes ~ glucose | age, data = pima, fit = logit5)
+> expect.err(try(plotmo(mob5)), "The formula in the mob fit function is not supported by plotmo")
+
+The following formula in the mob fit function is not supported by plotmo:
+
+    glm(y ~ x - 1, family = binomial, start = start, ...)
+
+Possible workaround: Replace the fit function with:
+
+    logit5 <- function (y, x, start = NULL, weights = NULL, offset = NULL, ...) 
+    {
+        glm(as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))),
+            data=x, family = binomial, start = start, ...)
+    }
+    
+Error : The formula in the mob fit function is not supported by plotmo (see above)
+       This is because predict.mob often fails with newdata and type="response"
+       e.g. example(mob); predict(pid_tree, newdata=PimaIndiansDiabetes[1:3,], type="response")
+Got expected error from try(plotmo(mob5))
+> 
+> logit6 <- function (y, x, start = NULL, weights = NULL, offset = NULL, ...)
++ {
++     glm(as.formula(paste("y ~ ", paste(colnames(x)[-1], collapse="+"))),
++         data=data.frame(x), family = binomial, start = start, ...)
++ }
+> mob6 <- mob(diabetes ~ glucose | mass + age, data = pima, fit = logit6)
+> plot(mob6) # tree is just a root (no branches)
+> plotmo(mob6)
+ plotmo grid:    glucose  mass age
+                   118.5 31.35  33
+> 
+> library(rpart.plot)
+Loading required package: rpart
+> rpart.Kyphosis <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis)
+> plotmo(rpart.Kyphosis, SHOWCALL=TRUE)
+ plotmo grid:    Age Number Start
+                  87      4    13
+> party.Kyphosis <- as.party(rpart.Kyphosis)
+> expect.err(try(plotmo(party.Kyphosis)), "cannot get the original model predictors")
+
+Looked unsuccessfully for the original predictors in the following places:
+
+(1) object$x: NULL
+
+(2) model.frame: object 'Kyphosis' not found
+
+(3) getCall(object)$x: NULL
+
+Error : cannot get the original model predictors
+Got expected error from try(plotmo(party.Kyphosis))
+> 
+> library(evtree)
+> ## regression
+> set.seed(1090)
+> airq <- subset(airquality, !is.na(Ozone) & complete.cases(airquality))
+> ev_air <- evtree(Ozone ~ ., data = airq)
+> # plot(ev_air)
+> plotmo(ev_air, SHOWCALL=TRUE)
+ plotmo grid:    Solar.R Wind Temp Month Day
+                     207  9.7   79     7  16
+> ## classification
+> ev_iris <- evtree(Species ~ .,data = iris)
+> # plot(ev_iris)
+> plotmo(ev_iris, SHOWCALL=TRUE)
+ plotmo grid:    Sepal.Length Sepal.Width Petal.Length Petal.Width
+                          5.8           3         4.35         1.3
+> plotmo(ev_iris, type="prob", nresponse="versicolor", pmethod="apartdep", SHOWCALL=TRUE)
+calculating apartdep for Petal.Length 
+calculating apartdep for Petal.Width 
+calculating apartdep for Petal.Length:Petal.Width 01234567890
+> plotres(ev_iris, type="prob", nresponse="setosa", SHOWCALL=TRUE)
+> 
+> # cforest
+> 
+> cforest1 <- cforest(dist ~ speed, data = cars)
+> plotmo(cforest1, trace=1, SHOWCALL=TRUE)
+variable importance: speed 
+stats::predict(cforest.object, data.frame[3,1], type="response")
+stats::fitted(object=cforest.object)
+got model response from model.frame(dist ~ speed,
+                                    data=object$data, na.action="na.fail")
+> plotres(cforest1, trace=1, SHOWCALL=TRUE)
+variable importance: speed 
+stats::residuals(object=cforest.object, type="response")
+residuals() was unsuccessful, will use predict() instead
+stats::predict(cforest.object, data.frame[3,1], type="response")
+stats::fitted(object=cforest.object)
+got model response from model.frame(dist ~ speed,
+                                    data=object$data, na.action="na.fail")
+
+training rsq 0.58
+> 
+> data("mammoexp", package = "TH.data")
+> cforest2 <- cforest(ME ~ PB + SYMPT, data = mammoexp, ntree = 5)
+> plotmo(cforest2, trace=1, SHOWCALL=TRUE, pmethod="apartdep")
+variable importance: SYMPT PB 
+stats::predict(cforest.object, data.frame[3,2], type="response")
+stats::fitted(object=cforest.object)
+got model response from model.frame(ME ~ PB + SYMPT,
+                                    data=object$data, na.action="na.fail")
+calculating apartdep for PB 
+calculating apartdep for SYMPT 
+calculating apartdep for PB:SYMPT 01234567890
+> plotres(cforest2)
+> 
+> source("test.epilog.R")

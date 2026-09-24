@@ -1,0 +1,108 @@
+---
+title: "dfba_bivariate_concordance"
+output:
+    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dfba_bivariate_concordance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(DFBA)
+```
+
+# Theoretical Background {#phibackground}
+
+An important statistical question deals with the measurement and testing of an association between two paired continuous measures. The *product-moment correlation* $r$ is a widely used statistic to examine bivariate associations. However, the product-moment correlation depends on Gaussian assumptions for statistical tests. It is also not a robust measure because it is strongly influenced by any extreme outlier score for either of the two variates. A rank-based statistic can avoid both the problem of outlier sensitivity and the problem of being dependent upon the Gaussian model. The `dfba_bivariate_concordance()` function provides a Bayesian distribution-free concordance metric for characterizing the association between the two measures.
+
+To illustrate the nonparametric concepts of concordance and discordance, consider a specific example where there are five paired scores:
+
+| $x$  | $y$  |
+|:----:|:----:|
+| 3.8  | 5.9  |
+| 4.7  | -4.1 | 
+| 4.7  | 7.3  | 
+| 4.7  | 7.3  |
+| 11.8 | 38.9 |
+
+The ranks for the $x$ variate are $1, 3, 3, 3$, and $5$ and the corresponding ranks for $y$ are $2, 1, 3.5, 3.5$, and $5$, so, the five pairs in terms of their ranks and represented as points are $P_1 = (1, 2)$, $P_2 = (3, 1)$, $P_3 = (3, 3.5)$, $P_4 = (3, 3.5)$ and $P_5 = (5,5)$. Let $R_{xi}$ and $R_{yi}$ be the respective rank values for the $x$ and $y$ variates for point $i$. The relationship between any two of these points $Pi$ and $Pj$, is either (1) *concordant* if the sign of $R_{xi} - R_{xj}$ is the same as the sign of $R_{yi} - R_{yj}$, (2) *discordant* if signs are different between $R_{xi}-R_{xj}$ and $R_{yi}-R_{yj}$, or (3) *null* if either $R_{xi}=R_{xj}$ or if $R_{yi}=R_{yj}$. For this example, there are ten possible comparisons among the five points; six are concordant, one is discordant, and there are three comparisons lost due to ties. In general, given $n$ bivariate scores, there are $n(n-1)/2$ total possible comparisons. When there are ties in the $x$ variate, there is a loss of $T_x$ comparisons, and when there are ties in the $y$ variate, there are a separate $T_y$ lost comparisons. Ties in both $x$ and $y$ are denoted as $T_{xy}$. The total number of possible comparisons, accounting for ties, is therefore: $n(n-1)/2-T_x-T_y+T_{xy}$, where $T_{xy}$ is added to avoid double-counting of lost comparisons. For the example above, there are three lost comparisons due to ties in $x$ (*i.e.*, $T_x=3$), one lost comparison due to a tie in $y$ (*i.e.*, $T_y=1$), and one comparison lost to a tie in both the $x$ and $y$ variates (*i.e.*, $T_{xy}=1)$. Thus, there are $[(5*4)/2]-3-1+1=7$ valid comparisons. The $\tau_A$ correlation is defined as $(n_c-n_d)/(n_c+n_d)$, which is a value on the $[-1,1]$ interval. This coefficient is also called the *Kendall tau-A* ($\tau_A$) *correlation*. It is important to note that *Kendall* **also** *used a different coefficient that has come to be called tau-B* ($\tau_B$). The tau-B correlation is defined as:
+
+\begin{equation} 
+  \tau_B = \frac{n_c-n_d}{\sqrt{\left(\frac{n(n-1)}{2}-T_x\right)\left(\frac{n(n-1)}{2}-T_y\right)}},
+  (\#eq:taubdefinition)
+\end{equation}
+
+Unfortunately, the $\tau_B$ formula does not properly correct for tied scores, which is regrettable because $\tau_B$ is the value returned using the `cor()` and `cor.test()` functions from the `stats` package using the `method = "kendall"` argument (*i.e.*, `cor(x, y, method = "kendall")`; `cor.test(x, y, method = "kendall")`). If there are no ties, then $T_x = T_y = T_{xy} = 0$, and $\tau_A = \tau_B$, but if there are ties, then the coefficient that *properly* corrects for ties is $\tau_A$. The `dfba_bivariate_concordance()` function provides the proper correction for tied scores and outputs a sample estimate for the frequentist $\tau_A$ rather than $\tau_B$.
+
+The focus for the Bayesian analysis is on the population proportion of concordance, which is the limit of the ratio $n_c/(n_c+n_d)$. This proportion is a value on the $[0,1]$ interval, and it is called $\phi$. The $\phi$ parameter is also connected to the population $\tau_A$ because $\tau_A=2\phi -1$. Moreover, Chechile (2020) showed that the likelihood function for observing $n_c$ concordant changes and $n_d$ discordant changes is a *censored Bernoulli process* because order is a property that must satisfy a transitivity requirement. Therefore, the likelihood given a value for $\phi$ is $K_c \phi^{n_c}(1-\phi)^{n_d}$ where $K_c$ is the number of transitive arrangements with $n_c$ concordant comparisons and $n_d$ discordant comparisons. In Bayesian statistics, the likelihood function is only specified as a proportional function because the number of possible arrangements for observing $n_c$ concordance changes and $n_d$ discordance changes cancel out in Bayes theorem (*i.e.*, the number $K_c$ is in both the numerator and the denominator of Bayes theorem, so it cancels). If the prior for $\phi$ is a beta distribution, then it follows that the posterior is also a beta distribution (*i.e.*, the beta is a natural Bayesian conjugate function for Bernoulli processes). The default prior for the `dfba_bivariate_concordance()` function is the flat prior: a beta distribution with shape parameters $a_0 = 1$ and $b_0 = 1$.
+
+
+# Using the `dfba_bivariate_concordance()` Function
+
+The `dfba_bivariate_concordance()` function has two required arguments -- `x` and `y` -- that are *two paired vectors*. Because these vectors are paired, each score for `x[i]` is linked with the corresponding score for `y[i]`. 
+
+The `dfba_bivariate_concordance()` function also has four optional arguments; listed with their respective default values, they are: `a0 = 1`, `b0 = 1`, `prob_interval = .95`, and `fitting.parameters = NULL`. The arguments `a0` and `b0` represent the shape parameters ($a_0$ and $b_0$) for the prior beta distribution to be assumed for the Bayesian analysis of the population $\phi$ concordance proportion; the default value of $1$ for both of these parameters corresponds to a uniform prior distribution (as noted [above](#phibackground)). Another optional argument is `prob_interval()`. This input allows the user to set the proportion used for the interval estimate for the $\phi$ parameter; the default value is $.95$. The last optional argument is `fitting_parameters()`, which has a default of `NULL`. This argument is only used when the user is attempting to fit a mathematical model to the continuous univariate problem. 
+
+# Examples
+
+An example for this type of problem will be examined later, but first let us see the results from a more typical bivariate association analysis. 
+
+```{r}
+x <- c(47, 39, 47, 42, 44, 46, 39, 37, 29, 42, 54, 33, 44, 31, 28, 49, 32, 37, 46, 55, 31)
+
+y <- c(36, 40, 49, 45, 30, 38, 39, 44, 27, 48, 49, 51, 27, 36, 30, 44, 42, 41, 35, 49, 33)
+
+A <- dfba_bivariate_concordance(x,
+                                y)
+
+A
+```
+
+```{r fig.width = 7, fig.height = 4}
+plot(A)
+```
+
+
+In the special case where the user has a model for predicting a variate in terms of known quantities and where there are free-fitting parameters, the `dfba_bivariate_concordance()` function can provide a distribution-free measure of the goodness-of-fit of the scientific model. For this type of application, the bivariate pair are the *observed* values of a variate along with the corresponding *predicted* values from the scientific model. The concordance proportion must be adjusted in these goodness-of-fit applications to take into account the number of free parameters that were used in the prediction model. Chechile and Barch (2022) argued that the fitting parameters *increase the number of concordant changes*. Consequently, the value for `n_c` is *downward-adjusted* as a function of the number of free parameters. The Chechile-Barch adjusted `n_c` value for a case where there are $m$ free fitting parameters is $n_c-(n*m)+[m*(m+1)/2]$. As an example, suppose that there are $n = 20$ scores, and the prediction equation has $m = 2$ free parameters that result in creating a prediction for each observed score (*i.e.*, there are $20$ paired values of observed score $x$ and predicted score $y$), and further suppose that this model results in $n_c = 170$ and $n_d = 20$. The value of $n_d$ is kept at $20$, but the number of concordant changes is reduced to $170-(20*2)+(2*3/2) = 133$. 
+
+```{r}
+# predicted values from model
+
+p = seq(.05, .95, .05)
+
+ypred= 17.332 - (50.261*p) + (48.308*p^2)
+
+# Note: the coefficients in the ypred equation were found first via a polynomial regression
+
+# observed values
+
+yobs <- c(19.805, 10.105, 9.396, 8.219, 6.110, 4.543, 5.864, 4.861, 6.136, 5.789,
+          5.443, 5.548, 4.746, 6.484, 6.185, 6.202, 9.804, 9.332, 14.408)
+
+B <- dfba_bivariate_concordance(x = yobs, 
+                                y = ypred, 
+                                fitting.parameters = 3)
+
+B
+```
+
+```{r fig.width = 7, fig.height = 4}
+plot(B)
+```
+
+
+# References
+
+Chechile, R.A. (2020). *Bayesian Statistics for Experimental Scientists: A General Introduction Using Distribution-Free Methods*. Cambridge: MIT Press.
+ 
+
+Chechile, R. A., & Barch Jr., D.H. (2022). A distribution-free, Bayesian goodness-of-fit method for assessing similar scientific prediction equations. *Journal of Mathematical Psychology*, <https://doi.org/10.1016/j.jmp.2021.102638>

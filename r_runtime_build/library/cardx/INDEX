@@ -1,0 +1,65 @@
+ard_aod_wald_test       ARD Wald Test
+ard_attributes.survey.design
+                        ARD Attributes
+ard_car_anova           ARD ANOVA from car Package
+ard_car_vif             Regression VIF ARD
+ard_categorical_ci      ARD Proportion Confidence Intervals
+ard_categorical_ci.survey.design
+                        ARD survey categorical CIs
+ard_continuous_ci       ARD continuous CIs
+ard_continuous_ci.survey.design
+                        ARD survey continuous CIs
+ard_effectsize_cohens_d
+                        ARD Cohen's D Test
+ard_effectsize_hedges_g
+                        ARD Hedge's G Test
+ard_emmeans_contrast    ARDs for LS Mean Difference and LS Means
+ard_incidence_rate      ARD Incidence Rate
+ard_missing.survey.design
+                        ARD Missing Survey Statistics
+ard_regression          Regression ARD
+ard_regression_basic    Basic Regression ARD
+ard_smd_smd             ARD Standardized Mean Difference
+ard_stats_anova         ARD ANOVA
+ard_stats_aov           ARD ANOVA
+ard_stats_chisq_test    ARD Chi-squared Test
+ard_stats_fisher_test   ARD Fisher's Exact Test
+ard_stats_kruskal_test
+                        ARD Kruskal-Wallis Test
+ard_stats_mantelhaen_test
+                        ARD Cochran-Mantel-Haenszel Chi-Squared Test
+ard_stats_mcnemar_test
+                        ARD McNemar's Test
+ard_stats_mood_test     ARD Mood Test
+ard_stats_oneway_test   ARD One-way Test
+ard_stats_poisson_test
+                        ARD Poisson Test
+ard_stats_prop_test     ARD 2-sample proportion test
+ard_stats_t_test        ARD t-test
+ard_stats_t_test_onesample
+                        ARD one-sample t-test
+ard_stats_wilcox_test   ARD Wilcoxon Rank-Sum Test
+ard_stats_wilcox_test_onesample
+                        ARD one-sample Wilcox Rank-sum
+ard_summary.survey.design
+                        ARD Continuous Survey Statistics
+ard_survey_svychisq     ARD Survey Chi-Square Test
+ard_survey_svyranktest
+                        ARD Survey rank test
+ard_survey_svyttest     ARD Survey t-test
+ard_survival_survdiff   ARD for Difference in Survival
+ard_survival_survfit    ARD Survival Estimates
+ard_survival_survfit_diff
+                        ARD Survival Differences
+ard_tabulate.survey.design
+                        ARD Categorical Survey Statistics
+ard_tabulate_abnormal   ARD Abnormality Counts
+ard_tabulate_max        ARD to Calculate Categorical Occurrence Rates
+                        by Maximum Level Per Unique ID
+ard_tabulate_value.survey.design
+                        ARD Dichotomous Survey Statistics
+ard_total_n.survey.design
+                        ARD Total N
+construction_helpers    Construction Helpers
+proportion_ci           Functions for Calculating Proportion Confidence
+                        Intervals

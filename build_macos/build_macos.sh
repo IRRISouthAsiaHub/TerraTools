@@ -29,6 +29,10 @@ PYTHON_VERSION="3.12"
 # tools/common/r_locator.py). MUST match MACOS_R_PREFIX there.
 R_PREFIX="/Users/Shared/TerraTools/r_runtime"
 
+# R packages conda-forge can't supply on macOS arm64 (see environment.yml);
+# compiled from CRAN source, in dependency order.
+CRAN_PACKAGES='c("AlgDesign","enhancer","agricolae","sommer")'
+
 # Every R package the tools' R scripts load.
 R_PACKAGES='c("agricolae","broom","car","caret","cluster","corrplot","dplyr","emmeans","factoextra","GGally","ggplot2","ggrepel","gridExtra","htmlwidgets","jsonlite","lme4","moments","openxlsx","pheatmap","plotly","purrr","RColorBrewer","readr","readxl","reshape2","rrBLUP","scales","sommer","stringr","tidyr","tidyverse","viridisLite","writexl")'
 
@@ -38,6 +42,7 @@ die()  { printf '\033[1;31mError: %s\033[0m\n' "$*" >&2; exit 1; }
 [[ "$(uname)" == "Darwin" ]] || die "This script must run on macOS."
 command -v conda >/dev/null || die "conda not found. Install Miniforge: https://github.com/conda-forge/miniforge"
 command -v npm   >/dev/null || die "npm not found. Install Node.js: https://nodejs.org"
+xcrun --show-sdk-path >/dev/null 2>&1 || die "macOS SDK not found (needed to compile R packages). Run: xcode-select --install"
 mkdir -p "$WORK"
 
 # ---------------------------------------------------------------------------
@@ -62,6 +67,19 @@ else
   rm -rf "$R_PREFIX"
   conda env create -p "$R_PREFIX" -f environment.yml
 fi
+
+# `conda run` activates the env, which points R at the env's compilers and
+# the macOS SDK so CRAN source packages build.
+conda run --no-capture-output -p "$R_PREFIX" Rscript -e "
+  options(repos = c(CRAN = 'https://cloud.r-project.org'))
+  pk <- $CRAN_PACKAGES
+  need <- pk[!vapply(pk, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(need)) {
+    cat('Compiling from CRAN:', paste(need, collapse = ', '), '\n')
+    install.packages(need, type = 'source', Ncpus = 4)
+  } else cat('CRAN packages already installed\n')
+"
+
 "$R_PREFIX/bin/Rscript" -e "
   pk <- $R_PACKAGES
   missing <- pk[!vapply(pk, requireNamespace, logical(1), quietly = TRUE)]

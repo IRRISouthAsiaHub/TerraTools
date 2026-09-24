@@ -12,9 +12,9 @@ name: terratools-r
 channels:
   - conda-forge
 dependencies:
-  # Windows ships R 4.6.x; let conda pick the newest R that every package
-  # below supports on the build platform.
-  - r-base>=4.3
+  # Windows ships R 4.6.x. On macOS arm64, 4.5 is the newest R for which
+  # conda-forge has builds of every package below (checked Sept 2026).
+  - r-base=4.5
   - r-readr
   - r-dplyr
   - r-tidyr
@@ -32,7 +32,6 @@ dependencies:
   - r-htmlwidgets
   - r-ggally
   - r-corrplot
-  - r-agricolae
   - r-car
   - r-broom
   - r-cluster
@@ -46,10 +45,27 @@ dependencies:
   - r-nloptr
   - r-lmertest
   - r-viridislite
-  - r-sommer
   - r-rrblup
   - r-ggpubr
   - r-writexl
   # Used by the R backends but previously missing here:
   - r-ggrepel
   - r-caret
+
+  # ── Packages conda-forge doesn't provide ────────────────────────────────
+  # sommer (and its dependency enhancer) aren't on conda-forge at all, and
+  # agricolae's conda build needs AlgDesign, which has no macOS arm64 build.
+  # These four are compiled from CRAN after the environment is created
+  # (build_macos/build_macos.sh does this automatically):
+  #     install.packages(c("AlgDesign", "enhancer", "agricolae", "sommer"))
+  # Their dependencies that ARE on conda-forge come from here:
+  - r-rcpp
+  - r-rcpparmadillo
+  - r-rcppprogress
+  - r-crayon
+  - r-matrix
+  - r-mass
+  - r-nlme
+  # C/C++/Fortran toolchain + make, needed to compile the CRAN packages above.
+  - compilers
+  - make

@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TerraTools | IRRI South Asia Hub</title>
+<meta name="description" content="TerraTools is a free Windows desktop app with 16 tools for plant breeding and genomics: from raw genotypes and field trials to QTL, GWAS, candidate genes and genomic selection. Download the app and ready-to-run demo files.">
+<meta property="og:title" content="TerraTools - plant breeding and genomics tools by IRRI">
+<meta property="og:description" content="16 analysis tools in one desktop app. Download the installer and small demo files that run in minutes.">
+<meta property="og:image" content="assets/shots/home.jpg">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="TerraTools home">
+      <img src="assets/irri-logo.png" alt="IRRI - International Rice Research Institute" class="irri">
+      <span class="sep"></span>
+      <span class="bname">TerraTools</span>
+    </a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
+    <nav id="menu">
+      <a href="#tools">Tools</a>
+      <a href="#results">Real results</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#demo">Demo files</a>
+      <a href="#learn">Learn</a>
+      <a class="cta" href="#download">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero">
+  <canvas id="matrix" aria-hidden="true"></canvas>
+  <div class="wrap hero-in">
+    <div class="hero-text">
+      <p class="eyebrow">IRRI South Asia Hub &middot; free desktop app for Windows</p>
+      <h1>From raw genotypes to <em>candidate genes</em>, in one app.</h1>
+      <p class="lead">TerraTools brings sixteen plant breeding and genomics analyses together: field trials, linkage and QTL mapping, GWAS, bulked-segregant analysis, gene prioritization and genomic selection. No coding, no R or Python to install.</p>
+      <div class="hero-btns">
+        <a class="btn primary" href="#download" id="heroDl"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4l3.3 3.3V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"/></svg>Download for Windows</a>
+        <a class="btn ghost" href="#demo">Try the demo files</a>
+      </div>
+      <ul class="stats">
+        <li><b data-count="16">16</b><span>analysis tools</span></li>
+        <li><b data-count="3">3</b><span>research areas</span></li>
+        <li><b data-count="5" data-prefix="&lt; ">&lt; 5</b><span>minutes per demo</span></li>
+      </ul>
+    </div>
+    <div class="hero-shot" id="tilt">
+      <div class="win">
+        <div class="win-bar"><i></i><i></i><i></i><span>TerraTools</span></div>
+        <img src="assets/shots/home.jpg" alt="The TerraTools home screen listing the sixteen applications" width="1400" height="788">
+      </div>
+      <div class="chip c1">QTL</div><div class="chip c2">GWAS</div><div class="chip c3">BreedSight</div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section id="tools" class="sec">
+  <div class="wrap">
+    <p class="kicker">Sixteen applications</p>
+    <h2>Pick a tool to see what it does</h2>
+    <p class="sub">Every card opens a short brief with the result you should get on the demo files, and the demo files for just that tool.</p>
+    <div class="toolbar">
+      <div class="chips" id="catChips" role="tablist" aria-label="Filter by area"></div>
+      <label class="search"><span class="sr">Search tools</span><input id="q" type="search" placeholder="Search: QTL, rare alleles, heritability..." autocomplete="off"></label>
+    </div>
+    <div class="grid" id="toolGrid"></div>
+    <p class="empty" id="empty" hidden>No tool matches that search.</p>
+  </div>
+</section>
+
+<!-- REAL RESULTS -->
+<section id="results" class="sec alt">
+  <div class="wrap">
+    <p class="kicker">Not a mock-up</p>
+    <h2>Real output, straight from the demo files</h2>
+    <p class="sub">These plots are drawn from the files TerraTools wrote when we ran it on the demo inputs. Hover, click and change the settings to explore them. In each one a signal was planted on purpose, and the tool finds it.</p>
+    <div class="plot-card">
+      <div class="tabs" role="tablist" id="plotTabs">
+        <button role="tab" aria-selected="true" data-p="et">ET-GWAS: Manhattan</button>
+        <button role="tab" aria-selected="false" data-p="qs">QTL-Seq: delta SNP-index</button>
+        <button role="tab" aria-selected="false" data-p="dv">Diversity: five varieties</button>
+      </div>
+      <div class="plot-body">
+        <div class="plot-pane" id="pane-et">
+          <div class="ctrl"><label class="sw"><input type="checkbox" id="etPlanted"><span></span>Reveal the planted loci</label><span class="hint" id="etHint">Hover a point to read it.</span></div>
+          <div class="cv-wrap"><canvas id="cvEt"></canvas><div class="tip" id="tipEt" hidden></div></div>
+          <p class="caption">437 SNPs of 300 lines. A common SNP on chromosome 3 and a <b>rare</b> one (MAF 0.09) on chromosome 8 control the trait. Dashed line: Bonferroni, 0.05 / 437 tests.</p>
+        </div>
+        <div class="plot-pane" id="pane-qs" hidden>
+          <div class="ctrl"><span class="lbl">Confidence limit</span><div class="seg" id="qsLevel"><button data-l="2">90%</button><button data-l="3" class="on">95%</button><button data-l="4">99%</button></div><span class="hint" id="qsHint"></span></div>
+          <div class="cv-wrap"><canvas id="cvQs"></canvas><div class="tip" id="tipQs" hidden></div></div>
+          <p class="caption">Sliding-window mean of the delta SNP-index (high bulk minus low bulk) on 3 chromosomes, with limits simulated by the tool. The QTL was planted on chromosome 2 at 12 Mb.</p>
+        </div>
+        <div class="plot-pane" id="pane-dv" hidden>
+          <div class="ctrl"><span class="hint" id="dvHint">Each dot is one sample. Hover a variety.</span></div>
+          <div class="cv-wrap"><canvas id="cvDv"></canvas><div class="tip" id="tipDv" hidden></div></div>
+          <p class="caption">Shannon diversity of 24 samples in each of five varieties built to be increasingly diverse. TerraTools recovers the gradient and its clusters match the varieties exactly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW -->
+<section id="workflow" class="sec">
+  <div class="wrap">
+    <p class="kicker">Tools that talk to each other</p>
+    <h2>One result becomes the next input</h2>
+    <p class="sub">The output of one tool is built to be the input of the next. Click a step to see the file it hands over.</p>
+    <div class="flow" id="flow"></div>
+    <div class="flow-detail" id="flowDetail" aria-live="polite"></div>
+    <div class="flow2">
+      <div><b>GWAS</b> also feeds <b>Genes Extraction</b> with <code>gwas_mtas.csv</code>.</div>
+      <div><b>Clustering &amp; Genomic Selection</b> writes the training and testing sets that <b>BreedSight</b> reads.</div>
+      <div><b>Genes Extraction</b> writes the gene list that <b>Gene Prioritization</b> ranks.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section id="download" class="sec dark">
+  <div class="wrap">
+    <p class="kicker light">Get TerraTools</p>
+    <h2>Download the app</h2>
+    <div class="dl-grid">
+      <article class="dl-card main">
+        <div class="os"><svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M3 5.5 11 4.4v7.1H3zM12 4.3 21 3v8.5h-9zM3 12.5h8v7.1L3 18.5zM12 12.5h9V21l-9-1.2z"/></svg><div><h3>TerraTools for Windows</h3><p>Version 1.0.0 &middot; Windows 10 / 11, 64-bit</p></div></div>
+        <a class="btn primary big" id="dlBtn" href="https://github.com/IRRISouthAsiaHub/TerraTools/releases/latest/download/TerraTools_Setup.exe">Download TerraTools_Setup.exe <small>1.5 GB</small></a>
+        <p class="note">The installer already contains everything: the app, Python and a ready-to-use R environment. It is large because of that. Installed, it takes about 5 GB, so keep 6 GB of disk space free.</p>
+        <div class="hash"><span>SHA-256</span><code id="sha">60299df78a2f1a932a8e547e7602a8dde185337c501d2565aa6af20acd65faea</code><button id="copySha" type="button">Copy</button></div>
+        <p class="tiny"><a href="https://github.com/IRRISouthAsiaHub/TerraTools/releases">All releases</a> &middot; Check the file after downloading with <code>certutil -hashfile TerraTools_Setup.exe SHA256</code></p>
+      </article>
+      <article class="dl-card">
+        <h3>Install in three steps</h3>
+        <ol class="steps">
+          <li><b>Run</b> <code>TerraTools_Setup.exe</code>. If Windows shows a blue &ldquo;protected your PC&rdquo; screen, choose <i>More info</i>, then <i>Run anyway</i>.</li>
+          <li><b>Follow the wizard</b> and start TerraTools from the Start menu.</li>
+          <li><b>Open a tool</b>, load a file from the <a href="#demo">demo files</a> and run it.</li>
+        </ol>
+        <div class="mac"><b>macOS?</b> A Mac version is not published yet. Write to us if you need it.</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO FILES -->
+<section id="demo" class="sec">
+  <div class="wrap">
+    <p class="kicker">Try it in five minutes</p>
+    <h2>Demo input files for every tool</h2>
+    <p class="sub">Small files made so each tool gives a clear, legitimate result in under five minutes (Gene Prioritization needs the internet and takes about three). Each zip holds the input, what the tool produced, and a README with the exact settings.</p>
+    <div class="demo-top">
+      <a class="btn primary" href="downloads/TerraTools_Demo_Input_Files_all.zip" download>Download all 16 demo sets <small>16.5 MB</small></a>
+      <div class="how"><span><b>1</b>Download a zip</span><span><b>2</b>Open the tool, load the file</span><span><b>3</b>Enter the settings in the README</span><span><b>4</b>Compare with <code>expected_output</code></span></div>
+    </div>
+    <div class="demo-list" id="demoList"></div>
+    <p class="fine">Genotypes of tools 2, 3, 4, 7 and 12 to 16 come from 176 real rice lines; traits, bulks and panels are simulated with a known answer, so you can check what the tool finds. Gene Prioritization queries live public databases, so its scores can drift a little. The neural-network tools vary by about 0.03 between runs.</p>
+  </div>
+</section>
+
+<!-- LEARN -->
+<section id="learn" class="sec alt">
+  <div class="wrap">
+    <p class="kicker">Learn the tools</p>
+    <h2>A 26-minute tour and a full manual</h2>
+    <div class="learn">
+      <div class="video">
+        <video controls preload="none" poster="assets/shots/home.jpg" playsinline>
+          <source src="media/TerraTools_Tour.mp4" type="video/mp4">
+          Your browser cannot play this video. <a href="media/TerraTools_Tour.mp4">Download it</a>.
+        </video>
+        <p class="caption">All sixteen tools, one after another, with the demo files. Narrated, with captions.</p>
+      </div>
+      <div class="docs">
+        <a class="doc" href="manual/TerraTools_Complete_Manual.pdf"><span class="ic">PDF</span><div><b>Complete manual</b><small>Every tool, input formats, settings and how to read the results</small></div></a>
+        <a class="doc" href="https://github.com/IRRISouthAsiaHub/TerraTools/issues"><span class="ic">?</span><div><b>Ask a question or report a problem</b><small>Open an issue on GitHub</small></div></a>
+        <a class="doc" href="mailto:irrisah@gmail.com"><span class="ic">@</span><div><b>Write to the team</b><small>irrisah@gmail.com</small></div></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CITE -->
+<section class="sec">
+  <div class="wrap about">
+    <div>
+      <h2>About</h2>
+      <p>TerraTools is developed by the <b>International Rice Research Institute (IRRI)</b>, South Asia Hub, India, to put routine breeding and genomics analysis in the hands of breeders and researchers who do not want to write code.</p>
+      <h3>How to cite</h3>
+      <p class="cite">TerraTools: a centralized platform for plant breeding and genomics data analysis. International Rice Research Institute, South Asia Hub, India.</p>
+    </div>
+    <div class="about-logo"><img src="assets/irri-logo.png" alt="IRRI"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <img src="assets/irri-logo.png" alt="IRRI - International Rice Research Institute" class="irri">
+    <p>&copy; International Rice Research Institute &middot; IRRI South Asia Hub, India<br><a href="mailto:irrisah@gmail.com">irrisah@gmail.com</a></p>
+  </div>
+</footer>
+
+<!-- TOOL DIALOG -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" hidden>
+  <div class="m-back" data-close></div>
+  <div class="m-card" tabindex="-1">
+    <button class="m-x" data-close aria-label="Close">&times;</button>
+    <div class="m-grid">
+      <figure class="m-fig"><img id="mImg" alt=""><figcaption id="mCap"></figcaption></figure>
+      <div class="m-txt">
+        <p class="tag" id="mTag"></p>
+        <h3 id="mTitle"></h3>
+        <p id="mDesc"></p>
+        <h4>On the demo files</h4>
+        <p class="demo-line" id="mDemo"></p>
+        <ul class="see" id="mSee"></ul>
+        <p class="meta"><span id="mTime"></span><span id="mSteps"></span></p>
+        <div class="m-btns"><a class="btn primary" id="mZip" download>Download demo files</a><button class="btn ghost dark" id="mNext" type="button">Next tool &rarr;</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/tools.js"></script>
+<script src="assets/results.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

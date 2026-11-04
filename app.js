@@ -112,22 +112,6 @@
     return '<a class="demo-row" style="--c:' + catOf(t.cat).color + '" href="downloads/demo/' + t.zip + '.zip" download><span class="num">' + t.n + '</span><div><b>' + esc(t.name) + '</b><small>' + esc(t.desc) + '</small></div><span class="z">ZIP</span></a>';
   }).join("");
 
-  /* ---------- workflow ---------- */
-  (function () {
-    var F = window.TT_FLOW, box = $("#flow"), det = $("#flowDetail");
-    var name = function (id) { return TOOLS.filter(function (t) { return t.id === id; })[0]; };
-    box.innerHTML = F.map(function (f, i) { var t = name(f.id); return '<button class="fnode" data-i="' + i + '"><span class="n">Step ' + (i + 1) + '</span><h3>' + esc(t.name) + '</h3></button>'; }).join("");
-    function show(i) {
-      $$(".fnode", box).forEach(function (n, j) { n.classList.toggle("on", j === i); });
-      var f = F[i], next = F[i + 1] && name(F[i + 1].id);
-      det.innerHTML = '<div class="file">' + esc(f.out) + '</div><p>' + esc(f.note) + (next ? " It is the input of <b>" + esc(next.name) + "</b>." : " This is the end of the chain: a ranked list you can take to the lab.") + '</p>';
-    }
-    box.addEventListener("click", function (e) { var b = e.target.closest(".fnode"); if (b) show(+b.dataset.i); });
-    show(0);
-    var i = 0, t = null;
-    if (!reduce) { t = setInterval(function () { i = (i + 1) % F.length; show(i); }, 3200); box.addEventListener("click", function () { clearInterval(t); }); det.addEventListener("click", function () { clearInterval(t); }); }
-  })();
-
   /* ---------- download ---------- */
   $("#copySha").addEventListener("click", function () {
     var b = this, txt = $("#sha").textContent;

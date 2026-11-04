@@ -111,21 +111,6 @@ h2{font:700 clamp(28px,3.6vw,40px)/1.15 "Fraunces",Georgia,serif;margin:0 0 12px
 .m-desc{font-size:16px;margin:0 0 4px}
 .m-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 
-/* workflow */
-.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:6px 0 18px}
-.fnode{flex:1 1 190px;position:relative;border:2px solid var(--line);background:#fff;border-radius:16px;padding:16px 16px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:.2s;margin-right:34px;min-width:170px}
-.fnode:last-child{margin-right:0}
-.fnode:not(:last-child)::after{content:"";position:absolute;right:-30px;top:50%;width:26px;height:26px;margin-top:-13px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231f7a57' d='M4 11h12.2l-4.6-4.6L13 5l7 7-7 7-1.4-1.4 4.6-4.6H4z'/%3E%3C/svg%3E");animation:nudge 1.8s ease-in-out infinite}
-@keyframes nudge{50%{transform:translateX(5px)}}
-.fnode .n{font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.7px}
-.fnode h3{margin:4px 0 0;font-size:17px}
-.fnode.on{border-color:var(--green);background:#effaf4;box-shadow:var(--shadow);transform:translateY(-3px)}
-.flow-detail{background:var(--forest);color:#fff;border-radius:16px;padding:20px 24px;min-height:84px}
-.flow-detail .file{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.35);padding:6px 14px;border-radius:10px;font:600 15px ui-monospace,Consolas,monospace;color:var(--grain);margin-bottom:6px;word-break:break-all}
-.flow-detail p{margin:4px 0 0;color:rgba(255,255,255,.82)}
-.flow2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:16px;color:var(--muted);font-size:15px}
-.flow2 div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px}
-
 /* download */
 .dl-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-top:22px}
 .dl-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:26px}
@@ -190,9 +175,6 @@ footer{background:var(--forest);color:rgba(255,255,255,.75)}
   .burger{display:block}
   nav#menu{position:absolute;left:0;right:0;top:64px;background:var(--forest);flex-direction:column;align-items:stretch;padding:10px 22px 18px;display:none;border-bottom:1px solid rgba(255,255,255,.1)}
   nav#menu.open{display:flex}
-  .fnode{margin-right:0;margin-bottom:34px;flex-basis:100%}
-  .fnode:last-child{margin-bottom:0}
-  .fnode:not(:last-child)::after{right:auto;left:50%;top:auto;bottom:-31px;margin-left:-13px;margin-top:0;transform:rotate(90deg);animation:none}
   .sec{padding:60px 0}
 }
 @media(max-width:520px){.bname{font-size:18px}.brand .irri{height:28px}.hero-btns .btn{width:100%;justify-content:center}}

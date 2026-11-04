@@ -55,11 +55,3 @@ window.TT_TOOLS = [
     desc: "Predicts hybrid performance from parental genotypes.",
     does: ["Neural-network prediction trained on genotyped, phenotyped lines", "Scores every hybrid between the candidate parents", "Ranks the best F1 combinations and the best parents", "Cross-validation summary of the model"] },
 ];
-
-// Which file one tool hands to the next
-window.TT_FLOW = [
-  { id: "linkage", out: "file_for_QTL_Mapping.csv", note: "The genotypes with their map positions." },
-  { id: "qtl", out: "CIM_Yield_QTL_intervals_bp.csv", note: "The QTL intervals in base pairs." },
-  { id: "genes", out: "QTL_intervals_Gene_ID_list.txt", note: "The gene IDs found inside the intervals." },
-  { id: "prio", out: "gene_prioritization_ranked_genes.csv", note: "The candidate genes ranked by evidence." },
-];

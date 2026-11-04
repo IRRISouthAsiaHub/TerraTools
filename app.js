@@ -15,37 +15,6 @@
   });
   $$("a", menu).forEach(function (a) { a.addEventListener("click", function () { menu.classList.remove("open"); burger.setAttribute("aria-expanded", false); }); });
 
-  /* ---------- hero: a matrix of genotype calls (0 / 1 / 2) ---------- */
-  (function () {
-    var cv = $("#matrix"), ctx = cv.getContext("2d"), cell = 26, cols, rows, grid, w, h, mouse = { x: -999, y: -999 }, raf;
-    var colors = ["rgba(92,197,154,.20)", "rgba(92,197,154,.50)", "rgba(240,180,41,.75)"];
-    function size() {
-      var r = cv.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
-      w = r.width; h = r.height; cv.width = w * d; cv.height = h * d; ctx.setTransform(d, 0, 0, d, 0, 0);
-      cols = Math.ceil(w / cell); rows = Math.ceil(h / cell);
-      grid = []; for (var i = 0; i < cols * rows; i++) grid.push(Math.random() < .55 ? 0 : (Math.random() < .6 ? 1 : 2));
-    }
-    function draw(t) {
-      ctx.clearRect(0, 0, w, h); ctx.font = "600 12px ui-monospace,Consolas,monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      var scan = ((t || 0) / 16) % (w + 300) - 150;
-      for (var y = 0; y < rows; y++) for (var x = 0; x < cols; x++) {
-        var px = x * cell + cell / 2, py = y * cell + cell / 2, v = grid[y * cols + x];
-        var d = Math.hypot(px - mouse.x, py - mouse.y), near = Math.max(0, 1 - d / 150), s = Math.max(0, 1 - Math.abs(px - scan) / 90);
-        ctx.globalAlpha = Math.min(1, .5 + near + s);
-        ctx.fillStyle = (near > .35 || s > .5) ? "#f0b429" : colors[v];
-        ctx.fillText(String(v), px, py);
-        if (!reduce && Math.random() < .00035) grid[y * cols + x] = (v + 1 + (Math.random() < .5 ? 1 : 0)) % 3;
-      }
-      ctx.globalAlpha = 1;
-      if (!reduce) raf = requestAnimationFrame(draw);
-    }
-    size(); draw(0);
-    window.addEventListener("resize", function () { size(); if (reduce) draw(0); });
-    cv.parentNode.addEventListener("mousemove", function (e) { var r = cv.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; });
-    cv.parentNode.addEventListener("mouseleave", function () { mouse.x = mouse.y = -999; });
-    document.addEventListener("visibilitychange", function () { if (document.hidden) cancelAnimationFrame(raf); else if (!reduce) raf = requestAnimationFrame(draw); });
-  })();
-
   /* scroll reveal */
   (function () {
     var els = $$(".sec .wrap > *, .hero-text > *");
@@ -113,13 +82,6 @@
   }).join("");
 
   /* ---------- download ---------- */
-  $("#copySha").addEventListener("click", function () {
-    var b = this, txt = $("#sha").textContent;
-    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { b.textContent = "Copied"; }, function () {
-      var r = document.createRange(); r.selectNode($("#sha")); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent = "Selected";
-    });
-    setTimeout(function () { b.textContent = "Copy"; }, 1600);
-  });
   $("#heroDl").addEventListener("click", function () { var d = $("#dlBtn"); setTimeout(function () { d.animate([{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], { duration: 700, iterations: 2 }); }, 500); });
 
 })();

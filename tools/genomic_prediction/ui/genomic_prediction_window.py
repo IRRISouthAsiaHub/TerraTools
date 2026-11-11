@@ -8,6 +8,8 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
+from tools.common import json_safe
+from tools.common.save_dialog import save_dialog
 from tools.genomic_prediction.config import GenomicPredictionConfig
 from tools.genomic_prediction.backend.genomic_prediction_runner import GenomicPredictionEngine
 from ui.frontend import load_frontend
@@ -20,7 +22,7 @@ class _GenomicPredictionWorker(QObject):
     it streams log lines live via logLine rather than only reporting at
     the very end."""
 
-    finished = Signal(dict)
+    finished = Signal(str)   # JSON text: a dict through a Qt signal loses its key order (columns get sorted)
     logLine = Signal(str)
 
     def __init__(self, config: GenomicPredictionConfig):
@@ -31,7 +33,7 @@ class _GenomicPredictionWorker(QObject):
     def run(self):
         engine = GenomicPredictionEngine(self.config, on_log=self._on_log)
         result = engine.run()
-        self.finished.emit(result)
+        self.finished.emit(json_safe.dumps(result))
 
     def _on_log(self, msg: str):
         # Called synchronously from inside engine.run() on this worker
@@ -80,9 +82,7 @@ class GenomicPredictionBridge(QObject):
         """Native Save As dialog + copy, since <a download> is unreliable
         for local file:// URLs inside QWebEngineView."""
         try:
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window, "Save File", suggested_name, "All Files (*)"
-            )
+            dest_path, _ = save_dialog(self._parent_window, suggested_name)
             if not dest_path:
                 return
             shutil.copy2(source_path, dest_path)
@@ -138,16 +138,14 @@ class GenomicPredictionBridge(QObject):
     def _on_log_line(self, msg: str):
         self.logUpdate.emit(msg)
 
-    @Slot(dict)
-    def _on_finished(self, result: dict):
+    @Slot(str)
+    def _on_finished(self, payload: str):
+        result = json.loads(payload)
         if result.get("status") == "success":
-            self.statusUpdate.emit(
-                f"Done — best model: {result.get('best_model')} "
-                f"(Val R\u00b2 = {result.get('best_val_r2', 0):.4f})"
-            )
+            self.statusUpdate.emit("Analysis complete.")
         else:
             self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
-        self.resultReady.emit(json.dumps(result))
+        self.resultReady.emit(payload)
 
 
 class GenomicPredictionWindow(QMainWindow):

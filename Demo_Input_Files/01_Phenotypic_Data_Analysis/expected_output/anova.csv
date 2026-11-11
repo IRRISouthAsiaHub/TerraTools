@@ -1,0 +1,70 @@
+﻿"Trait","Environment","Source","DF","SS","MS","F","P","Sig.","Plots","Mean","CV (%)"
+"Yield","Dry_2024","Blocks",4,362.406,90.602,,,"",,,
+"Yield","Dry_2024","Genotypes (adjusted for blocks)",43,879.448,20.452,3.827,0.007653,"**",,,
+"Yield","Dry_2024","of which: Checks",3,273.99,91.33,17.092,1.248e-4,"***",,,
+"Yield","Dry_2024","of which: New entries (and entries vs checks)",40,605.458,15.136,2.833,0.02769,"*",,,
+"Yield","Dry_2024","Error",12,64.122,5.344,,,"",,,
+"Yield","Dry_2024","Total",59,1305.977,,,,"",60,42.22,5.48
+"Yield","Wet_2024","Blocks",4,82.574,20.644,,,"",,,
+"Yield","Wet_2024","Genotypes (adjusted for blocks)",43,807.316,18.775,6.248,7.475e-4,"***",,,
+"Yield","Wet_2024","of which: Checks",3,161.579,53.86,17.924,9.935e-5,"***",,,
+"Yield","Wet_2024","of which: New entries (and entries vs checks)",40,645.737,16.143,5.372,0.001619,"**",,,
+"Yield","Wet_2024","Error",12,36.059,3.005,,,"",,,
+"Yield","Wet_2024","Total",59,925.949,,,,"",60,51.053,3.4
+"Yield","Dry_2025","Blocks",4,278.241,69.56,,,"",,,
+"Yield","Dry_2025","Genotypes (adjusted for blocks)",43,845.187,19.656,4.046,0.005968,"**",,,
+"Yield","Dry_2025","of which: Checks",3,173.627,57.876,11.913,6.552e-4,"***",,,
+"Yield","Dry_2025","of which: New entries (and entries vs checks)",40,671.56,16.789,3.456,0.01221,"*",,,
+"Yield","Dry_2025","Error",12,58.299,4.858,,,"",,,
+"Yield","Dry_2025","Total",59,1181.728,,,,"",60,47.277,4.66
+"Yield","Pooled over environments","Environments",2,2356.965,1178.483,155.468,2.793e-34,"***",,,
+"Yield","Pooled over environments","Blocks",12,723.222,60.269,7.951,7.996e-11,"***",,,
+"Yield","Pooled over environments","Genotypes (adjusted for blocks)",43,1765.646,41.062,5.417,1.024e-13,"***",,,
+"Yield","Pooled over environments","Error",122,924.786,7.58,,,"",,,
+"Yield","Pooled over environments","Total",179,5770.619,,,,"",180,46.85,5.88
+"Plant_Height","Dry_2024","Blocks",4,18.982,4.746,,,"",,,
+"Plant_Height","Dry_2024","Genotypes (adjusted for blocks)",43,717.751,16.692,2.536,0.0418,"*",,,
+"Plant_Height","Dry_2024","of which: Checks",3,69.256,23.085,3.508,0.04935,"*",,,
+"Plant_Height","Dry_2024","of which: New entries (and entries vs checks)",40,648.495,16.212,2.463,0.04725,"*",,,
+"Plant_Height","Dry_2024","Error",12,78.974,6.581,,,"",,,
+"Plant_Height","Dry_2024","Total",59,815.707,,,,"",60,98.043,2.62
+"Plant_Height","Wet_2024","Blocks",4,73.401,18.35,,,"",,,
+"Plant_Height","Wet_2024","Genotypes (adjusted for blocks)",43,684.651,15.922,2.391,0.05202,"ns",,,
+"Plant_Height","Wet_2024","of which: Checks",3,49.122,16.374,2.459,0.1129,"ns",,,
+"Plant_Height","Wet_2024","of which: New entries (and entries vs checks)",40,635.529,15.888,2.386,0.0531,"ns",,,
+"Plant_Height","Wet_2024","Error",12,79.898,6.658,,,"",,,
+"Plant_Height","Wet_2024","Total",59,837.95,,,,"",60,102.65,2.51
+"Plant_Height","Dry_2025","Blocks",4,89.25,22.312,,,"",,,
+"Plant_Height","Dry_2025","Genotypes (adjusted for blocks)",43,725.988,16.883,1.029,0.5107,"ns",,,
+"Plant_Height","Dry_2025","of which: Checks",3,34.082,11.361,0.692,0.5742,"ns",,,
+"Plant_Height","Dry_2025","of which: New entries (and entries vs checks)",40,691.906,17.298,1.054,0.4892,"ns",,,
+"Plant_Height","Dry_2025","Error",12,196.948,16.412,,,"",,,
+"Plant_Height","Dry_2025","Total",59,1012.186,,,,"",60,101.41,3.99
+"Plant_Height","Pooled over environments","Environments",2,681.337,340.668,39.586,5.629e-14,"***",,,
+"Plant_Height","Pooled over environments","Blocks",12,181.633,15.136,1.759,0.06256,"ns",,,
+"Plant_Height","Pooled over environments","Genotypes (adjusted for blocks)",43,1434.295,33.356,3.876,2.402e-9,"***",,,
+"Plant_Height","Pooled over environments","Error",122,1049.915,8.606,,,"",,,
+"Plant_Height","Pooled over environments","Total",179,3347.18,,,,"",180,100.7,2.91
+"Days_to_Flowering","Dry_2024","Blocks",4,20.664,5.166,,,"",,,
+"Days_to_Flowering","Dry_2024","Genotypes (adjusted for blocks)",43,265.591,6.177,1.699,0.1609,"ns",,,
+"Days_to_Flowering","Dry_2024","of which: Checks",3,17.588,5.863,1.612,0.2384,"ns",,,
+"Days_to_Flowering","Dry_2024","of which: New entries (and entries vs checks)",40,248.003,6.2,1.705,0.1601,"ns",,,
+"Days_to_Flowering","Dry_2024","Error",12,43.632,3.636,,,"",,,
+"Days_to_Flowering","Dry_2024","Total",59,329.887,,,,"",60,95.177,2
+"Days_to_Flowering","Wet_2024","Blocks",4,28.507,7.127,,,"",,,
+"Days_to_Flowering","Wet_2024","Genotypes (adjusted for blocks)",43,188.72,4.389,1.967,0.1023,"ns",,,
+"Days_to_Flowering","Wet_2024","of which: Checks",3,26.188,8.729,3.912,0.03681,"*",,,
+"Days_to_Flowering","Wet_2024","of which: New entries (and entries vs checks)",40,162.532,4.063,1.821,0.1316,"ns",,,
+"Days_to_Flowering","Wet_2024","Error",12,26.777,2.231,,,"",,,
+"Days_to_Flowering","Wet_2024","Total",59,244.004,,,,"",60,92.44,1.62
+"Days_to_Flowering","Dry_2025","Blocks",4,40.986,10.246,,,"",,,
+"Days_to_Flowering","Dry_2025","Genotypes (adjusted for blocks)",43,207.267,4.82,1.66,0.1719,"ns",,,
+"Days_to_Flowering","Dry_2025","of which: Checks",3,14.318,4.772,1.644,0.2315,"ns",,,
+"Days_to_Flowering","Dry_2025","of which: New entries (and entries vs checks)",40,192.949,4.824,1.662,0.1725,"ns",,,
+"Days_to_Flowering","Dry_2025","Error",12,34.835,2.903,,,"",,,
+"Days_to_Flowering","Dry_2025","Total",59,283.087,,,,"",60,93.857,1.82
+"Days_to_Flowering","Pooled over environments","Environments",2,224.774,112.387,28.791,5.727e-11,"***",,,
+"Days_to_Flowering","Pooled over environments","Blocks",12,90.157,7.513,1.925,0.03754,"*",,,
+"Days_to_Flowering","Pooled over environments","Genotypes (adjusted for blocks)",43,290.589,6.758,1.731,0.01049,"*",,,
+"Days_to_Flowering","Pooled over environments","Error",122,476.233,3.904,,,"",,,
+"Days_to_Flowering","Pooled over environments","Total",179,1081.752,,,,"",180,93.824,2.11

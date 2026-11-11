@@ -2,100 +2,75 @@ import json
 import shutil
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
+from tools.common.save_dialog import save_dialog
 from tools.phenotypic.config import PhenotypicConfig
 from tools.phenotypic.backend.phenotypic_runner import PhenotypicEngine
 from ui.frontend import load_frontend
 
 
-class _PhenotypicWorker(QObject):
-    """Runs PhenotypicEngine.run() (shells out to R) on a background thread.
-    This pipeline fits many mixed models in one pass, so it can take a
-    while — the UI must stay responsive throughout."""
+class _Worker(QObject):
+    """Runs one PhenotypicEngine call (it shells out to R) on a background thread so the window stays responsive."""
 
-    finished = Signal(dict)
+    # The result travels as a JSON string: a dict crossing a Qt signal becomes a QVariantMap, which re-sorts every key
+    # alphabetically and would scramble the column order of the tables.
+    finished = Signal(int, str, str)      # job id, kind, result as JSON
 
-    def __init__(self, config: PhenotypicConfig):
+    def __init__(self, job_id: int, kind: str, fn):
         super().__init__()
-        self.config = config
+        self.job_id = job_id
+        self.kind = kind
+        self.fn = fn
 
     @Slot()
     def run(self):
-        engine = PhenotypicEngine(self.config)
-        result = engine.run()
-        self.finished.emit(result)
+        try:
+            result = self.fn()
+        except Exception as e:            # never leave the page waiting
+            import traceback
+            traceback.print_exc()
+            result = {"status": "error", "message": str(e)}
+        self.finished.emit(self.job_id, self.kind, json.dumps(result))
 
 
 class PhenotypicBridge(QObject):
-    """Python <-> JavaScript bridge for the Phenotypic Analysis frontend."""
+    """Python <-> JavaScript bridge for the Phenotypic Analysis frontend.
 
-    resultReady = Signal(str)
+    The data file is read once (inspect_data); every analysis then has its own run_module call. The results of the
+    analyses run so far stay in one folder (outdir) until the data settings change.
+    """
+
+    resultReady = Signal(str)       # result of run_module
     statusUpdate = Signal(str)
-    dataLoaded = Signal(str)
+    dataLoaded = Signal(str)        # result of inspect_data
+    exportReady = Signal(str)       # result of export_files
 
     def __init__(self, parent_window=None):
         super().__init__()
         self._parent_window = parent_window
-        self._thread = None
-        self._worker = None
+        self._jobs = {}             # job id -> (thread, worker); kept alive until the thread has finished
+        self._next_job = 0
+        self._outdir = ""           # folder of the current results
 
+    # ── dialogs ───────────────────────────────────────────────────────────────────────────
     @Slot(result=str)
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
-            self._parent_window,
-            "Select Phenotypic Data File",
-            "",
-            "Data Files (*.xlsx *.xls *.csv);;All Files (*)"
-        )
-        if not file_path:
-            return ""
-        preview = self._preview_file(file_path)
-        self.dataLoaded.emit(json.dumps(preview))
-        return file_path
-
-    def _preview_file(self, file_path: str) -> dict:
-        """Reads just enough of the file to populate the trait/environment
-        dropdowns before the user clicks Run — mirrors app.R's file-upload
-        observer, which updates selectInputs immediately on upload."""
-        try:
-            import pandas as pd
-            if file_path.lower().endswith(".csv"):
-                df = pd.read_csv(file_path, nrows=5000)
-            else:
-                df = pd.read_excel(file_path, nrows=5000)
-
-            envs = sorted(map(str, df["Environment"].dropna().unique())) if "Environment" in df.columns else []
-            trait_cols = list(df.columns[9:]) if len(df.columns) > 9 else []
-            numeric_traits = [c for c in trait_cols if pd.api.types.is_numeric_dtype(df[c])]
-
-            return {
-                "status": "ok",
-                "n_vars": int(df.shape[1]),
-                "n_obs": int(df.shape[0]),
-                "n_geno": int(df["Genotype"].nunique()) if "Genotype" in df.columns else None,
-                "n_env": len(envs),
-                "environments": envs,
-                "traits": numeric_traits,
-            }
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+            self._parent_window, "Select Phenotypic Data File", "",
+            "Data Files (*.xlsx *.xls *.csv);;All Files (*)")
+        return file_path or ""
 
     @Slot(str, str)
     def save_file(self, source_path: str, suggested_name: str):
         """Native Save As dialog + copy, since <a download> is unreliable
         for local file:// URLs inside QWebEngineView."""
         try:
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window,
-                "Save File",
-                suggested_name,
-                "All Files (*)"
-            )
+            dest_path, _ = save_dialog(self._parent_window, suggested_name)
             if not dest_path:
                 return
             shutil.copy2(source_path, dest_path)
@@ -105,59 +80,100 @@ class PhenotypicBridge(QObject):
             traceback.print_exc()
             self.statusUpdate.emit(f"Save failed: {e}")
 
-    @Slot(str)
-    def run_analysis(self, config_json: str):
+    # ── background jobs ───────────────────────────────────────────────────────────────────
+    def _start(self, kind: str, fn):
+        # Finished threads are dropped here, never inside the completion slot: that runs while the thread is still
+        # winding down, and destroying a running QThread aborts the program.
+        self._jobs = {k: v for k, v in self._jobs.items() if not v[0].isFinished()}
+        self._next_job += 1
+        thread = QThread()
+        worker = _Worker(self._next_job, kind, fn)
+        worker.moveToThread(thread)
+        self._jobs[self._next_job] = (thread, worker)
+
+        # Explicit QueuedConnection on every cross-thread connection (auto-detection failed silently in the GWAS tool).
+        thread.started.connect(worker.run, Qt.QueuedConnection)
+        worker.finished.connect(self._on_finished, Qt.QueuedConnection)
+        worker.finished.connect(thread.quit, Qt.QueuedConnection)
+        thread.start()
+
+    def _config(self, config_json: str):
         try:
-            config_dict = json.loads(config_json)
+            d = json.loads(config_json)
         except Exception as e:
-            self.resultReady.emit(json.dumps({
-                "status": "error",
-                "message": f"Invalid configuration: {e}"
-            }))
-            return
+            return None, None, f"Invalid configuration: {e}"
+        if not d.get("input_file"):
+            return None, None, "Please select an input file."
+        cfg = PhenotypicConfig.from_dict(d)
+        if d.get("design") == "auto":            # inspect only: pick the design from the columns
+            cfg.design = "auto"
+        return cfg, d.get("req"), None
 
-        if not config_dict.get("input_file"):
-            self.resultReady.emit(json.dumps({
-                "status": "error",
-                "message": "Please select an input file."
-            }))
-            return
-        if not config_dict.get("trait"):
-            self.resultReady.emit(json.dumps({
-                "status": "error",
-                "message": "Please select a trait to analyze."
-            }))
-            return
+    @Slot(str)
+    def inspect_data(self, config_json: str):
+        """Reads and validates the data file; the page gets the answer through dataLoaded."""
+        cfg, req, err = self._config(config_json)
+        if err:
+            return self.dataLoaded.emit(json.dumps({"status": "error", "message": err}))
+        self.statusUpdate.emit("Reading the data file...")
+        # the request id comes back with the answer, so the page can ignore an answer to an older request
+        self._start("inspect", lambda: {**PhenotypicEngine(cfg).inspect(), "req": req})
 
-        config = PhenotypicConfig.from_dict(config_dict)
-        print("\n===== PHENOTYPIC CONFIGURATION =====")
-        print(config)
-        print("=====================================\n")
+    @Slot(str)
+    def run_module(self, config_json: str):
+        """Runs one analysis (config.module) with its settings; the page gets the answer through resultReady."""
+        cfg, _, err = self._config(config_json)
+        if err:
+            return self.resultReady.emit(json.dumps({"status": "error", "message": err}))
+        if not cfg.module:
+            return self.resultReady.emit(json.dumps({"status": "error", "message": "No analysis chosen."}))
+        if not cfg.outdir:                       # new data settings: the earlier results are discarded
+            self._discard_results()
+        self.statusUpdate.emit(f"Running {cfg.module} ...")
+        self._start("run", lambda: PhenotypicEngine(cfg).run())
 
-        self.statusUpdate.emit("Running phenotypic analysis (this covers 10+ models, may take a while)...")
+    @Slot(str)
+    def export_files(self, request_json: str):
+        """Builds a download (workbook, figures zip, everything zip); the page gets the file path through exportReady."""
+        try:
+            req = json.loads(request_json)
+        except Exception as e:
+            return self.exportReady.emit(json.dumps({"status": "error", "message": f"Invalid request: {e}"}))
+        outdir, kind = req.get("outdir", ""), req.get("kind", "all")
+        self.statusUpdate.emit("Preparing the file...")
+        self._start("export", lambda: PhenotypicEngine().export(outdir, kind))
 
-        self._thread = QThread()
-        self._worker = _PhenotypicWorker(config)
-        self._worker.moveToThread(self._thread)
-
-        # Explicit QueuedConnection on every cross-thread connection —
-        # relying on Qt's auto-detection for a plain (non-@Slot) receiver
-        # method caused a silent delivery failure in the GWAS tool.
-        self._thread.started.connect(self._worker.run, Qt.QueuedConnection)
-        self._worker.finished.connect(self._on_finished, Qt.QueuedConnection)
-        self._worker.finished.connect(self._thread.quit, Qt.QueuedConnection)
-        self._worker.finished.connect(self._worker.deleteLater, Qt.QueuedConnection)
-        self._thread.finished.connect(self._thread.deleteLater, Qt.QueuedConnection)
-
-        self._thread.start()
-
-    @Slot(dict)
-    def _on_finished(self, result: dict):
-        if result.get("status") == "success":
-            self.statusUpdate.emit("Phenotypic analysis completed successfully.")
+    @Slot(int, str, str)
+    def _on_finished(self, job_id: int, kind: str, payload: str):
+        result = json.loads(payload)
+        if kind == "inspect":
+            if result.get("status") == "success":
+                self.statusUpdate.emit(
+                    f"Loaded {result.get('n_plots', 0)} plots, {len(result.get('traits', []))} traits, "
+                    f"{result.get('n_environments', 0)} environments.")
+            else:
+                self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
+            self.dataLoaded.emit(payload)
+        elif kind == "export":
+            if result.get("status") != "success":
+                self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
+            self.exportReady.emit(payload)
         else:
-            self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
-        self.resultReady.emit(json.dumps(result))
+            if result.get("status") == "success":
+                self._outdir = result.get("outdir", self._outdir)
+                self.statusUpdate.emit("Analysis completed.")
+            else:
+                self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
+            self.resultReady.emit(payload)
+
+    # ── temporary results ─────────────────────────────────────────────────────────────────
+    def _discard_results(self):
+        if self._outdir:
+            shutil.rmtree(self._outdir, ignore_errors=True)
+            self._outdir = ""
+
+    def cleanup(self):
+        self._discard_results()
 
 
 class PhenotypicWindow(QMainWindow):
@@ -181,3 +197,7 @@ class PhenotypicWindow(QMainWindow):
         self.browser.page().setWebChannel(self.channel)
 
         load_frontend(self.browser, "phenotypic")
+
+    def closeEvent(self, event):
+        self.bridge.cleanup()
+        super().closeEvent(event)

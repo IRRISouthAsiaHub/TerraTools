@@ -14,9 +14,24 @@ def _mendelian():
     return MendelianBridge
 
 
+def _genofile_converter():
+    from tools.genofile_converter.ui.genofile_window import GenofileBridge
+    return GenofileBridge
+
+
 def _linkage():
     from tools.linkage.ui.linkage_window import LinkageBridge
     return LinkageBridge
+
+
+def _genotype_viewer():
+    from tools.genotype_viewer.ui.genotype_viewer_window import GenotypeViewerBridge
+    return GenotypeViewerBridge
+
+
+def _favourable_allele():
+    from tools.favourable_allele.ui.favourable_allele_window import FavourableAlleleBridge
+    return FavourableAlleleBridge
 
 
 def _qtl():
@@ -27,6 +42,11 @@ def _qtl():
 def _gene_extractor():
     from tools.gene_extractor.ui.gene_extractor_window import geneExtractorBridge
     return geneExtractorBridge
+
+
+def _gene_prioritization():
+    from tools.gene_prioritization.ui.gene_prioritization_window import GenePrioritizationBridge
+    return GenePrioritizationBridge
 
 
 def _pybsaseq():
@@ -47,6 +67,11 @@ def _diversity():
 def _gwas():
     from tools.gwas.ui.gwas_window import GWASBridge
     return GWASBridge
+
+
+def _et_gwas():
+    from tools.et_gwas.ui.et_gwas_window import EtGwasBridge
+    return EtGwasBridge
 
 
 def _clustering():
@@ -82,14 +107,19 @@ def _phenotypic():
 # (loader, QWebChannel object name). The object name is what the React page
 # asks for (frontend/src/pages/*Tool.jsx).
 TOOL_BRIDGES = [
+    (_genofile_converter, "genofileBridge"),
     (_mendelian, "mendelianBridge"),
     (_linkage, "linkageBridge"),
+    (_genotype_viewer, "genotypeViewerBridge"),
+    (_favourable_allele, "favourableAlleleBridge"),
     (_qtl, "qtlBridge"),
     (_gene_extractor, "geneExtractorBridge"),
+    (_gene_prioritization, "genePrioritizationBridge"),
     (_pybsaseq, "pybsaseqBridge"),
     (_qtl_seq, "qtlSeqBridge"),
     (_diversity, "diversityBridge"),
     (_gwas, "gwasBridge"),
+    (_et_gwas, "etGwasBridge"),
     (_clustering, "clusteringBridge"),
     (_additive_dominance, "additiveDominanceBridge"),
     (_genomic_prediction, "genomicPredictionBridge"),
@@ -115,4 +145,23 @@ def register_tool_bridges(channel, window):
         except Exception:
             print(f"[TerraTools] could not load the {name} tool:", flush=True)
             traceback.print_exc()
+    _register_assistant(channel, window, bridges)
     return bridges
+
+
+def _register_assistant(channel, window, bridges):
+    """The chat assistant also listens to every tool's finished runs, so it can
+    read the user's results. Failing here must never stop the tools."""
+    try:
+        from tools.assistant.ui.assistant_window import AssistantBridge, OBJECT_TO_TOOL
+        assistant = AssistantBridge(window)
+        channel.registerObject("assistantBridge", assistant)
+        bridges["assistantBridge"] = assistant
+        for obj_name, tool_id in OBJECT_TO_TOOL.items():
+            bridge = bridges.get(obj_name)
+            signal = getattr(bridge, "resultReady", None)
+            if signal is not None:
+                signal.connect(lambda payload, t=tool_id: assistant.note_result(t, payload))
+    except Exception:
+        print("[TerraTools] could not load the assistant:", flush=True)
+        traceback.print_exc()

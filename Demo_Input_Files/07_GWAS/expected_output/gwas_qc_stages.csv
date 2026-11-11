@@ -1,0 +1,7 @@
+﻿stage,rule,samples_removed,snps_removed,samples_left,snps_left
+Input,"176 samples, 288 SNPs read",0,0,176,288
+SNP call rate,missing calls <= 100%,0,0,176,288
+Sample call rate,missing calls <= 100%,0,0,176,288
+Monomorphic SNPs,no variation among the remaining samples,0,0,176,288
+Minor allele frequency,MAF >= 0,0,0,176,288
+Imputation,mean dosage of the marker replaces each missing call,0,0,176,288

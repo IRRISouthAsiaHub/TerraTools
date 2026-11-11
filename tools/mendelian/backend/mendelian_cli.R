@@ -6,7 +6,7 @@
 #
 # Usage:
 #   Rscript mendelian_cli.R --input path.csv --pop RIL --pthr 0.05 \
-#           --missing "NA,.,-9" --drop_unplaced true --outdir /tmp/xyz
+#           --missing "NA,.,-9,-1" --mtc fdr --drop_unplaced true --outdir /tmp/xyz
 
 suppressPackageStartupMessages(library(jsonlite))
 
@@ -43,7 +43,8 @@ result <- tryCatch({
     pthr           = as.numeric(args[["pthr"]]),
     missing_codes  = trimws(strsplit(args[["missing"]], ",")[[1]]),
     drop_unplaced  = tolower(args[["drop_unplaced"]]) %in% c("true", "1", "yes"),
-    outdir         = outdir
+    outdir         = outdir,
+    mtc_method     = if (is.null(args[["mtc"]])) "fdr" else args[["mtc"]]
   )
 }, error = function(e) {
   list(status = "error", message = conditionMessage(e))

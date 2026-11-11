@@ -8,6 +8,7 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
+from tools.common.save_dialog import save_dialog
 from tools.gwas.config import GWASConfig
 from ui.frontend import load_frontend
 
@@ -57,6 +58,48 @@ class GWASBridge(QObject):
         )
         return file_path or ""
 
+    @Slot(result=str)
+    def browse_phenotype(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self._parent_window, "Select phenotype file", "",
+            "Phenotype files (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
+        )
+        return file_path or ""
+
+    @Slot(result=str)
+    def browse_vcf(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self._parent_window, "Select VCF file", "",
+            "VCF (*.vcf *.vcf.gz);;All Files (*)"
+        )
+        return file_path or ""
+
+    @Slot(str, result=str)
+    def get_phenotype_columns(self, path: str):
+        """Trait columns (numeric columns after the ID column) of a phenotype file, as JSON."""
+        try:
+            from tools.gwas.backend.gwas_inputs import phenotype_columns
+            return json.dumps(phenotype_columns(path))
+        except Exception as e:
+            self.statusUpdate.emit(f"Could not read the phenotype file: {e}")
+            return json.dumps([])
+
+    @Slot(result=str)
+    def rice3k_info(self):
+        """Size of the bundled rice 3K panel, example IDs, and a ready-to-fill phenotype template
+        (all accession IDs + an empty Trait column), as JSON."""
+        try:
+            import tempfile
+            from tools.gwas.backend.gwas_inputs import rice3k_info, rice3k_template
+            info = rice3k_info()
+            info.pop("ids", None)
+            template = Path(tempfile.mkdtemp(prefix="terratools_3k_")) / "rice3k_phenotype_template.csv"
+            info["template"] = rice3k_template(template)
+            return json.dumps(info)
+        except Exception as e:
+            self.statusUpdate.emit(f"Rice 3K panel unavailable: {e}")
+            return json.dumps({})
+
     @Slot(str, str)
     def save_file(self, source_path: str, suggested_name: str):
         """Opens a native Save As dialog and copies source_path to the chosen location.
@@ -64,12 +107,7 @@ class GWASBridge(QObject):
         does not reliably trigger a save dialog for local file:// URLs inside
         QWebEngineView."""
         try:
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window,
-                "Save File",
-                suggested_name,
-                "All Files (*)"
-            )
+            dest_path, _ = save_dialog(self._parent_window, suggested_name)
             if not dest_path:
                 return  # user cancelled
             shutil.copy2(source_path, dest_path)
@@ -90,10 +128,23 @@ class GWASBridge(QObject):
             }))
             return
 
-        if not config_dict.get("input_file"):
+        mode = config_dict.get("input_mode", "file")
+        if mode == "file" and not config_dict.get("input_file"):
             self.resultReady.emit(json.dumps({
                 "status": "error",
                 "message": "Please select an input file."
+            }))
+            return
+        if mode in ("3k", "vcf") and not (config_dict.get("phenotype_file") and config_dict.get("trait")):
+            self.resultReady.emit(json.dumps({
+                "status": "error",
+                "message": "Please select the phenotype file and the trait to analyse."
+            }))
+            return
+        if mode == "vcf" and not config_dict.get("vcf_file"):
+            self.resultReady.emit(json.dumps({
+                "status": "error",
+                "message": "Please select the VCF file."
             }))
             return
 

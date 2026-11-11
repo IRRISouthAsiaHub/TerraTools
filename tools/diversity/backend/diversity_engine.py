@@ -1,174 +1,97 @@
 """
 diversity_engine.py — Haplotypic diversity analysis engine.
 
-This is the same computation logic as the Hugging Face app.py (Gradio)
-version: compute_diversity_metrics(), the custom neighbour-joining
-implementation, build_nj_tree_plotly(), and the analyze_haplotypes()
-pipeline. No math has been changed.
-
-The only thing that's different is the "shape" of the output: instead of
-returning Plotly Figure objects + a DataFrame for Gradio to render, this
-writes each figure as a self-contained interactive HTML file (Plotly.js
-embedded, so it works fully offline in QWebEngineView) plus a results CSV
-and JSON, and returns a dict of paths + the summary markdown string.
+The diversity metrics, PCA, clustering and the custom neighbour-joining
+implementation are the same computations as before. What changed is the output:
+every figure is now a PNG on a white background (diversity_plots.py), so the app
+shows it at its natural proportions, opens it in a pop-up and saves it as an
+image. The tree is a circular iTOL-style tree with bootstrap support.
 """
 
+import re
 import warnings
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import pdist, squareform
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
+from tools.diversity.backend import diversity_plots as P
+
 warnings.filterwarnings('ignore')
 
 # =============================================================================
-# COLOR PALETTES (unchanged from app.py)
+# DIVERSITY METRICS COMPUTATION
 # =============================================================================
-DARK_COLORS = [
-    "#1F77B4", "#D62728", "#2CA02C", "#FF7F0E", "#9467BD",
-    "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF",
+#
+# Haplotype block values are CODES for haplotypes, not abundances. Each
+# sample's metrics describe how its non-missing blocks are distributed over
+# those codes:
+#   - a block coded -1 (or left blank) is MISSING and is left out
+#   - 0 is a real haplotype code and counts like any other
+#   - p_i = share of the sample's non-missing blocks that carry code i
+#
+# This follows the corrected manual script (app_ENHANCED_NonNormalized.py).
+
+METRIC_COLUMNS = [
+    'Richness', 'Load', 'Shannon_Diversity', 'Simpson_Diversity', 'Gini_Simpson',
+    'Effective_Alleles', 'Heterozygosity', 'Gene_Diversity', 'PIC_Index',
+    'Nucleotide_Diversity', 'Allelic_Entropy', 'Richness_Normalized',
 ]
 
-VARIETY_CLADE_COLORS = [
-    "#C0392B", "#E67E22", "#F1C40F", "#27AE60", "#1ABC9C",
-    "#2980B9", "#8E44AD", "#E91E63", "#00BCD4", "#FF5722",
-    "#9C27B0", "#4CAF50",
-]
-
-
-def hex_to_rgba(hex_color, alpha=0.25):
-    hex_color = hex_color.lstrip('#')
-    r = int(hex_color[0:2], 16)
-    g = int(hex_color[2:4], 16)
-    b = int(hex_color[4:6], 16)
-    return f"rgba({r}, {g}, {b}, {alpha})"
-
-
-# =============================================================================
-# DIVERSITY METRICS COMPUTATION (10+ INDICES) — unchanged
-# =============================================================================
 
 def compute_diversity_metrics(df, block_cols):
-    metrics = pd.DataFrame(index=df.index)
-    data = df[block_cols].fillna(0)
+    n = len(df)
+    # -1 = missing block call
+    values = df[block_cols].replace(-1, np.nan).to_numpy(dtype=float)
+    out = {name: np.zeros(n) for name in METRIC_COLUMNS}
 
-    metrics['Richness'] = (data != 0).sum(axis=1)
-    metrics['Load'] = data.sum(axis=1)
+    out['Richness'] = (~np.isnan(values)).sum(axis=1).astype(float)
+    out['Load'] = np.nansum(values, axis=1)          # missing counts as 0
 
-    data_norm = data.div(data.sum(axis=1), axis=0).replace([np.inf, -np.inf], 0).fillna(0)
-    shannon = -(data_norm * np.log(data_norm + 1e-10)).sum(axis=1)
-    metrics['Shannon_Diversity'] = shannon
+    for i in range(n):
+        valid = values[i][~np.isnan(values[i])]
+        if valid.size == 0:
+            out['Effective_Alleles'][i] = 1.0
+            continue
 
-    simpson = 1 - (data_norm ** 2).sum(axis=1)
-    metrics['Simpson_Diversity'] = simpson
-    metrics['Gini_Simpson'] = (data_norm * (1 - data_norm)).sum(axis=1)
-    metrics['Effective_Alleles'] = 1 / (data_norm ** 2).sum(axis=1).replace(0, np.nan)
-    metrics['Effective_Alleles'] = metrics['Effective_Alleles'].fillna(0)
+        _, counts = np.unique(valid, return_counts=True)
+        probs = counts / counts.sum()
+        sum_sq = float(np.sum(probs ** 2))
 
-    nucleotide_div = []
-    for idx, row in data.iterrows():
-        if row.sum() > 0:
-            diff = np.abs(np.diff(row.values))
-            nuc_div = np.mean(diff) if len(diff) > 0 else 0
-        else:
-            nuc_div = 0
-        nucleotide_div.append(nuc_div)
-    metrics['Nucleotide_Diversity'] = nucleotide_div
+        out['Shannon_Diversity'][i] = -np.sum(probs * np.log(probs + 1e-10))
+        out['Simpson_Diversity'][i] = 1 - sum_sq
+        out['Gene_Diversity'][i] = 1 - sum_sq
+        out['Gini_Simpson'][i] = 1 - sum_sq
+        out['Effective_Alleles'][i] = 1 / sum_sq
 
-    het = []
-    for idx, row in data.iterrows():
-        unique_vals = len(row[row > 0].unique())
-        max_het = unique_vals / len(block_cols) if len(block_cols) > 0 else 0
-        het.append(max_het)
-    metrics['Heterozygosity'] = het
+        alt_freq = valid.sum() / (2 * valid.size)
+        he = 2 * alt_freq * (1 - alt_freq)
+        out['Heterozygosity'][i] = he if not np.isnan(he) else 0
 
-    entropy = []
-    for idx, row in data.iterrows():
-        non_zero = row[row > 0]
-        if len(non_zero) > 0:
-            probs = non_zero.value_counts(normalize=True).values
-            ent = -np.sum(probs * np.log2(probs + 1e-10))
-        else:
-            ent = 0
-        entropy.append(ent)
-    metrics['Allelic_Entropy'] = entropy
+        max_freq = probs.max()
+        min_freq = 1 - max_freq
+        pic = 2 * max_freq * min_freq * (1 - 2 * max_freq * min_freq)
+        out['PIC_Index'][i] = max(0.0, min(pic, 1.0))
 
-    pic = []
-    for idx, row in data.iterrows():
-        if row.sum() > 0:
-            counts = row[row > 0].value_counts()
-            freq = counts / counts.sum()
-            pic_val = 1 - (freq ** 2).sum()
-        else:
-            pic_val = 0
-        pic.append(pic_val)
-    metrics['PIC_Index'] = pic
+        # Extra columns (not in the manual script), on the same cleaned data
+        out['Allelic_Entropy'][i] = -np.sum(probs * np.log2(probs + 1e-10))
+        out['Nucleotide_Diversity'][i] = (
+            float(np.mean(np.abs(np.diff(valid)))) if valid.size > 1 else 0.0
+        )
 
-    metrics['Gene_Diversity'] = 1 - (data_norm ** 2).sum(axis=1)
     max_richness = len(block_cols)
-    metrics['Richness_Normalized'] = metrics['Richness'] / max_richness if max_richness > 0 else 0
+    out['Richness_Normalized'] = out['Richness'] / max_richness if max_richness > 0 else np.zeros(n)
 
-    return metrics
+    return pd.DataFrame(out, index=df.index)
 
-
-# =============================================================================
-# PLOT STYLING — unchanged
-# =============================================================================
-
-def apply_dark_style(fig, title="", xaxis_title="", yaxis_title="",
-                      height=480, margin=None, extra=None):
-    if margin is None:
-        margin = dict(l=60, r=40, t=65, b=60)
-
-    layout_kw = dict(
-        font=dict(family="Consolas, 'Courier New', monospace", color="#333333"),
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#F8F9FA",
-        title=dict(
-            text=title,
-            font=dict(size=15, color="#2C3E50", family="Consolas, monospace"),
-            x=0.03,
-        ),
-        legend=dict(
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor="#CCCCCC",
-            borderwidth=1,
-            font=dict(color="#333333"),
-        ),
-        xaxis=dict(
-            title=xaxis_title,
-            gridcolor="#E0E0E0",
-            linecolor="#CCCCCC",
-            tickfont=dict(size=10, color="#555555"),
-            title_font=dict(color="#333333"),
-        ),
-        yaxis=dict(
-            title=yaxis_title,
-            gridcolor="#E0E0E0",
-            linecolor="#CCCCCC",
-            tickfont=dict(size=10, color="#555555"),
-            title_font=dict(color="#333333"),
-        ),
-        coloraxis=dict(colorbar=dict(tickfont=dict(size=10, color="#555555"),
-                                      title_font=dict(color="#333333"))),
-        height=height,
-        margin=margin,
-    )
-
-    if extra:
-        layout_kw.update(extra)
-
-    fig.update_layout(**layout_kw)
-    return fig
 
 
 # =============================================================================
-# NEIGHBOUR JOINING ALGORITHM — unchanged
+# NEIGHBOUR JOINING (same algorithm, the pair search is vectorised)
 # =============================================================================
 
 def neighbour_joining_simple(dist_matrix):
@@ -182,12 +105,7 @@ def neighbour_joining_simple(dist_matrix):
     while len(clusters) > 2:
         m = len(clusters)
         row_sums = D.sum(axis=1)
-        Q = np.zeros((m, m))
-        for i in range(m):
-            for j in range(m):
-                if i != j:
-                    Q[i, j] = (m - 2) * D[i, j] - row_sums[i] - row_sums[j]
-
+        Q = (m - 2) * D - row_sums[:, None] - row_sums[None, :]
         np.fill_diagonal(Q, np.inf)
         flat_idx = np.argmin(Q)
         i, j = divmod(flat_idx, m)
@@ -200,21 +118,17 @@ def neighbour_joining_simple(dist_matrix):
         edges.append((new_node, clusters[i], max(li, 0)))
         edges.append((new_node, clusters[j], max(lj, 0)))
 
-        old_indices = [k for k in range(m) if k != i and k != j]
-        new_dists = [(D[i, k] + D[j, k] - D[i, j]) / 2 for k in old_indices]
+        old = [k for k in range(m) if k != i and k != j]
+        new_dists = (D[i, old] + D[j, old] - D[i, j]) / 2
 
-        new_clusters = [clusters[k] for k in old_indices] + [new_node]
-        new_size = len(new_clusters)
-        new_D = np.zeros((new_size, new_size))
-        for a, ka in enumerate(old_indices):
-            for b, kb in enumerate(old_indices):
-                new_D[a, b] = D[ka, kb]
-        for a in range(len(old_indices)):
-            new_D[a, new_size - 1] = new_dists[a]
-            new_D[new_size - 1, a] = new_dists[a]
+        size = len(old) + 1
+        new_D = np.zeros((size, size))
+        new_D[:-1, :-1] = D[np.ix_(old, old)]
+        new_D[:-1, -1] = new_dists
+        new_D[-1, :-1] = new_dists
 
         D = new_D
-        clusters = new_clusters
+        clusters = [clusters[k] for k in old] + [new_node]
 
     if len(clusters) == 2:
         edges.append((clusters[0], clusters[1], D[0, 1] / 2))
@@ -223,307 +137,102 @@ def neighbour_joining_simple(dist_matrix):
     return edges
 
 
-# =============================================================================
-# RECTANGULAR CLADOGRAM NJ TREE — unchanged
-# =============================================================================
-
-def build_nj_tree_plotly(dist_matrix, sample_labels, variety_labels):
-    """
-    Rectangular cladogram NJ tree:
-      - Root on LEFT, leaves extend to RIGHT
-      - Each variety's entire subtree rendered in a distinct solid color
-      - Grey backbone connects variety clades at deep divergence
-      - Colored clade label bars on the far right margin
-      - Branch lines are thin horizontal + vertical L-shapes (no diagonals)
-      - Leaf labels shown for <=120 samples
-    """
-    n = len(sample_labels)
-    if n < 3:
-        fig = go.Figure()
-        apply_dark_style(fig, title="NJ Tree (need >= 3 samples)")
-        return fig
-
+def nj_structure(dist_matrix):
+    """Neighbour-joining tree as a rooted structure: children, post-order, leaf order, distance from the root."""
     edges = neighbour_joining_simple(dist_matrix)
-
     adj = defaultdict(list)
+    all_nodes = set()
     for parent, child, dist in edges:
         adj[parent].append((child, dist))
         adj[child].append((parent, dist))
-
-    all_nodes = set()
-    for p, c, _ in edges:
-        all_nodes.add(p)
-        all_nodes.add(c)
+        all_nodes.add(parent)
+        all_nodes.add(child)
     root = max(all_nodes)
 
-    children_map = defaultdict(list)
-    parent_map = {}
-    visited = set()
-
-    def dfs_root(node, par):
-        visited.add(node)
+    children = defaultdict(list)
+    visited = {root}
+    stack = [root]
+    while stack:                                   # iterative, so a long chain cannot hit the recursion limit
+        node = stack.pop()
         for nb, d in adj[node]:
             if nb not in visited:
-                children_map[node].append((nb, d))
-                parent_map[nb] = node
-                dfs_root(nb, node)
+                visited.add(nb)
+                children[node].append((nb, d))
+                stack.append(nb)
 
-    dfs_root(root, -1)
-
-    leaf_order = []
-
-    def collect_leaves(node):
-        ch = children_map[node]
+    leaf_order, order = [], []
+    stack = [(root, False)]
+    while stack:
+        node, done = stack.pop()
+        if done:
+            order.append(node)
+            continue
+        stack.append((node, True))
+        ch = children[node]
         if not ch:
             leaf_order.append(node)
-        else:
-            for c, _ in ch:
-                collect_leaves(c)
+        for c, _ in reversed(ch):
+            stack.append((c, False))
 
-    collect_leaves(root)
-
-    leaf_y = {leaf: i for i, leaf in enumerate(leaf_order)}
-
-    node_x = {root: 0.0}
+    radius = {root: 0.0}
     stack = [root]
     while stack:
         node = stack.pop()
-        for child, dist in children_map[node]:
-            node_x[child] = node_x[node] + dist
+        for child, dist in children[node]:
+            radius[child] = radius[node] + max(dist, 0.0)
             stack.append(child)
+    return dict(children=children, order=order, leaf_order=leaf_order, radius=radius, root=root)
 
-    node_y = {}
 
-    def assign_y(node):
-        ch = children_map[node]
-        if not ch:
-            node_y[node] = leaf_y[node]
-        else:
-            for c, _ in ch:
-                assign_y(c)
-            ys = [node_y[c] for c, _ in ch]
-            node_y[node] = (min(ys) + max(ys)) / 2.0
-
-    assign_y(root)
-
-    max_x = max(node_x.values()) if node_x else 1.0
-    if max_x == 0:
-        max_x = 1.0
-    node_x = {k: v / max_x for k, v in node_x.items()}
-
-    unique_varieties = []
-    seen = set()
-    for v in variety_labels:
-        if v not in seen:
-            unique_varieties.append(v)
-            seen.add(v)
-    var_color = {v: VARIETY_CLADE_COLORS[i % len(VARIETY_CLADE_COLORS)]
-                 for i, v in enumerate(unique_varieties)}
-
-    def get_leaf_varieties(node):
-        ch = children_map[node]
-        if not ch:
-            return {variety_labels[node]}
-        result = set()
-        for c, _ in ch:
-            result |= get_leaf_varieties(c)
-        return result
-
-    node_variety = {}
-
-    def assign_node_variety(node):
-        ch = children_map[node]
-        if not ch:
-            node_variety[node] = variety_labels[node]
-            return
-        for c, _ in ch:
-            assign_node_variety(c)
-        child_vars = [node_variety[c] for c, _ in ch]
-        most_common = Counter(child_vars).most_common(1)[0][0]
-        node_variety[node] = most_common
-
-    assign_node_variety(root)
-
-    def is_pure_variety(node):
-        vs = get_leaf_varieties(node)
-        return list(vs)[0] if len(vs) == 1 else None
-
-    purity_cache = {}
-
-    def get_purity(node):
-        if node not in purity_cache:
-            purity_cache[node] = is_pure_variety(node)
-        return purity_cache[node]
-
-    BACKBONE_COLOR = "#666666"
-
-    def edge_color(child_node):
-        p = get_purity(child_node)
-        if p is not None:
-            return var_color[p]
-        return BACKBONE_COLOR
-
-    color_traces = defaultdict(lambda: {"x": [], "y": []})
-
-    def add_edge(px, py, cx, cy, color):
-        color_traces[color]["x"] += [px, cx, None]
-        color_traces[color]["y"] += [cy, cy, None]
-        if abs(py - cy) > 0.001:
-            color_traces[color]["x"] += [px, px, None]
-            color_traces[color]["y"] += [py, cy, None]
-
-    def draw_edges(node):
-        ch = children_map[node]
-        px = node_x[node]
-        py = node_y[node]
-        for child, _ in ch:
-            cx = node_x[child]
-            cy = node_y[child]
-            color = edge_color(child)
-            add_edge(px, py, cx, cy, color)
-            draw_edges(child)
-
-    draw_edges(root)
-
-    fig = go.Figure()
-
-    for color, coords in color_traces.items():
-        is_backbone = (color == BACKBONE_COLOR)
-        fig.add_trace(go.Scatter(
-            x=coords["x"],
-            y=coords["y"],
-            mode="lines",
-            line=dict(color=color, width=0.9 if not is_backbone else 1.1),
-            hoverinfo="none",
-            showlegend=False,
-        ))
-
-    for variety in unique_varieties:
-        idx_list = [i for i in range(n) if variety_labels[i] == variety]
-        if not idx_list:
+def _splits(tree, n):
+    """{node: bipartition} for every branch; the side without sample 0 names the split."""
+    leaves = {}
+    for node in tree["order"]:
+        ch = tree["children"][node]
+        leaves[node] = frozenset([node]) if not ch else frozenset().union(*(leaves[c] for c, _ in ch))
+    full = frozenset(range(n))
+    out = {}
+    for node, s in leaves.items():
+        if node == tree["root"] or len(s) < 2 or len(s) > n - 2:
             continue
-        lx = [node_x[i] for i in idx_list if i in node_x]
-        ly = [node_y[i] for i in idx_list if i in node_y]
-        hover = [f"<b>{sample_labels[i]}</b><br>Variety: {variety}" for i in idx_list if i in node_x]
-        fig.add_trace(go.Scatter(
-            x=lx, y=ly,
-            mode="markers",
-            name=variety,
-            marker=dict(
-                size=4,
-                color=var_color[variety],
-                line=dict(color="rgba(0,0,0,0.3)", width=0.3),
-            ),
-            text=hover,
-            hovertemplate="%{text}<extra></extra>",
-        ))
+        out[node] = s if 0 not in s else full - s
+    return out
 
-    show_labels = n <= 120
-    if show_labels:
-        for i in range(n):
-            if i not in node_x:
-                continue
-            fig.add_annotation(
-                x=node_x[i] + 0.012,
-                y=node_y[i],
-                text=sample_labels[i],
-                showarrow=False,
-                xanchor="left",
-                font=dict(
-                    size=7,
-                    color=var_color.get(variety_labels[i], "#AAAAAA"),
-                    family="Consolas, monospace",
-                ),
-                yshift=0,
-            )
 
-    bar_x_right = 1.08 if show_labels else 1.04
-    label_x = bar_x_right + 0.025
-
-    i = 0
-    while i < len(leaf_order):
-        leaf = leaf_order[i]
-        var = variety_labels[leaf]
-        j = i
-        while j < len(leaf_order) and variety_labels[leaf_order[j]] == var:
-            j += 1
-        y_min = i - 0.4
-        y_max = j - 1 + 0.4
-        y_mid = (i + j - 1) / 2.0
-        color = var_color[var]
-        fig.add_shape(
-            type="rect",
-            x0=bar_x_right, x1=bar_x_right + 0.018,
-            y0=y_min, y1=y_max,
-            fillcolor=color,
-            line=dict(width=0),
-            xref="x", yref="y",
-        )
-        fig.add_annotation(
-            x=label_x + 0.018,
-            y=y_mid,
-            text=f"<b>{var}</b>",
-            showarrow=False,
-            xanchor="left",
-            font=dict(size=9, color=color, family="Consolas, monospace"),
-        )
-        i = j
-
-    fig.add_trace(go.Scatter(
-        x=[node_x[root]],
-        y=[node_y[root]],
-        mode="markers",
-        marker=dict(size=6, color=BACKBONE_COLOR, symbol="diamond"),
-        hoverinfo="text",
-        text=["Root"],
-        showlegend=False,
-    ))
-
-    plot_height = max(600, n * 10)
-    x_range_right = label_x + 0.18
-    if show_labels:
-        x_range_right += 0.06
-
-    apply_dark_style(
-        fig,
-        title="Neighbour Joining Phylogenetic Tree (Rectangular Cladogram)",
-        height=plot_height,
-        margin=dict(l=40, r=20, t=65, b=40),
-        extra=dict(
-            xaxis=dict(
-                visible=True,
-                title="Genetic Distance (normalized)",
-                range=[-0.05, x_range_right],
-                gridcolor="#2A2A4A",
-                tickfont=dict(size=9, color="#A0A0C0"),
-                title_font=dict(color="#C0C0E0"),
-                zeroline=False,
-            ),
-            yaxis=dict(
-                visible=False,
-                range=[-1, n],
-            ),
-            legend=dict(
-                title=dict(text="Variety / Cultivar", font=dict(color="#C0C0E0")),
-                yanchor="top", y=0.99, xanchor="left", x=0.01,
-                itemsizing="constant",
-            ),
-        ),
-    )
-
-    return fig
+def bootstrap_support(tree, X, n_boot, seed=1):
+    """Share of bootstrap trees (blocks resampled with replacement) that contain each branch of `tree`."""
+    n = X.shape[0]
+    base = _splits(tree, n)
+    if n_boot <= 0 or not base:
+        return {}
+    rng = np.random.default_rng(seed)
+    wanted = {}
+    for node, s in base.items():
+        wanted.setdefault(s, []).append(node)
+    hits = {s: 0 for s in wanted}
+    for _ in range(n_boot):
+        cols = rng.integers(0, X.shape[1], X.shape[1])
+        rep = nj_structure(squareform(pdist(X[:, cols], metric='euclidean')))
+        for s in set(_splits(rep, n).values()):
+            if s in hits:
+                hits[s] += 1
+    return {node: hits[s] / n_boot for s, nodes in wanted.items() for node in nodes}
 
 
 # =============================================================================
 # CORE ANALYSIS FUNCTION
 # =============================================================================
-# Same as app.py's analyze_haplotypes(), but writes outputs to disk instead
-# of returning Gradio component values.
 
-def run_diversity(input_file, n_clusters, top_blocks, outdir):
+def run_diversity(input_file, n_clusters, top_blocks, outdir, radar_normalized=True):
     outdir.mkdir(parents=True, exist_ok=True)
 
     df_raw = pd.read_csv(input_file)
+
+    # A second "Sample" column is read by pandas as "Sample.1"; it is a copy of
+    # the sample IDs, not a haplotype block.
+    if 'Sample' in df_raw.columns:
+        dup = [c for c in df_raw.columns[2:] if re.fullmatch(r"Sample\.\d+", str(c))]
+        df_raw = df_raw.drop(columns=dup)
 
     variety_col = df_raw.columns[0]
     sample_col = df_raw.columns[1] if len(df_raw.columns) > 1 else None
@@ -535,48 +244,33 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
         )
 
     df = df_raw.copy()
-    df[block_cols] = df[block_cols].apply(pd.to_numeric, errors="coerce").fillna(0)
+    # Blank / non-numeric block calls stay missing (NaN); -1 is also missing.
+    # The metrics below need to see them as missing, not as zeros.
+    df[block_cols] = df[block_cols].apply(pd.to_numeric, errors="coerce")
+    n_missing_blocks = int((df[block_cols].isna() | (df[block_cols] == -1)).to_numpy().sum())
+    pct_missing = 100 * n_missing_blocks / max(df[block_cols].size, 1)
 
     # ── 1. DIVERSITY METRICS ────────────────────────────────────────────────
     metrics = compute_diversity_metrics(df, block_cols)
     df = pd.concat([df, metrics], axis=1)
 
+
     # ── 2. BLOCK VARIANCE BAR ───────────────────────────────────────────────
-    block_var = df[block_cols].var()
+    block_var = df[block_cols].var()   # missing (NaN) calls are skipped
+    # PCA / clustering / tree need a complete matrix, as in the manual script.
+    df[block_cols] = df[block_cols].fillna(0)
     block_var = block_var[block_var > 1e-4].sort_values(ascending=False)
     top_blocks = min(top_blocks, len(block_var))
     if top_blocks == 0:
         top_blocks = len(block_var)
 
-    top_var = block_var.head(top_blocks).reset_index()
-    fig_block = None
+    plot_paths = {}
+    top_var = block_var.head(top_blocks)
+    plot_paths["block_variance"] = None
     if len(top_var) > 0:
-        top_var.columns = ["Block", "Variance"]
-        top_var["Label"] = top_var["Block"].astype(str)
-        fig_block = go.Figure(go.Bar(
-            x=top_var["Label"],
-            y=top_var["Variance"],
-            marker=dict(
-                color=top_var["Variance"],
-                colorscale=[[0.0, "#1A3A5C"], [0.5, "#1F77B4"], [1.0, "#00BFFF"]],
-                line=dict(color="#000000", width=0.6),
-                showscale=True,
-                colorbar=dict(
-                    title=dict(text="Variance", font=dict(color="#C0C0E0")),
-                    thickness=12,
-                    tickfont=dict(color="#C0C0E0"),
-                ),
-            ),
-            hovertemplate="<b>%{x}</b><br>Variance: %{y:.4f}<extra></extra>",
-        ))
-        apply_dark_style(
-            fig_block,
-            title=f"Top {top_blocks} Informative Haplotypic Blocks",
-            xaxis_title="Haplotype Block",
-            yaxis_title="Variance (log scale)",
-            margin=dict(l=60, r=40, t=65, b=110),
-            extra=dict(yaxis_type="log", xaxis_tickangle=-45),
-        )
+        plot_paths["block_variance"] = P.plot_block_variance(
+            [str(b) for b in top_var.index], top_var.to_numpy(float),
+            f"Top {top_blocks} Informative Haplotypic Blocks", outdir / "block_variance.png")
 
     # ── 3. DIVERSITY HEATMAP ────────────────────────────────────────────────
     metric_cols = [
@@ -587,59 +281,18 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
     for col in metric_cols:
         max_val = heatmap_data[col].max()
         heatmap_data[col] = heatmap_data[col] / max_val if max_val > 0 else 0
-
-    heatmap_matrix = heatmap_data[metric_cols].T.values
-    hover_text = []
-    for metric in metric_cols:
-        row_hover = []
-        for idx, sample in enumerate(heatmap_data[sample_col]):
-            variety = heatmap_data.iloc[idx][variety_col]
-            value = df[metric].iloc[idx]
-            row_hover.append(
-                f"<b>{metric}</b><br>Variety: {variety}<br>Sample: {sample}<br>Value: {value:.4f}")
-        hover_text.append(row_hover)
-
-    fig_heatmap = go.Figure(data=go.Heatmap(
-        z=heatmap_matrix,
-        x=[f"{v}<br>{s}" for v, s in zip(heatmap_data[variety_col], heatmap_data[sample_col])],
-        y=metric_cols,
-        colorscale=[[0.0, "#0D1B2A"], [0.4, "#1F4E79"], [0.7, "#2874A6"], [1.0, "#1ABC9C"]],
-        hovertemplate="%{customdata}<extra></extra>",
-        customdata=hover_text,
-    ))
-    apply_dark_style(
-        fig_heatmap,
-        title="Diversity Metrics Heatmap (Normalized)",
-        xaxis_title="Variety — Sample",
-        yaxis_title="Diversity Metric",
-        margin=dict(l=120, r=40, t=65, b=120),
-        extra=dict(xaxis_tickangle=-45),
-    )
+    plot_paths["heatmap"] = P.plot_heatmap(
+        heatmap_data[metric_cols].T.values, [m.replace("_", " ") for m in metric_cols],
+        [str(v) for v in heatmap_data[variety_col]], [str(s) for s in heatmap_data[sample_col]],
+        "Diversity Metrics Heatmap (Normalised)", outdir / "heatmap.png")
 
     # ── 4. VIOLIN PLOT ──────────────────────────────────────────────────────
-    fig_violin = None
+    plot_paths["violin"] = None
     if df[variety_col].nunique() > 1:
-        fig_violin = go.Figure()
-        for i, variety in enumerate(sorted(df[variety_col].unique())):
-            sub = df[df[variety_col] == variety]
-            fig_violin.add_trace(go.Violin(
-                y=sub['Shannon_Diversity'],
-                name=variety,
-                box_visible=True,
-                meanline_visible=True,
-                opacity=0.85,
-                points=False,
-                line_color=DARK_COLORS[i % len(DARK_COLORS)],
-                fillcolor=DARK_COLORS[i % len(DARK_COLORS)],
-            ))
-        apply_dark_style(
-            fig_violin,
-            title="Shannon Diversity Distribution by Variety",
-            xaxis_title="Variety",
-            yaxis_title="Shannon Diversity Index",
-            height=500,
-            margin=dict(l=60, r=40, t=65, b=80),
-        )
+        names = sorted(df[variety_col].unique(), key=str)
+        plot_paths["violin"] = P.plot_violin(
+            [df[df[variety_col] == v]['Shannon_Diversity'].to_numpy(float) for v in names], [str(v) for v in names],
+            "Shannon Diversity Distribution by Variety", "Shannon Diversity Index", outdir / "violin.png")
 
     # ── 5. PCA ───────────────────────────────────────────────────────────────
     X = StandardScaler().fit_transform(df[block_cols].fillna(0))
@@ -647,139 +300,67 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
     pcs = pca.fit_transform(X)
     df["PC1"] = pcs[:, 0]
     df["PC2"] = pcs[:, 1]
+    xl = f"PC1 ({pca.explained_variance_ratio_[0] * 100:.1f}%)"
+    yl = f"PC2 ({pca.explained_variance_ratio_[1] * 100:.1f}%)"
 
-    varieties = df[variety_col].unique()
-    color_map = {v: DARK_COLORS[i % len(DARK_COLORS)] for i, v in enumerate(varieties)}
-
-    fig_pca = go.Figure()
-    for variety in sorted(varieties):
-        sub = df[df[variety_col] == variety]
-        fig_pca.add_trace(go.Scatter(
-            x=sub["PC1"], y=sub["PC2"],
-            mode="markers",
-            name=variety,
-            marker=dict(
-                size=10,
-                color=color_map[variety],
-                line=dict(color="#000000", width=0.6),
-                opacity=0.9,
-            ),
-            text=[f"<b>{v}</b><br>Sample: {s}<br>Shannon: {sh:.3f}"
-                  for v, s, sh in zip(sub[variety_col], sub[sample_col], sub['Shannon_Diversity'])],
-            hovertemplate="%{text}<br>PC1: %{x:.3f}<br>PC2: %{y:.3f}<extra></extra>",
-        ))
-    apply_dark_style(
-        fig_pca,
-        title="PCA Diversity — Colored by Variety",
-        xaxis_title=f"PC1 ({pca.explained_variance_ratio_[0] * 100:.1f}%)",
-        yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1] * 100:.1f}%)",
-        extra=dict(legend=dict(title="Variety", yanchor="top", y=0.99, xanchor="left", x=0.01)),
-    )
+    varieties = list(df[variety_col].unique())
+    color_map = {v: P.color_for(i) for i, v in enumerate(varieties)}
+    plot_paths["pca"] = P.plot_scatter(
+        [(v, df.loc[df[variety_col] == v, "PC1"], df.loc[df[variety_col] == v, "PC2"], color_map[v])
+         for v in sorted(varieties, key=str)],
+        "PCA Diversity — coloured by variety", xl, yl, "Variety", outdir / "pca.png")
 
     # ── 6. HIERARCHICAL CLUSTERING ──────────────────────────────────────────
     Z = linkage(pdist(X), method="ward")
     df["Cluster"] = fcluster(Z, n_clusters, criterion="maxclust").astype(str)
     cluster_order = sorted(df["Cluster"].unique(), key=lambda x: int(x))
-
-    fig_cpca = go.Figure()
-    for i, cl in enumerate(cluster_order):
-        sub = df[df["Cluster"] == cl]
-        fig_cpca.add_trace(go.Scatter(
-            x=sub["PC1"], y=sub["PC2"],
-            mode="markers",
-            name=f"Cluster {cl}",
-            marker=dict(
-                size=10,
-                color=DARK_COLORS[i % len(DARK_COLORS)],
-                line=dict(color="#000000", width=0.6),
-                opacity=0.9,
-                symbol="circle",
-            ),
-            text=[f"<b>Cluster {cl}</b><br>{v} — {s}<br>Richness: {r:.0f}"
-                  for v, s, r in zip(sub[variety_col], sub[sample_col], sub['Richness'])],
-            hovertemplate="%{text}<br>PC1: %{x:.3f}<br>PC2: %{y:.3f}<extra></extra>",
-        ))
-    apply_dark_style(
-        fig_cpca,
-        title=f"Hierarchical Clusters ({n_clusters} Clusters) with Varieties",
-        xaxis_title=f"PC1 ({pca.explained_variance_ratio_[0] * 100:.1f}%)",
-        yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1] * 100:.1f}%)",
-        extra=dict(legend=dict(title="Cluster", yanchor="top", y=0.99, xanchor="right", x=0.99)),
-    )
+    plot_paths["clusters_pca"] = P.plot_scatter(
+        [(f"Cluster {cl}", df.loc[df["Cluster"] == cl, "PC1"], df.loc[df["Cluster"] == cl, "PC2"], P.color_for(i))
+         for i, cl in enumerate(cluster_order)],
+        f"Hierarchical clusters ({n_clusters} clusters)", xl, yl, "Cluster", outdir / "clusters_pca.png")
 
     # ── 7. RADAR CHART ──────────────────────────────────────────────────────
-    fig_radar = None
-    if df[variety_col].nunique() <= 8:
-        fig_radar = go.Figure()
-        radar_metrics = [
-            'Richness_Normalized', 'Shannon_Diversity', 'Simpson_Diversity',
-            'Gene_Diversity', 'PIC_Index', 'Heterozygosity'
-        ]
-        norm_df = df.copy()
-        for metric in radar_metrics:
-            max_val = norm_df[metric].max()
-            if max_val > 0:
-                norm_df[metric] = norm_df[metric] / max_val
+    # radar_normalized=True: each metric scaled 0-1
+    # radar_normalized=False: the actual mean value of each metric
+    plot_paths["radar"] = None
+    radar_metrics = [
+        'Richness_Normalized', 'Shannon_Diversity', 'Simpson_Diversity',
+        'Gene_Diversity', 'PIC_Index', 'Heterozygosity'
+    ]
+    if df[variety_col].nunique() > 1:
+        varieties_sorted = sorted(df[variety_col].unique(), key=str)
+        actual = {v: df[df[variety_col] == v][radar_metrics].mean().tolist() for v in varieties_sorted}
+        if radar_normalized:
+            maxima = {m: df[m].max() for m in radar_metrics}
+            shown = {v: [(a / maxima[m] if maxima[m] > 0 else a) for m, a in zip(radar_metrics, vals)]
+                     for v, vals in actual.items()}
+            radial_max, radial_title = 1, "Normalised (0–1)"
+        else:
+            shown = actual
+            radial_max = max(max(vals) for vals in actual.values()) * 1.1
+            radial_title = "Actual mean values"
+        plot_paths["radar"] = P.plot_radar(
+            radar_metrics, [(v, shown[v], P.color_for(i)) for i, v in enumerate(varieties_sorted)],
+            radial_max, radial_title, "Multi-metric diversity profile by variety", outdir / "radar.png")
 
-        for i, variety in enumerate(sorted(df[variety_col].unique())):
-            sub = norm_df[norm_df[variety_col] == variety]
-            avg_vals = sub[radar_metrics].mean().tolist()
-            fill_color = hex_to_rgba(DARK_COLORS[i % len(DARK_COLORS)], 0.25)
-            fig_radar.add_trace(go.Scatterpolar(
-                r=avg_vals,
-                theta=radar_metrics,
-                fill='toself',
-                name=variety,
-                line=dict(color=DARK_COLORS[i % len(DARK_COLORS)], width=2),
-                fillcolor=fill_color,
-                opacity=0.85,
-            ))
-
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(
-                    visible=True, range=[0, 1],
-                    gridcolor="#2A2A4A",
-                    tickfont=dict(color="#A0A0C0", size=9),
-                ),
-                angularaxis=dict(
-                    gridcolor="#2A2A4A",
-                    tickfont=dict(color="#C0C0E0", size=10),
-                ),
-                bgcolor="#16213E",
-            ),
-            paper_bgcolor="#1A1A2E",
-            font=dict(family="Consolas, monospace", color="#E0E0E0"),
-            title=dict(
-                text="Multi-Metric Diversity Profile by Variety",
-                font=dict(size=15, color="#A0A8D0"),
-            ),
-            legend=dict(
-                bgcolor="rgba(20,20,40,0.85)",
-                bordercolor="#444466",
-                borderwidth=1,
-                font=dict(color="#C0C0E0"),
-            ),
-            height=580,
-            margin=dict(l=80, r=80, t=80, b=80),
-        )
-
-    # ── 8. RECTANGULAR NJ TREE ──────────────────────────────────────────────
+    # ── 8. CIRCULAR NJ TREE ──────────────────────────────────────────────
+    n_samples = len(df)
     dist_matrix = squareform(pdist(X, metric='euclidean'))
-    sample_labels_list = df[sample_col].tolist()
-    variety_labels_list = df[variety_col].tolist()
-
-    try:
-        fig_nj = build_nj_tree_plotly(dist_matrix, sample_labels_list, variety_labels_list)
-    except Exception as tree_error:
-        fig_nj = go.Figure()
-        fig_nj.add_annotation(
-            text=f"Tree error: {str(tree_error)[:120]}",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, showarrow=False,
-            font=dict(color="#FF6666")
-        )
-        apply_dark_style(fig_nj, title="NJ Tree (Error)")
+    sample_labels_list = [str(s) for s in df[sample_col].tolist()]
+    variety_labels_list = [str(v) for v in df[variety_col].tolist()]
+    plot_paths["nj_tree"] = None
+    n_boot = 0
+    if n_samples >= 3:
+        try:
+            tree = nj_structure(dist_matrix)
+            n_boot = 100 if n_samples <= 150 else 50 if n_samples <= 400 else 0
+            support = bootstrap_support(tree, X, n_boot) if n_boot else {}
+            plot_paths["nj_tree"] = P.plot_nj_tree(
+                tree, sample_labels_list, variety_labels_list, outdir / "nj_tree.png", support=support, n_boot=n_boot)
+        except Exception as tree_error:                    # the other results are still returned
+            plot_paths["nj_tree"] = None
+            tree_note = str(tree_error)[:160]
+            print(f"[DIVERSITY] tree failed: {tree_note}")
 
     # ── 9. SUMMARY (built directly as HTML — no markdown parser needed,
     #    so it renders with zero network dependency in QWebEngineView) ───────
@@ -796,6 +377,7 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
 <tr><td><strong>Total Samples</strong></td><td>{len(df)}</td></tr>
 <tr><td><strong>Total Haplotype Blocks</strong></td><td>{len(block_cols)}</td></tr>
 <tr><td><strong>Informative Blocks</strong></td><td>{len(block_var)}</td></tr>
+<tr><td><strong>Missing block calls (&minus;1 / blank)</strong></td><td>{n_missing_blocks:,} ({pct_missing:.2f}%)</td></tr>
 </table>
 
 <h3>Diversity Metrics (Mean &plusmn; Std)</h3>
@@ -856,13 +438,11 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
 <li>0.25&ndash;0.5: Intermediate</li>
 <li>&gt;0.5: High information (highly polymorphic)</li>
 </ul>
-<p><strong>Rectangular NJ Tree</strong>: Cladogram showing genetic relatedness.</p>
+<p><strong>Circular NJ Tree</strong>: genetic relatedness of the samples.</p>
 <ul>
-<li>Root on LEFT, leaves extend RIGHT</li>
-<li>Branch colors match variety/cultivar grouping</li>
-<li>Grey backbone = mixed-variety nodes (deep divergence)</li>
-<li>Colored bars on right margin = variety clade labels</li>
-<li>Branch length proportional to genetic distance</li>
+<li>The root is at the centre; distance from the centre is genetic distance along the branches (scale bar at the bottom left)</li>
+<li>Pale sectors and dots mark the variety/cultivar of every sample</li>
+<li>Red triangles: branches found in at least 70% of bootstrap trees (blocks resampled with replacement)</li>
 </ul>
 """
 
@@ -873,26 +453,6 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
         'Heterozygosity', 'Nucleotide_Diversity', 'Allelic_Entropy',
         'Effective_Alleles', 'Load', 'Cluster'
     ]].copy().round(4)
-
-    # ── WRITE OUTPUTS ────────────────────────────────────────────────────────
-    figures = {
-        "block_variance": fig_block,
-        "pca": fig_pca,
-        "clusters_pca": fig_cpca,
-        "heatmap": fig_heatmap,
-        "violin": fig_violin,
-        "radar": fig_radar,
-        "nj_tree": fig_nj,
-    }
-
-    plot_paths = {}
-    for name, fig in figures.items():
-        if fig is None:
-            plot_paths[name] = None
-            continue
-        path = outdir / f"{name}.html"
-        fig.write_html(str(path), full_html=True, include_plotlyjs=True)
-        plot_paths[name] = str(path)
 
     results_csv_path = outdir / "results.csv"
     results_df.to_csv(results_csv_path, index=False)
@@ -907,6 +467,8 @@ def run_diversity(input_file, n_clusters, top_blocks, outdir):
         "n_blocks": int(len(block_cols)),
         "n_informative_blocks": int(len(block_var)),
         "n_clusters": int(n_clusters),
+        "radar_normalized": bool(radar_normalized),
+        "pct_missing": round(pct_missing, 3),
         "summary_html": summary,
         "results_csv": str(results_csv_path),
         "results_json": str(results_json_path),

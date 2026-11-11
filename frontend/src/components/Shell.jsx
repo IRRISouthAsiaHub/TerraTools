@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Sprout, House, ArrowLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, CircleCheck, TriangleAlert, X } from 'lucide-react'
+import logo from '../assets/terratools-logo.png'
+import { House, BookOpen, ArrowLeft, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, CircleCheck, TriangleAlert, X } from 'lucide-react'
 import { TOOLS, CATEGORIES } from '../lib/tools.js'
-import { useRunStates } from '../lib/runState.js'
+import { useRunStates, useNotices, dismissNotice } from '../lib/runState.js'
 
 const ease = [0.22, 1, 0.36, 1]
 export const toolById = (id) => TOOLS.find((t) => t.id === id)
@@ -26,7 +27,7 @@ export function Sidebar({ route, navigate, collapsed, setCollapsed }) {
   return (
     <motion.aside className={`sidebar ${collapsed ? 'collapsed' : ''}`} animate={{ width: collapsed ? 72 : 264 }} transition={{ duration: 0.3, ease }}>
       <div className="brand" onClick={() => navigate('')}>
-        <div className="brand-mark"><Sprout size={20} /></div>
+        <div className="brand-mark"><img src={logo} alt="TerraTools" /></div>
         {!collapsed && <div><div className="brand-name">TerraTools</div><div className="brand-sub">IRRI · SAH</div></div>}
       </div>
       <nav className="nav-scroll">
@@ -41,6 +42,10 @@ export function Sidebar({ route, navigate, collapsed, setCollapsed }) {
             ))}
           </div>
         ))}
+        <div className="nav-group">
+          {collapsed ? <div className="nav-sep" /> : <div className="nav-group-label">Help</div>}
+          <NavItem active={route === 'help'} icon={BookOpen} label="User Manual" collapsed={collapsed} onClick={() => navigate('help')} />
+        </div>
       </nav>
       <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
         {collapsed ? <PanelLeftOpen size={18} /> : <><PanelLeftClose size={18} /><span>Collapse</span></>}
@@ -100,18 +105,19 @@ function QuickOpen({ navigate }) {
 export function TopBar({ route, back, navigate }) {
   const tool = toolById(route)
   const cat = tool && CATEGORIES.find((c) => c.id === tool.cat)
+  const onPage = !!tool || route === 'help'
   return (
     <header className="topbar">
-      <motion.button className="back-btn" onClick={back} disabled={!tool} whileTap={tool ? { scale: 0.94 } : undefined} title="Back (Alt+←)">
+      <motion.button className="back-btn" onClick={back} disabled={!onPage} whileTap={onPage ? { scale: 0.94 } : undefined} title="Back (Alt+←)">
         <ArrowLeft size={17} /><span>Back</span>
       </motion.button>
       <nav className="crumbs">
         <button onClick={() => navigate('')}>Home</button>
         <AnimatePresence initial={false}>
-          {tool && (
+          {onPage && (
             <motion.span key={route} className="crumb-tail" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              <ChevronRight size={14} /><span className="muted">{cat.label}</span>
-              <ChevronRight size={14} /><b>{tool.name}</b>
+              <ChevronRight size={14} /><span className="muted">{tool ? cat.label : 'Help'}</span>
+              <ChevronRight size={14} /><b>{tool ? tool.name : 'User Manual'}</b>
             </motion.span>
           )}
         </AnimatePresence>
@@ -136,9 +142,18 @@ export function RunToasts({ route, navigate }) {
     setToasts((t) => [...t, ...fresh])
     fresh.forEach((f) => setTimeout(() => setToasts((t) => t.filter((x) => x.id !== f.id)), 8000))
   }, [runs, route])
+  const notices = useNotices()
   return (
     <div className="toasts">
       <AnimatePresence>
+        {notices.map((n) => (
+          <motion.div key={`n${n.id}`} className={`toast ${n.kind === 'err' ? 'err' : 'ok'}`} layout
+            initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }} transition={{ duration: 0.3, ease }}>
+            {n.kind === 'err' ? <TriangleAlert size={18} /> : <CircleCheck size={18} />}
+            <div style={{ cursor: 'default' }}><span style={{ color: 'var(--text-dark)', wordBreak: 'break-all' }}>{n.text}</span></div>
+            <button onClick={() => dismissNotice(n.id)} aria-label="Dismiss"><X size={14} /></button>
+          </motion.div>
+        ))}
         {toasts.map((t) => {
           const tool = toolById(t.route)
           return (

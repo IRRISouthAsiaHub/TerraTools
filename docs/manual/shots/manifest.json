@@ -1,0 +1,460 @@
+{
+ "home": {
+  "title": "The TerraTools home screen",
+  "notes": [
+   "Sidebar: every tool, grouped as Trait Mapping, Genomic Selection and Data Analysis. Click a name to open it.",
+   "Quick open (Ctrl+K): type part of a tool's name and press Enter."
+  ]
+ },
+ "interface_tour": {
+  "title": "Anatomy of a tool page",
+  "notes": [
+   "Back: returns to the screen you came from (Alt+\u2190 also works).",
+   "Breadcrumbs: where you are. Click Home to return to the dashboard.",
+   "Tabs: most tools have an input tab first and a Results tab that opens automatically when a run finishes.",
+   "File box: click Browse to choose a file. The path appears here once it is loaded.",
+   "Run bar: starts the analysis. The line underneath shows progress and any error.",
+   "Collapse the sidebar to gain screen width."
+  ]
+ },
+ "mendelian_input": {
+  "title": "Mendelian Segregation \u2014 input and settings",
+  "notes": [
+   "Genotype CSV: Marker, Chromosome, then one column per individual (0 / 1 / 2).",
+   "Population type: RIL tests a 1:1 ratio, F2 tests 1:2:1.",
+   "p-value threshold: markers below it are flagged as distorted.",
+   "Values to treat as missing, separated by commas."
+  ]
+ },
+ "mendelian_results": {
+  "title": "Mendelian Segregation \u2014 results",
+  "notes": [
+   "\u2212log10(p) for every marker: high points are markers whose genotype ratio departs from the expectation.",
+   "Share of distorted markers on each chromosome.",
+   "Downloads: markers that pass the test, and the full table.",
+   "Summary: markers tested and markers distorted."
+  ]
+ },
+ "linkage_upload": {
+  "title": "Linkage Mapping \u2014 Upload tab",
+  "notes": [
+   "Genotype Excel file: Marker, Chromosome, then one column per individual coded 0 / 1 / 2 / \u22121.",
+   "Population type: F2 or RIL.",
+   "Genotypes from a genotyping company (HapMap, VCF, A:G calls)? Convert them with the Genofile Converter first.",
+   "Preview of the first rows \u2014 check that columns were read as expected.",
+   "Markers found per chromosome."
+  ]
+ },
+ "linkage_params": {
+  "title": "Linkage Mapping \u2014 Parameters tab",
+  "notes": [
+   "Missing-data limit, maximum recombination fraction, optional segregation-distortion filter and map scaling.",
+   "What each parameter does."
+  ]
+ },
+ "linkage_results": {
+  "title": "Linkage Mapping \u2014 Results tab",
+  "notes": [
+   "Ready-to-use input file for QTL Mapping: the map positions with the same markers, transposed.",
+   "Excel exports: full results, all markers with positions, retained markers and recombination table."
+  ]
+ },
+ "linkage_map": {
+  "title": "Linkage Mapping \u2014 Map Plot tab",
+  "notes": [
+   "Choose chromosomes, theme, colours and sizes, then click Update Plot.",
+   "The linkage map: each bar is a linkage group, ticks are markers, positions in cM (Kosambi)."
+  ]
+ },
+ "qtl_input": {
+  "title": "QTL Mapping \u2014 input files and settings",
+  "notes": [
+   "Genotype CSV: three header rows (marker names, chromosome, position in cM), then one row per individual.",
+   "Phenotype CSV: first column = individual ID, one column per trait.",
+   "Trait: choose the phenotype column to map.",
+   "Mapping method: SIM, CIM and MQM are regression methods; RF, SVR and XGBoost are machine-learning scores.",
+   "Threshold: a fixed LOD, or a genome-wide permutation test.",
+   "Support-interval LOD drop: 1.5 gives roughly a 95% interval around each peak."
+  ]
+ },
+ "qtl_results": {
+  "title": "QTL Mapping \u2014 results",
+  "notes": [
+   "LOD curve of every chromosome; shaded bands are the QTL regions."
+  ]
+ },
+ "qtl_table": {
+  "title": "QTL Mapping \u2014 the QTL table",
+  "notes": [
+   "One row per QTL: left, peak and right flanking marker, interval size, LOD, p-value, effects.",
+   "Scroll the table sideways for more columns (effect size, PVE, confidence intervals)."
+  ]
+ },
+ "gene_input": {
+  "title": "Genes Extraction \u2014 input files",
+  "notes": [
+   "The QTL Intervals file or the QTL table of QTL Mapping (Chromosome, Start, End) \u2014 or click \u201cUse QTL Mapping output\u201d to take the last QTL Mapping run.",
+   "Marker, Chromosome and bp columns, which place the QTL (in cM) on the genome. With no map, choose \u201cNo map: use a VCF\u201d.",
+   "Gene annotation; the genes inside each interval are read from its gene lines.",
+   "Adds the sequence of every gene.",
+   "For a QTL table: confidence interval or flanking markers; and whether a gene must lie completely inside the region."
+  ]
+ },
+ "gene_results": {
+  "title": "Genes Extraction \u2014 genes in the region",
+  "notes": [
+   "Each QTL region (with the basis of its interval) and the number of genes in it."
+  ]
+ },
+ "gene_results_genes": {
+  "title": "Genes Extraction \u2014 genes in gene regions",
+  "notes": [
+   "The genes with their annotation details; the buttons underneath download the gene ID list, the table and the sequences."
+  ]
+ },
+ "pybsa_input": {
+  "title": "PYBSA G-statistics \u2014 input and settings",
+  "notes": [
+   "Parents file: GATK4 table (tab or comma separated) with CHROM, POS, REF, ALT and GT / AD / GQ columns for the two parents.",
+   "Bulks file: the same layout for the two bulks (columns named <bulk>.GT, <bulk>.AD, <bulk>.GQ).",
+   "Number of individuals in each bulk, population type (F2, RIL, BC), p-value cut-offs and simulation replications.",
+   "Sliding-window size and step (bp), smoothing, read length.",
+   "Optional region of interest, GQ cut-off and other filters."
+  ]
+ },
+ "pybsa_results": {
+  "title": "PYBSA G-statistics \u2014 results",
+  "notes": [
+   "Sub-tabs: the HTML report, plots, every output file and the log."
+  ]
+ },
+ "qtlseq_reads": {
+  "title": "QTL-Seq \u2014 starting from sequencing reads",
+  "notes": [
+   "Start from sequencing reads (FASTQ or sorted BAM) or from a VCF.",
+   "Reference genome (FASTA, needed for FASTQ) and the parent, bulk 1 and bulk 2 reads. R2 files are optional (paired-end).",
+   "Individuals in each bulk and the population type: used to simulate the confidence intervals.",
+   "Read-depth limits, minimum SNP-index, window / step size (bp) and simulation replicates."
+  ]
+ },
+ "qtlseq_vcf": {
+  "title": "QTL-Seq \u2014 starting from a VCF",
+  "notes": [
+   "VCF (.vcf or .vcf.gz) with a parent column and the two bulk columns; each needs an AD (allele depth) field.",
+   "Sample names as written in the VCF header (leave blank to use the first three columns in order).",
+   "Bulk sizes and population type."
+  ]
+ },
+ "qtlseq_results": {
+  "title": "QTL-Seq \u2014 results",
+  "notes": [
+   "SNPs analysed, windows and the number of QTL regions found.",
+   "QTL regions: stretches where \u0394(SNP-index) leaves the confidence interval.",
+   "Top and middle panels: SNP-index of each bulk. Bottom: \u0394(SNP-index) with the 95% (dashed) and 99% (dotted) limits; shaded = QTL."
+  ]
+ },
+ "diversity_input": {
+  "title": "Diversity Analysis \u2014 input and settings",
+  "notes": [
+   "CSV: column 1 = Variety, column 2 = Sample ID, columns 3+ = haplotype block codes (\u22121 or blank = missing).",
+   "Groups for hierarchical clustering.",
+   "How many of the most informative blocks to show.",
+   "Plot the variety radar on a 0\u20131 scale or with real mean values."
+  ]
+ },
+ "diversity_results": {
+  "title": "Diversity Analysis \u2014 results summary",
+  "notes": [
+   "Summary of the dataset and of every diversity metric (mean \u00b1 standard deviation, range), per variety and per cluster."
+  ]
+ },
+ "gwas_3k": {
+  "title": "GWAS \u2014 rice 3K panel (phenotype file only)",
+  "notes": [
+   "Genotype source: the built-in rice 3K panel, your own VCF, or a ready-made GWAS file.",
+   "Phenotype file: first column = accession ID exactly as in the panel (IRIS_313-\u2026), other columns = traits.",
+   "Trait: pick the column to analyse.",
+   "Downloads all 2,229 accession IDs with an empty trait column to fill in."
+  ]
+ },
+ "gwas_vcf": {
+  "title": "GWAS \u2014 your own genotypes as a VCF",
+  "notes": [
+   "VCF (.vcf / .vcf.gz) with genotype calls (GT). Only biallelic SNPs on numbered chromosomes are used.",
+   "Phenotype file: first column = sample ID exactly as in the VCF header.",
+   "Trait to analyse."
+  ]
+ },
+ "gwas_results": {
+  "title": "GWAS \u2014 results tables",
+  "notes": [
+   "Downloads: Excel report, MTA table, the GWAS-ready file built from your phenotype data, and all plots.",
+   "MTA table: every marker that passes the permutation LOD threshold, per model.",
+   "One row per model, with genomic inflation (lambda)."
+  ]
+ },
+ "gwas_plots": {
+  "title": "GWAS \u2014 plots",
+  "notes": [
+   "Manhattan plot: LOD per marker; diamonds are MTAs.",
+   "QQ plot: points on the diagonal mean a well-calibrated test."
+  ]
+ },
+ "clustering_input": {
+  "title": "Clustering & Genomic Selection \u2014 input",
+  "notes": [
+   "CSV or TSV: sample IDs in the first column, one column per SNP (0 / 1 / 2, \u22121 = missing).",
+   "K for K-means clustering.",
+   "Fraction of each cluster held out as the testing set."
+  ]
+ },
+ "clustering_results": {
+  "title": "Clustering & Genomic Selection \u2014 results",
+  "notes": [
+   "Samples, markers, clusters, train / test sizes and variance explained by PC1 and PC2.",
+   "PCA plot coloured by K-means cluster.",
+   "Downloads: training and testing genotype files (cluster-stratified), cluster membership and the plot."
+  ]
+ },
+ "additive_input": {
+  "title": "Additive Dominance \u2014 input",
+  "notes": [
+   "CSV or TSV: sample IDs in the first column, SNP markers after (0 / 1 / 2). Blank cells are missing.",
+   "How missing genotypes are filled.",
+   "Additive, dominance or both relationship matrices."
+  ]
+ },
+ "additive_results": {
+  "title": "Additive Dominance \u2014 results",
+  "notes": [
+   "Samples, SNPs, missing data and markers with MAF > 0.05.",
+   "Heatmap of the additive relationship matrix (clusters of related lines show as blocks).",
+   "Sub-tabs: Heatmaps, Histogram, Data Table and Downloads (CSV of each matrix)."
+  ]
+ },
+ "breedsight_input": {
+  "title": "BreedSight Genomic Prediction \u2014 input and settings",
+  "notes": [
+   "Training phenotypes: sample_id, phenotypes.",
+   "Training genotypes: sample_id, then SNP columns (0 / 1 / 2), no missing values.",
+   "Testing phenotypes: sample_id and an optional phenotypes column.",
+   "Testing genotypes: same SNP columns as the training file.",
+   "Number of folds and the trait heritability used in the interpretation."
+  ]
+ },
+ "breedsight_results": {
+  "title": "BreedSight Genomic Prediction \u2014 results",
+  "notes": [
+   "Accuracy of every model (BreedSight DNN+RF, Lasso, RBLUP, GBLUP) on training and validation data.",
+   "Sub-tabs: metrics and interpretation, test predictions, plots, downloads."
+  ]
+ },
+ "heterosis_input": {
+  "title": "Heterosis \u2014 input files and parameters",
+  "notes": [
+   "Training phenotype CSV: column 0 = sample ID, column 1 = numeric trait value.",
+   "Training genotype CSV: first column = sample ID, then numeric marker columns. Row order must match the phenotype file.",
+   "Parent genotype CSV: first column = parent ID, same marker columns as the training file.",
+   "Test genotype CSV (optional): same marker columns, for out-of-sample predictions.",
+   "Number of hybrids / parents to report, cross-validation folds and network settings."
+  ]
+ },
+ "heterosis_results": {
+  "title": "Heterosis \u2014 results",
+  "notes": [
+   "Top F1 hybrids, top parents, all hybrid results and test predictions as CSV.",
+   "Prediction accuracy from cross-validation (MSE, RMSE, R\u00b2, Pearson r).",
+   "Best hybrid combinations with GEBV, mid-parent (MPH) and better-parent (BPH) heterosis."
+  ]
+ },
+ "phenotypic_input": {
+  "title": "Phenotypic Data Analysis \u2014 data and design",
+  "notes": [
+   "CSV or Excel, one row per plot. Genotype, Environment, Rep (and Block) columns are found by name; every other numeric column is a trait. The file is read once and shared by every analysis.",
+   "Augmented RCBD, RCBD or alpha-lattice: decides the blocking terms of the models.",
+   "Analyse all environments or only chosen ones; 0 can count as missing.",
+   "Layout of every environment: plots, accessions, replications, blocks and checks."
+  ]
+ },
+ "phenotypic_results": {
+  "title": "Phenotypic Data Analysis \u2014 an analysis tab",
+  "notes": [
+   "One tab per analysis: descriptives, environments, BLUEs, ANOVA, heritability, correlation, PCA, clustering and stability.",
+   "Each analysis has its own traits and options, and its own Run button."
+  ]
+ },
+ "phenotypic_heritability": {
+  "title": "Phenotypic Data Analysis \u2014 heritability",
+  "notes": [
+   "Variance components and heritability (entry-mean and plot basis) per trait and environment."
+  ]
+ },
+ "diversity_plots": {
+  "title": "Diversity Analysis \u2014 charts",
+  "notes": [
+   "Sub-tabs: block analysis, metrics heatmap, variety comparison, PCA & clustering, NJ tree and the results table.",
+   "Every chart is a PNG on a white background; click it to open it in a pop-up, or use Download PNG. Here: PCA coloured by variety, and by cluster."
+  ]
+ },
+ "geneprio_input": {
+  "title": "Gene Prioritization \u2014 species, trait and inputs",
+  "notes": [
+   "Species (rice, wheat or maize) and the trait in words; related terms are added automatically.",
+   "The genes to rank: paste IDs or choose a TXT / CSV / Excel file, for example the Gene_ID_list.txt of Genes Extraction.",
+   "An option to ignore the cached answers and ask the databases again.",
+   "Ensembl Plants, Gramene, Plant Reactome, NCBI and (rice) Oryzabase: press Check connections to test them."
+  ]
+ },
+ "geneprio_summary": {
+  "title": "Gene Prioritization \u2014 summary",
+  "notes": [
+   "How many genes were read, annotated and linked to the trait.",
+   "The top genes with their final score from the databases.",
+   "Downloads: ranked list (CSV), workbook with all evidence (Excel) and report (HTML)."
+  ]
+ },
+ "geneprio_ranking": {
+  "title": "Gene Prioritization \u2014 ranked genes",
+  "notes": [
+   "Search by gene, symbol or description.",
+   "Click a column to sort, a row to open the evidence. A dash means no evidence of that kind could be retrieved; it is not a score of zero."
+  ]
+ },
+ "geneprio_evidence": {
+  "title": "Gene Prioritization \u2014 evidence behind one gene",
+  "notes": [
+   "The gene, its rank, position and source links.",
+   "Score of every evidence category and how many points it added to the final score."
+  ]
+ },
+ "cross_markers_input": {
+  "title": "Optimal Cross Selection \u2014 input files",
+  "notes": [
+   "Allele dosage matrix: genotypes in the rows, markers in the columns, values 0 / 1 / 2. The relationship matrix is calculated from it.",
+   "Marker effects: the columns Marker and Effect.",
+   "Genetic map: Marker, Chromosome and cM, to predict the variance of the progeny.",
+   "Number of crosses, penalty degree, and the population type, generation, selected proportion and candidate pool."
+  ]
+ },
+ "cross_markers_results": {
+  "title": "Optimal Cross Selection \u2014 usefulness of the crosses",
+  "notes": [
+   "Crosses, parents, the expected usefulness of the plan, group coancestry and progeny inbreeding.",
+   "Each cross with its usefulness, mean and progeny standard deviation."
+  ]
+ },
+ "cross_markers_vcf": {
+  "title": "Optimal Cross Selection \u2014 a VCF instead of a genetic map",
+  "notes": [
+   "Choose this when you have no genetic map.",
+   "The VCF: its CHROM, POS and ID columns give the position of every marker.",
+   "The rate that turns base pairs into cM, the same for the whole genome."
+  ]
+ },
+ "diversity_tree": {
+  "title": "Diversity Analysis \u2014 circular neighbour-joining tree",
+  "notes": [
+   "Circular tree: pale sectors mark the varieties, concentric circles give the genetic distance, red triangles are branches supported by at least 70% of bootstrap trees. Click to enlarge."
+  ]
+ },
+ "diversity_popup": {
+  "title": "Diversity Analysis \u2014 the tree opened in a pop-up",
+  "notes": []
+ },
+ "phenotypic_anova": {
+  "title": "Phenotypic Data Analysis \u2014 ANOVA",
+  "notes": [
+   "One table per trait: every environment and the pooled analysis side by side (DF, SS, MS, F, P, significance), with plots, mean and CV underneath."
+  ]
+ },
+ "genotype_input": {
+  "title": "Genotype Viewer \u2014 file, species, drawing mode, colours and image quality",
+  "notes": [
+   "Genotype file: CSV or VCF. The first column is the chromosome, then the marker name, the position (bp) and one column per sample; the column names do not matter.",
+   "Species whose chromosome lengths are used. The chromosome names of the file are matched to its names (1, chr1 and chr01 are the same).",
+   "Name some samples to draw only those; empty draws every sample.",
+   "Normal: one image per sample. Compare: one image per chromosome with all samples side by side. Zoomed: one region of one chromosome for all samples.",
+   "2 or 3 colours, fill between markers, marker names (and, in compare / zoomed mode, the dashed line from each name).",
+   "GenoSee's palettes (bright, Aqua, grays, reds, blues) and a mixed red-blue-yellow-grey palette.",
+   "Words that replace REF / ALT / HET in the legend, for example the names of the two parents.",
+   "PNG resolution (200, 300 or 600 dpi) and an extra vector PDF for publication."
+  ]
+ },
+ "genotype_results": {
+  "title": "Genotype Viewer \u2014 the graphical genotypes",
+  "notes": [
+   "Images drawn, samples, markers and chromosomes.",
+   "One image per sample (normal mode): each chromosome is a bar coloured by the genotype; the legend is at the right."
+  ]
+ },
+ "favallele_setup": {
+  "title": "Favourable Allele Analysis \u2014 matched marker IDs, filters and lines",
+  "notes": [
+   "Markers in your file, how many of the trait-gene markers were found by ID, the trait genes covered and the number of lines.",
+   "Every ID of your file that matched, with the gene, the trait and how it was matched. Download matched IDs saves the list as CSV.",
+   "Restrict the traits and genes (the list follows the traits) and choose the status to show.",
+   "Search and tick the lines of your file. The coloured names are the selected ones: click a name to make it the line shown in detail, \u00d7 removes it."
+  ]
+ },
+ "favallele_overview": {
+  "title": "Favourable Allele Analysis \u2014 overview of the selected line",
+  "notes": [
+   "The selected lines (click one to show it in detail) and the filters in force. Change takes you back to the file tab.",
+   "SNP and gene counts of the line shown: favourable, unfavourable, heterozygous and missing.",
+   "One dot for every gene, placed on the plant part that the trait belongs to. Hover for the gene, click for all its SNPs; colour the dots by trait or by allele status.",
+   "Number of SNPs of the chosen status for every trait, one bar per selected line."
+  ]
+ },
+ "favallele_gene": {
+  "title": "Favourable Allele Analysis \u2014 the details of one gene",
+  "notes": [
+   "Trait, position and the status of every SNP of the gene in every selected line (REF/ALT written out as the two nucleotides)."
+  ]
+ },
+ "favallele_genes": {
+  "title": "Favourable Allele Analysis \u2014 genes and the allele map",
+  "notes": [
+   "A bar per gene for the line shown: favourable, heterozygous, unfavourable and missing SNPs.",
+   "Rows are the selected lines, columns the SNPs of each gene, coloured by status \u2014 to see where the lines differ."
+  ]
+ },
+ "favallele_heatmap_setup": {
+  "title": "Favourable Allele Analysis \u2014 Heatmap tab: genes and lines",
+  "notes": [
+   "Pick genes from the list (search by name), add all the genes of a trait with one click, or take the genes of the filters.",
+   "Pick lines from the list, or take all the lines of your file.",
+   "Resolution of the PNG."
+  ]
+ },
+ "favallele_heatmap": {
+  "title": "Favourable Allele Analysis \u2014 the balloon heatmap",
+  "notes": [
+   "Genes and lines drawn, markers used after the quality control, and the size of the figure.",
+   "Balloon heatmap drawn by the R script: balloon size and blue depth show the fraction of a gene's markers at which the line is homozygous favourable; a cross is no call. Coloured strip: trait of the gene; bars: favourable alleles per line."
+  ]
+ },
+ "favallele_upload_empty": {
+  "title": "Favourable Allele Analysis \u2014 scope and the genotype file",
+  "notes": [
+   "Scope: the tool is for the rice 4K haplopanel only, for now. The trait-gene markers are kept inside TerraTools; it is not scaled to other panels or crops yet.",
+   "Your 4K haplopanel genotypes: one row per marker, one column per line; 0 / 1 / 2 / -1, VCF genotypes or nucleotides."
+  ]
+ },
+ "genofile_input": {
+  "title": "Genofile Converter \u2014 a VCF, its parents and the output settings",
+  "notes": [
+   "The company file: HapMap, VCF / VCF.GZ or an Excel / CSV sheet of allele calls. The format is detected; change it with the buttons if it is wrong.",
+   "How an individual is coded against the two parents, and when a marker is left out.",
+   "Choose Parent 1 and Parent 2 among the samples of the file (P1 and P2 were found automatically); samples that do not belong to the population can be left out.",
+   "Marker names (as in the file or chromosome_position), chromosome labels (Chr01 becomes 1) and whether markers on scaffolds are left out."
+  ]
+ },
+ "genofile_result": {
+  "title": "Genofile Converter \u2014 the converted files",
+  "notes": [
+   "Markers in the file, coded (kept), left out, individuals and the share of calls that are missing or unexpected.",
+   "What the file contains (a row per marker, a column per individual, coded 0 / 1 / 2 / \u22121), the CSV and Excel downloads, and shortcuts to continue in another tool.",
+   "Parent missing, parent heterozygous, or both parents with the same allele; the genotype codes of all kept markers are counted on the right."
+  ]
+ }
+}

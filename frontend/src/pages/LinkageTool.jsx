@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Dna, Upload, SlidersHorizontal, ClipboardCheck, Table2, ChartColumn, ChartArea, CircleHelp, FolderOpen,
   Settings2, BookOpen, Trash2, Download, FileSpreadsheet, RefreshCw, Camera, Map as MapIcon, Thermometer, ChartLine,
+  ArrowLeftRight,
 } from 'lucide-react'
 import {
   ToolPage, TabPane, SectionHeader, Card, Slider, SelectField, TextField, Toggle, ChipGroup, FilePicker, Note,
   EmptyState, ImageGallery, DataTable, LogBox,
 } from '../components/kit.jsx'
 import { useBridge, useTool, useGlobals, useSignal, callJson, mockGeneric } from '../lib/bridge.js'
+import { useFiles } from '../lib/files.js'
+import { usePipe } from '../lib/pipeline.js'
+import QtlExportCard from './linkage/QtlExportCard.jsx'
 
 const TABS = [
   { id: 'upload', label: 'Upload', icon: Upload },
@@ -156,7 +160,7 @@ function Ideogram({ data, s }) {
   )
 }
 
-export default function LinkageTool() {
+export default function LinkageTool({ navigate }) {
   const { bridge } = useBridge('linkageBridge', () => mockGeneric(['errorOccurred', 'cytoDataReady']))
   const tool = useTool(bridge, 'run_linkage')
   const [tab, setTab] = useState('upload')
@@ -166,7 +170,8 @@ export default function LinkageTool() {
   const [uploadLog, setUploadLog] = useState('No file uploaded yet.')
   const [p, setPr] = useState({
     missing_threshold: 0.3, recombination_threshold: 0.45, enable_chi_square: false, chi_square_alpha: 0.05,
-    use_bonferroni: false, max_total_cm: 1500, scaling_method: 'proportional',
+    use_bonferroni: false, marker_order: 'auto', map_method: 'ml',
+    max_total_cm: 100000, scaling_method: 'proportional',   // estimated distances are kept as they are
   })
   const setP = (k) => (v) => setPr((x) => ({ ...x, [k]: v }))
   const [chrs, setChrs] = useState([])
@@ -183,6 +188,9 @@ export default function LinkageTool() {
   const [cyto, setCyto] = useState(null)
   const [cs, setCs] = useState({ zoom: 1, width: 28, spacing: 60, pxPerCm: 5, fontSize: 11, scheme: 'classic', showScale: true, showNames: false })
   const setC = (k) => (v) => setCs((x) => ({ ...x, [k]: v }))
+  // a coded file made by the Genofile Converter
+  const pipe = usePipe()
+  const fromGeno = pipe.genofile && pipe.genofile.linkage ? pipe.genofile : null
 
   tool.onResult((r) => {
     const c = (r.chromosomes || []).map(String)
@@ -210,14 +218,23 @@ export default function LinkageTool() {
     showHeatmapPlot: plotHandler('heatmap', 'heatmap_plot'),
   })
 
-  const browse = async () => {
-    const path = await tool.browse('browse_genotype')
-    if (!path) return
+  const loadUpload = async (path) => {
     setGeno(path); setUploadLog('Loading file…')
     const pv = await callJson(bridge, 'get_upload_preview', path)
     if (!pv || pv.status !== 'success') { setUpload(null); return setUploadLog('Error: ' + ((pv && pv.message) || 'Could not read file.')) }
     setUpload(pv); setUploadLog(pv.log || 'File loaded.')
     tool.setStatus('Ready. Configure parameters and click Run Analysis.')
+  }
+  // "Open in Linkage Mapping" from the Genofile Converter
+  const lastStamp = useRef(0)
+  useEffect(() => {
+    const g = pipe.genofile
+    if (bridge && g && g.target === 'linkage' && g.stamp !== lastStamp.current) { lastStamp.current = g.stamp; loadUpload(g.linkage) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pipe.genofile, bridge])
+  const browse = async () => {
+    const path = await tool.browse('browse_genotype')
+    if (path) loadUpload(path)
   }
   const run = () => {
     if (!upload) return tool.fail('Upload a genotype file first.')
@@ -225,13 +242,10 @@ export default function LinkageTool() {
   }
   const render = (key, slot, cfg) => { setBusy((b) => ({ ...b, [key]: true })); bridge[slot](JSON.stringify(cfg)) }
   const dl = (t) => bridge && bridge.download_result(t)
+  const { saveImage } = useFiles()
   const saveCyto = () => {
     const c = document.querySelector('.cyto-scroll canvas')
-    if (!c) return
-    const a = document.createElement('a')
-    a.download = `cytogenetic_map_${new Date().toISOString().slice(0, 10)}.png`
-    a.href = c.toDataURL('image/png', 1.0)
-    a.click()
+    if (c) saveImage(c.toDataURL('image/png', 1.0), `Cytogenetic_map_${new Date().toISOString().slice(0, 10)}`)
   }
 
   const r = tool.result
@@ -244,19 +258,30 @@ export default function LinkageTool() {
     <ToolPage
       id="link" icon={Dna} tabs={TABS} tab={tab} setTab={setTab}
       title="Linkage Map Creator"
-      subtitle="Genetic linkage mapping and cytogenetic visualization · Kosambi cM"
+      subtitle="Linkage map construction (LOD grouping · ML ordering · multipoint distances) and cytogenetic visualization"
       run={tab === 'parameters' ? { label: 'Run Analysis', runningLabel: 'Building linkage map…', state: tool.state, disabled: !upload,
-        status: !upload && tool.state === 'idle' ? 'Upload a genotype file first.' : tool.status, onRun: run } : undefined}
+        status: !upload && tool.state === 'idle' ? 'Upload a genotype file first.' : tool.status, onRun: run }
+        : undefined}
     >
       {tab === 'upload' && (
         <TabPane id="upload" key="upload">
           <div className="grid-2" style={{ gridTemplateColumns: 'minmax(300px, 1fr) minmax(300px, 2fr)', alignItems: 'start' }}>
             <Card title="Upload Genotype Data" icon={FolderOpen}>
               <div className="field">
-                <label className="field-title">Genotype Excel File (.xlsx)</label>
+                <label className="field-title">Genotype File (.xlsx or .csv)</label>
                 <FilePicker value={geno} placeholder="Select genotype file…" onBrowse={browse} />
               </div>
               <SelectField label="Population Type" value={pop} onChange={setPop} options={['F2', 'RIL']} />
+              {fromGeno && fromGeno.linkage !== geno && (
+                <div className="convert-hint">
+                  <ArrowLeftRight size={15} />
+                  <span>Converted by the Genofile Converter: <b>{fromGeno.name}</b>. <button onClick={() => loadUpload(fromGeno.linkage)}>Use this file</button></span>
+                </div>
+              )}
+              <div className="convert-hint">
+                <ArrowLeftRight size={15} />
+                <span>File from a genotyping company (HapMap, VCF, A:G calls)? <button onClick={() => navigate && navigate('genofile')}>Convert it with the Genofile Converter</button> first.</span>
+              </div>
               <Note>
                 <b>Features:</b> high-resolution linkage map plot · recombination fraction heatmap · marker density distribution ·
                 cytogenetic ideogram with hover tooltips · allele-frequency banding per chromosome · full Excel export
@@ -278,6 +303,19 @@ export default function LinkageTool() {
             <Card title="Analysis Parameters" icon={Settings2}>
               <Slider label="Missing Data Threshold" value={p.missing_threshold} onChange={setP('missing_threshold')} min={0} max={1} step={0.05} format={(v) => v.toFixed(2)} />
               <Slider label="Max Recombination Fraction (r)" value={p.recombination_threshold} onChange={setP('recombination_threshold')} min={0} max={0.5} step={0.01} format={(v) => v.toFixed(2)} />
+              <SelectField label="Marker order" value={p.marker_order} onChange={setP('marker_order')}
+                options={[
+                  { value: 'auto', label: 'Automatic (fix files sorted by marker name)' },
+                  { value: 'physical', label: 'Sort by physical position in the marker names' },
+                  { value: 'file', label: 'Use the order of my file' },
+                ]}
+                hint="The starting / reference order. Names like chr02_16919033 carry the physical position; markers without one (gene markers) are placed where they fit the data best." />
+              <SelectField label="Map method" value={p.map_method} onChange={setP('map_method')}
+                options={[
+                  { value: 'ml', label: 'Find the best marker order (recommended)' },
+                  { value: 'fixed', label: 'Keep my marker order' },
+                ]}
+                hint="Both estimate distances with all markers together. The first also checks the order against the genotypes." />
               <div className="plot-title" style={{ marginTop: 18 }}>Chi-Square Filter</div>
               <Toggle label="Enable segregation distortion filter" checked={p.enable_chi_square} onChange={setP('enable_chi_square')} />
               {p.enable_chi_square ? (
@@ -287,25 +325,16 @@ export default function LinkageTool() {
                   <div className="info-line warn">Chi-square filtering removes markers with skewed allele ratios.</div>
                 </>
               ) : <div className="field-hint">Chi-square filter is OFF.</div>}
-              <div className="plot-title" style={{ marginTop: 18 }}>Map Scaling</div>
-              <TextField label="Max Total Map Length (cM)" type="number" min={100} max={10000} step={100} value={p.max_total_cm} onChange={setP('max_total_cm')} />
-              <SelectField label="Scaling Method" value={p.scaling_method} onChange={setP('scaling_method')}
-                options={[{ value: 'proportional', label: 'Proportional' }, { value: 'uniform', label: 'Uniform' }]} />
             </Card>
             <Card title="Parameter Guide" icon={BookOpen} delay={0.06}>
               <ul className="plain-list">
                 <li><b>Missing Data Threshold:</b> markers with more than this fraction missing are excluded.</li>
-                <li><b>Max Recombination Fraction:</b> marker pairs with r ≥ threshold get a 50 cM gap.</li>
-                <li><b>Monomorphic Removal:</b> automatic — fixed-allele markers are excluded.</li>
+                <li><b>Max Recombination Fraction:</b> neighbouring markers with r ≥ threshold are treated as unlinked and counted as 50 cM.</li>
+                <li><b>Marker order:</b> the reference order. Automatic re-orders a chromosome by the physical position in the marker names only when the file lists it alphabetically (an accidental sort).</li>
+                <li><b>Map method:</b> identical markers share a position; the order is checked against the genotypes (the physical order is kept unless the data favour another by more than 3 LOD); distances are estimated with all markers of a chromosome together, allowing for 1 % genotyping error (Kosambi cM). Markers linked to another chromosome, unlinked to their own, or that wreck the map are removed and listed in the QC tab.</li>
+                <li><b>Monomorphic markers</b> are always removed.</li>
                 <li><b>Chi-Square Filter:</b> optional — removes segregation-distorted markers.</li>
-                <li><b>Map Scaling:</b> proportional scales all chromosomes uniformly; uniform equalizes chromosome lengths.</li>
               </ul>
-              <div className="plot-title" style={{ marginTop: 14 }}>Scaling Summary</div>
-              <LogBox>{(r && r.scaling_summary) || 'Run analysis to see scaling summary.'}</LogBox>
-              <div className="grid-2" style={{ marginTop: 12 }}>
-                <div><div className="plot-title">Before Scaling</div><LogBox>{(r && r.before_scaling_stats) || '—'}</LogBox></div>
-                <div><div className="plot-title">After Scaling</div><LogBox>{(r && r.after_scaling_stats) || '—'}</LogBox></div>
-              </div>
             </Card>
           </div>
         </TabPane>
@@ -323,16 +352,37 @@ export default function LinkageTool() {
         <TabPane id="results" key="results">
           {!r ? <EmptyState icon={Table2}>Upload data and run analysis to see results.</EmptyState> : (
             <>
+              <QtlExportCard result={r} onDownload={dl} />
               <Card title="Downloads" icon={Download}>
                 <div className="downloads" style={{ margin: 0 }}>
                   <button className="btn btn-secondary" onClick={() => dl('full_results')}><FileSpreadsheet size={15} /> Full Excel Results</button>
                   <button className="btn btn-secondary" onClick={() => dl('all_markers')}><FileSpreadsheet size={15} /> All Markers + Positions</button>
                   <button className="btn btn-secondary" onClick={() => dl('retained_markers')}><FileSpreadsheet size={15} /> Retained Markers List</button>
+                  <button className="btn btn-secondary" onClick={() => dl('recombination')}><FileSpreadsheet size={15} /> Recombination Table + Heatmap</button>
                 </div>
               </Card>
               <Card title="Retained Markers" icon={Table2}><Tbl rows={r.retained_markers} columns={r.retained_markers_columns} /></Card>
               <Card title="All Markers — Status + Positions" icon={Table2}><Tbl rows={r.all_markers} columns={r.all_markers_columns} /></Card>
               <Card title="Linkage Map Table" icon={MapIcon}><Tbl rows={r.linkage_map} columns={r.linkage_map_columns} /></Card>
+              {r.physical_summary && r.physical_summary.length > 0 && (
+                <Card title="Physical Positions (bp) — cM converted to the genome" icon={MapIcon}>
+                  <div className="field-hint" style={{ marginBottom: 8 }}>
+                    Recombination fraction → cM (Kosambi) → bp. Each marker's bp is read from its name; a marker without one is
+                    placed by interpolating its cM between the markers of the same chromosome that have one. A group whose cM order
+                    disagrees with the genome is flagged: bp converted from its cM is unreliable. Download: the <b>Physical Map</b> and
+                    <b> Physical Summary</b> sheets of the results workbook.
+                  </div>
+                  <Tbl rows={r.physical_summary} columns={r.physical_summary_columns} />
+                  <div style={{ height: 12 }} />
+                  <Tbl rows={r.physical_map} columns={r.physical_map_columns} />
+                </Card>
+              )}
+              {r.chrom_summary && r.chrom_summary.length > 0 && (
+                <Card title="Chromosome Summary" icon={ChartLine}><Tbl rows={r.chrom_summary} columns={r.chrom_summary_columns} /></Card>
+              )}
+              {r.marker_fit && r.marker_fit.length > 0 && (
+                <Card title="Marker Fit — suspect genotypes per map position" icon={ClipboardCheck}><Tbl rows={r.marker_fit} columns={r.marker_fit_columns} /></Card>
+              )}
               <Card title="Summary Statistics" icon={ChartLine}><LogBox>{r.summary_stats || '—'}</LogBox></Card>
             </>
           )}
@@ -392,6 +442,7 @@ export default function LinkageTool() {
                       <button className="btn btn-secondary" disabled={busy.heatmap} onClick={() => render('heatmap', 'render_heatmap_plot', { chromosomes: heatSel, top_n: topN })}>
                         <RefreshCw size={15} className={busy.heatmap ? 'spin' : ''} /> Update</button>
                       <button className="btn btn-secondary" onClick={() => dl('heatmap_plot')}><Download size={15} /> Download</button>
+                      <button className="btn btn-secondary" onClick={() => dl('recombination')}><FileSpreadsheet size={15} /> Table (.xlsx)</button>
                     </div>
                   </div>
                 </div>
@@ -448,9 +499,9 @@ export default function LinkageTool() {
           <SectionHeader title="Application Guide" />
           <Card title="Required Input Format" icon={BookOpen}>
             <ul className="plain-list">
-              <li>Excel (.xlsx): Column 1 = "Marker", Column 2 = "Chromosome"</li>
+              <li>Excel (.xlsx) or CSV: Column 1 = "Marker", Column 2 = "Chromosome"</li>
               <li>Genotype columns 3+: individual sample genotype calls</li>
-              <li>Genotype codes are auto-converted to a / b / ab / − (missing)</li>
+              <li>Genotype codes required are 0, 1, 2, -1 for homo-dominant, heterozygous, homo-recessive and missing</li>
               <li>Marker order in the input file is preserved during map construction</li>
             </ul>
           </Card>
@@ -459,7 +510,7 @@ export default function LinkageTool() {
               <li>Upload a genotype Excel file and confirm the population type (F2 or RIL) in the Upload tab.</li>
               <li>Set thresholds and optional filters in the Parameters tab, then click Run Analysis.</li>
               <li>Review excluded markers in the QC Report tab.</li>
-              <li>Browse tables and download Excel exports in the Results tab.</li>
+              <li>Browse tables and download Excel exports in the Results tab — including the ready-to-use input file for QTL Mapping.</li>
               <li>Customize and export the linkage map figure in the Map Plot tab.</li>
               <li>Inspect marker density and adjacent-marker recombination in the Density & RF tab.</li>
               <li>Explore the interactive cytogenetic ideogram in the Cytogenetic tab.</li>

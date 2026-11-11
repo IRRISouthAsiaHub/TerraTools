@@ -1,0 +1,12 @@
+Marker,Why Convert Alleles leaves it out
+chr01_BAD_hetparent1,heterozygous parent
+chr02_BAD_hetparent2,heterozygous parent
+chr03_BAD_hetparent3,heterozygous parent
+chr04_BAD_hetparent4,heterozygous parent
+chr05_BAD_sameallele1,both parents carry the same allele
+chr06_BAD_sameallele2,both parents carry the same allele
+chr07_BAD_sameallele3,both parents carry the same allele
+chr08_BAD_sameallele4,both parents carry the same allele
+chr09_BAD_noparent1,a parent is missing
+chr10_BAD_noparent2,a parent is missing
+chr11_BAD_noparent3,a parent is missing

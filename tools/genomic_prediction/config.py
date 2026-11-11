@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -26,6 +26,9 @@ class GenomicPredictionConfig:
     n_components: int = 50
     rfe_n_features: int = 100
 
+    # optional models to compare BreedSight with ('Lasso', 'RRBLUP_1', 'GBLUP_1'); none = BreedSight only
+    baselines: list = field(default_factory=list)
+
     @staticmethod
     def from_dict(d: dict) -> "GenomicPredictionConfig":
         return GenomicPredictionConfig(
@@ -48,4 +51,5 @@ class GenomicPredictionConfig:
             use_raw_genotypes=bool(d.get("use_raw_genotypes", False)),
             n_components=int(d.get("n_components", 50)),
             rfe_n_features=int(d.get("rfe_n_features", 100)),
+            baselines=[str(b) for b in (d.get("baselines") or [])],
         )

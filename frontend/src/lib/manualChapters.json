@@ -1,0 +1,158 @@
+[
+ {
+  "id": "c-welcome",
+  "n": 1,
+  "title": "Welcome to TerraTools",
+  "group": "Getting started"
+ },
+ {
+  "id": "c-install",
+  "n": 2,
+  "title": "Installing and starting",
+  "group": "Getting started"
+ },
+ {
+  "id": "c-tour",
+  "n": 3,
+  "title": "Finding your way around",
+  "group": "Getting started"
+ },
+ {
+  "id": "c-data",
+  "n": 4,
+  "title": "Preparing your data",
+  "group": "Getting started"
+ },
+ {
+  "id": "c-genofile",
+  "n": 5,
+  "title": "Genofile Converter",
+  "group": "Data Analysis"
+ },
+ {
+  "id": "c-phenotypic",
+  "n": 6,
+  "title": "Phenotypic Data Analysis",
+  "group": "Data Analysis"
+ },
+ {
+  "id": "c-mendelian",
+  "n": 7,
+  "title": "Mendelian Segregation",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-linkage",
+  "n": 8,
+  "title": "Linkage Mapping",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-genotype",
+  "n": 9,
+  "title": "Genotype Viewer",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-qtl",
+  "n": 10,
+  "title": "QTL Mapping",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-qtlseq",
+  "n": 11,
+  "title": "QTL-Seq",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-diversity",
+  "n": 12,
+  "title": "Diversity Analysis",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-gwas",
+  "n": 13,
+  "title": "GWAS",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-pybsa",
+  "n": 14,
+  "title": "PYBSA G-statistics",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-gene",
+  "n": 15,
+  "title": "Genes Extraction",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-prioritize",
+  "n": 16,
+  "title": "Gene Prioritization",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-clustering",
+  "n": 17,
+  "title": "Clustering & Genomic Selection",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-additive",
+  "n": 18,
+  "title": "Additive Dominance",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-breedsight",
+  "n": 19,
+  "title": "BreedSight GUI",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-cross",
+  "n": 20,
+  "title": "Optimal Cross Selection",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-heterosis",
+  "n": 21,
+  "title": "Heterosis",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-favallele",
+  "n": 22,
+  "title": "Favourable Allele Analysis",
+  "group": "Genomic Selection"
+ },
+ {
+  "id": "c-work",
+  "n": 23,
+  "title": "Typical workflows",
+  "group": "Reference"
+ },
+ {
+  "id": "c-trouble",
+  "n": 24,
+  "title": "Troubleshooting",
+  "group": "Reference"
+ },
+ {
+  "id": "c-glossary",
+  "n": 25,
+  "title": "Glossary",
+  "group": "Reference"
+ },
+ {
+  "id": "c-formats",
+  "n": 26,
+  "title": "Input formats at a glance",
+  "group": "Reference"
+ }
+]

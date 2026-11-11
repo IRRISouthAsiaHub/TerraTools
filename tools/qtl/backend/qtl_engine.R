@@ -1,22 +1,24 @@
 # ============================================================
-# QTL-Mapper v7 ENHANCED — FIXED VERSION
-# Fixes:
-#  1. Added colourpicker to required_packages
-#  2. Customization controls now fully wired to plots & downloads
-#  3. make_chromosome_ideogram_reference accepts color/size params
-#  4. Manhattan plot height/width driven by sliders (uiOutput)
-#  5. Ideogram width now respected in renderPlot
-#  6. PNG downloads use custom dimensions & styles
-#  7. threshold_style mapped correctly to base R lty values
-#  8. compare_bar PNG uses custom dimensions
-#  9. All colourInput references safe-guarded with defaults
+# TerraTools QTL engine
+#
+# QTL are reported as *regions*: one row per QTL peak, with the
+# flanking markers on the left and right and a LOD-drop support
+# interval, following the standard QTL-mapping literature:
+#
+#   Lander & Botstein 1989   interval mapping, 1-LOD / 1.5-LOD support interval
+#   Haley & Knott 1992       regression mapping, LOD = (n/2) log10(RSS0/RSS1)
+#   Churchill & Doerge 1994  permutation test for the genome-wide LOD threshold
+#   Zeng 1994, Jansen & Stam 1994
+#                            composite interval / multiple-QTL mapping (cofactors,
+#                            cofactors inside the scan window are dropped)
+#   Manichaikul et al. 2006  Bayesian credible interval
+#   Broman & Sen 2009 (R/qtl lodint, bayesint) and Broman et al. 2019
+#   (R/qtl2 find_peaks: threshold + peakdrop)
+#                            peak calling, intervals expanded to flanking markers
 # ============================================================
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
-# Only the packages qtl_engine.R / qtl_cli.R actually call.
-# (shiny, DT, plotly, shinyjs, colourpicker were Shiny-UI-only
-#  leftovers from the original app and are never used here.)
 required_packages <- c(
   "randomForest", "caret", "ggplot2",
   "dplyr", "glmnet", "scales", "e1071", "xgboost",
@@ -43,16 +45,18 @@ if (length(missing_packages) > 0) {
 invisible(lapply(required_packages, library, character.only = TRUE))
 
 # ============================================================
-# 6 MODELS
+# MODELS
 # ============================================================
 MAPPING_MODELS <- list(
-  "SIM"     = list(label = "Simple Interval Mapping (SIM)",    desc = "Single-marker regression; LOD = -log10(p)"),
-  "CIM"     = list(label = "Composite Interval Mapping (CIM)", desc = "Cartographer-like CIM with cofactors"),
-  "MQM"     = list(label = "Multiple QTL Model (MQM)",         desc = "Forward stepwise multi-QTL selection"),
+  "SIM"     = list(label = "Simple Interval Mapping (SIM)",    desc = "Single-marker regression; LOD = (n/2)log10(RSS0/RSS1)"),
+  "CIM"     = list(label = "Composite Interval Mapping (CIM)", desc = "Regression with stepwise-selected background cofactors"),
+  "MQM"     = list(label = "Multiple QTL Model (MQM)",         desc = "Regression with a larger multi-QTL background model"),
   "RF"      = list(label = "Random Forest QTL",                desc = "Non-parametric; permutation importance"),
   "SVR"     = list(label = "Support Vector Regression",        desc = "Kernel-based; permutation importance"),
   "XGBOOST" = list(label = "XGBoost QTL",                     desc = "Gradient boosting; gain importance")
 )
+
+LINEAR_METHODS <- c("SIM", "CIM", "MQM")
 
 MODEL_COLORS <- c(
   "SIM"     = "#CC0000",
@@ -68,22 +72,44 @@ MODEL_COLORS <- c(
 # ============================================================
 cn <- function(x) trimws(gsub('[\r\n\"]', '', as.character(x)))
 
-calc_genetic_distance <- function(marker1, marker2, marker_info) {
-  m1 <- marker_info[marker_info$Marker == marker1, ]
-  m2 <- marker_info[marker_info$Marker == marker2, ]
-  if (nrow(m1) == 0 || nrow(m2) == 0) return(Inf)
-  if (m1$Chromosome[1] == m2$Chromosome[1]) return(abs(m1$Position[1] - m2$Position[1]))
-  return(Inf)
+# Chromosome names in map order: 1, 2, ..., 10, 11 (not "1","10","11","2"),
+# followed by any non-numeric names (X, Y, Un) alphabetically.
+chr_order <- function(x) {
+  u <- unique(as.character(x))
+  n <- suppressWarnings(as.numeric(u))
+  u[order(is.na(n), n, u)]
 }
 
-# Safe colour getter with fallback
-get_color <- function(input_val, fallback) {
-  if (is.null(input_val) || nchar(trimws(input_val)) == 0) return(fallback)
-  input_val
+impute_mean <- function(M) {
+  M <- as.matrix(M)
+  for (j in seq_len(ncol(M))) {
+    na <- is.na(M[, j])
+    if (any(na)) {
+      mu <- if (all(na)) 0 else mean(M[!na, j])
+      M[na, j] <- mu
+    }
+  }
+  M
+}
+
+impute_mode <- function(M) {
+  M <- as.matrix(M)
+  for (j in seq_len(ncol(M))) {
+    na <- is.na(M[, j])
+    if (any(na)) {
+      if (all(na)) { M[, j] <- 0; next }
+      tab <- table(M[!na, j])
+      M[na, j] <- as.numeric(names(tab)[which.max(tab)])
+    }
+  }
+  M
 }
 
 # ============================================================
 # GENOTYPE LOADER
+#   rows 1-3: marker names, chromosome, position (cM); then one
+#   row per individual.  Any negative code (-1, -9 ...) or a
+#   blank / non-numeric cell is a MISSING genotype.
 # ============================================================
 load_genotype_file <- function(filepath) {
   lines <- readLines(filepath, warn = FALSE)
@@ -105,7 +131,11 @@ load_genotype_file <- function(filepath) {
   colnames(gd) <- header
   rownames(gd) <- cn(as.character(gd[, 1]))
   gd <- gd[, -1, drop = FALSE]
-  for (col in colnames(gd)) gd[[col]] <- suppressWarnings(as.numeric(as.character(gd[[col]])))
+  for (col in colnames(gd)) {
+    v <- suppressWarnings(as.numeric(as.character(gd[[col]])))
+    v[!is.na(v) & v < 0] <- NA            # -1 / -9 style missing codes
+    gd[[col]] <- v
+  }
 
   marker_info <- data.frame(
     Marker     = colnames(gd),
@@ -114,386 +144,590 @@ load_genotype_file <- function(filepath) {
     stringsAsFactors = FALSE
   )
   marker_info <- marker_info[!is.na(marker_info$Position) & marker_info$Chromosome != "", ]
+  # map order: chromosome (numeric aware), then cM position
+  marker_info <- marker_info[order(match(marker_info$Chromosome, chr_order(marker_info$Chromosome)),
+                                   marker_info$Position), ]
   valid_cols  <- colnames(gd)[colnames(gd) %in% marker_info$Marker]
   gd          <- gd[, valid_cols, drop = FALSE]
 
   list(geno = gd, marker_info = marker_info,
        n_samples = nrow(gd), n_markers = ncol(gd),
-       chromosomes = sort(unique(marker_info$Chromosome)))
+       missing_fraction = mean(is.na(as.matrix(gd))),
+       chromosomes = chr_order(marker_info$Chromosome))
 }
 
 # ============================================================
-# SIM
+# MISSING GENOTYPES
+#   A missing genotype is filled with its most probable class given the nearest
+#   observed markers on each side of the same individual (Kosambi distances,
+#   backcross / RIL 2-state or intercross 3-state transition matrix), the
+#   same flanking-marker information R/qtl uses (Haley-Knott).  Without this each
+#   marker would be tested on a different subset of individuals, which makes
+#   the LOD curve jagged and can split one QTL into several fake peaks.
 # ============================================================
-qtl_scan_sim <- function(X_valid, y_valid, marker_info) {
-  results_list <- list()
-  for (m in colnames(X_valid)) {
-    geno      <- X_valid[, m]
-    valid_idx <- !is.na(geno) & !is.na(y_valid)
-    geno_v    <- geno[valid_idx]; pheno_v <- y_valid[valid_idx]
-    if (length(unique(geno_v)) < 2 || length(pheno_v) < 8) next
-    m_info <- marker_info[marker_info$Marker == m, ]
-    if (nrow(m_info) == 0) next
-    m_chr <- as.character(m_info$Chromosome[1]); m_pos <- m_info$Position[1]
-    if (is.na(m_pos)) next
-    tryCatch({
-      fit <- lm(pheno_v ~ geno_v)
-      ct  <- coef(summary(fit))
-      if (!"geno_v" %in% rownames(ct)) next
-      p_val <- ct["geno_v", "Pr(>|t|)"]; lod <- -log10(max(p_val, 1e-300))
-      a_code <- geno_v - 1; d_code <- as.numeric(geno_v == 1)
-      has_het <- length(unique(d_code)) > 1
-      lm_eff <- if (has_het) lm(pheno_v ~ a_code + d_code) else lm(pheno_v ~ a_code)
-      pve_m  <- max(0, summary(lm_eff)$r.squared * 100)
-      ce <- coef(lm_eff); se_t <- coef(summary(lm_eff))
-      a_eff <- ce["a_code"]
-      se_a  <- if ("a_code" %in% rownames(se_t)) se_t["a_code", "Std. Error"] else NA
-      d_eff <- if (has_het) ce["d_code"] else NA
-      d_rat <- if (!is.na(d_eff) && !is.na(a_eff) && a_eff != 0) abs(d_eff / a_eff) else NA
-      dom_cl <- if (is.na(d_rat)) "Additive"
-                else if (d_rat > 1) "Overdominance"
-                else if (d_rat > 0.5) "Dominance"
-                else if (d_rat > 0.2) "Partial Dom." else "Additive"
-      results_list[[m]] <- data.frame(
-        Marker=m, Chromosome=m_chr, Position=m_pos,
-        LOD=lod, P_Value=p_val,
-        PVE_Marker_Percent=pve_m, PVE_CIM_Percent=pve_m,
-        Additive_Effect=a_eff, SE_Additive=se_a,
-        CI_Lower=ifelse(is.na(se_a),NA,a_eff-1.96*se_a),
-        CI_Upper=ifelse(is.na(se_a),NA,a_eff+1.96*se_a),
-        Dominance_Effect=d_eff, Dominance_Ratio=d_rat, Dominance_Class=dom_cl,
-        N_Cofactors=0, N_Samples=length(pheno_v), Method="SIM",
-        stringsAsFactors=FALSE)
-    }, error=function(e) {})
+kosambi_r <- function(d_cM) 0.5 * tanh(d_cM / 50)
+
+impute_flanking <- function(X, marker_info) {
+  X <- as.matrix(X)
+  cls <- sort(unique(as.vector(X[!is.na(X)])))
+  K <- length(cls)
+  if (K < 2 || K > 3 || !anyNA(X)) return(list(X = X, n_imputed = 0L))
+  mi <- marker_info[match(colnames(X), marker_info$Marker), , drop = FALSE]
+  trans <- function(r) {
+    if (K == 2) matrix(c(1 - r, r, r, 1 - r), 2, byrow = TRUE)
+    else matrix(c((1 - r)^2, 2 * r * (1 - r), r^2,
+                  r * (1 - r), (1 - r)^2 + r^2, r * (1 - r),
+                  r^2, 2 * r * (1 - r), (1 - r)^2), 3, byrow = TRUE)
   }
-  if (length(results_list) == 0) return(data.frame(Message="No results from SIM"))
-  res <- do.call(rbind, results_list)
-  res[order(res$Chromosome, res$Position), ]
-}
-
-# ============================================================
-# CIM
-# ============================================================
-qtl_scan_cim_improved <- function(X_valid, y_valid, marker_info,
-                                  window_size = 10, n_cofactors = 5) {
-  cat("\n=== CIM ===\n")
-  initial_pvals <- sapply(colnames(X_valid), function(m) {
-    g <- X_valid[, m]; valid_idx <- !is.na(g) & !is.na(y_valid)
-    if (sum(valid_idx) < 8 || length(unique(g[valid_idx])) < 2) return(1)
-    tryCatch(coef(summary(lm(y_valid[valid_idx] ~ g[valid_idx])))[2, 4], error=function(e) 1)
-  })
-  sorted_markers <- names(sort(initial_pvals))
-  cofactors <- character(0)
-  min_distance <- 20
-  for (candidate in sorted_markers) {
-    if (length(cofactors) >= n_cofactors) break
-    if (initial_pvals[candidate] > 0.01) break
-    too_close <- FALSE
-    if (length(cofactors) > 0) {
-      for (existing_cof in cofactors) {
-        if (calc_genetic_distance(candidate, existing_cof, marker_info) < min_distance) {
-          too_close <- TRUE; break
-        }
+  n_imp <- 0L
+  for (chr in unique(as.character(mi$Chromosome))) {
+    cols <- which(as.character(mi$Chromosome) == chr)
+    cols <- cols[order(mi$Position[cols])]
+    pos  <- mi$Position[cols]
+    sub  <- X[, cols, drop = FALSE]
+    for (i in which(rowSums(is.na(sub)) > 0)) {
+      g <- sub[i, ]
+      obs <- which(!is.na(g))
+      if (!length(obs)) next
+      for (j in which(is.na(g))) {
+        l  <- obs[obs < j]; l <- if (length(l)) l[length(l)] else NA
+        rr <- obs[obs > j]; rr <- if (length(rr)) rr[1] else NA
+        post <- rep(1, K)
+        if (!is.na(l))  post <- post * trans(kosambi_r(pos[j] - pos[l]))[match(g[l], cls), ]
+        if (!is.na(rr)) post <- post * trans(kosambi_r(pos[rr] - pos[j]))[, match(g[rr], cls)]
+        sub[i, j] <- cls[which.max(post)]
+        n_imp <- n_imp + 1L
       }
     }
-    if (!too_close) cofactors <- c(cofactors, candidate)
+    X[, cols] <- sub
   }
-  results_list <- list()
-  for (m in colnames(X_valid)) {
-    geno <- X_valid[, m]; valid_idx <- !is.na(geno) & !is.na(y_valid)
-    geno_v <- geno[valid_idx]; pheno_v <- y_valid[valid_idx]
-    if (length(unique(geno_v)) < 2 || length(pheno_v) < 8) next
-    m_info <- marker_info[marker_info$Marker == m, ]
-    if (nrow(m_info) == 0) next
-    m_chr <- as.character(m_info$Chromosome[1]); m_pos <- m_info$Position[1]
-    if (is.na(m_pos)) next
-    chr_markers <- marker_info[marker_info$Chromosome == m_chr, ]
-    chr_markers <- chr_markers[order(chr_markers$Position), ]
-    focal_idx   <- which(chr_markers$Marker == m)
-    exclude_markers <- character(0)
-    if (length(focal_idx) > 0) {
-      ws <- max(1, focal_idx - window_size); we <- min(nrow(chr_markers), focal_idx + window_size)
-      exclude_markers <- chr_markers$Marker[ws:we]
+  list(X = X, n_imputed = n_imp)
+}
+
+# ============================================================
+# REGRESSION CORE
+#   LOD  = (n/2) * log10(RSS0 / RSS1)            (Haley & Knott 1992)
+#   P    = F-test of the extra genotype terms     (nested models)
+# ============================================================
+geno_design <- function(g) {
+  lv <- sort(unique(g))
+  if (length(lv) > 5) return(matrix(g, ncol = 1))          # continuous dosage
+  if (length(lv) == 2) return(matrix(as.numeric(g == lv[2]), ncol = 1))
+  vapply(lv[-1], function(l) as.numeric(g == l), numeric(length(g)))   # a + d for an F2
+}
+
+lr_test <- function(y, X0, X1) {
+  n  <- length(y)
+  f0 <- lm.fit(X0, y)
+  f1 <- lm.fit(X1, y)
+  rss0 <- sum(f0$residuals^2)
+  rss1 <- sum(f1$residuals^2)
+  df1  <- f1$rank - f0$rank
+  df2  <- n - f1$rank
+  if (!is.finite(rss0) || !is.finite(rss1) || rss0 <= 0 || df2 < 1) return(NULL)
+  if (df1 < 1 || rss1 <= 0) return(list(lod = 0, p = 1, rss0 = rss0, rss1 = rss0, df = 0, n = n))
+  lod <- max(0, n / 2 * log10(rss0 / rss1))
+  Fv  <- ((rss0 - rss1) / df1) / (rss1 / df2)
+  list(lod = lod, p = pf(Fv, df1, df2, lower.tail = FALSE),
+       rss0 = rss0, rss1 = rss1, df = df1, n = n)
+}
+
+# Additive / dominance effects of a marker.  a = half the difference between
+# the two homozygote classes, d = heterozygote deviation from their mean.
+#   pve        = marginal R^2 of the marker (single-marker model)
+#   a, se, d   = effects estimated in the model that also contains `cov` (the
+#                CIM / MQM background cofactors), so a QTL partly masked by a
+#                linked one gets its conditional effect, as in composite
+#                interval mapping.  Positive a = the higher-coded parent's
+#                allele raises the trait.
+effect_stats <- function(yv, gv, cov = NULL) {
+  res <- list(pve = NA_real_, a = NA_real_, se = NA_real_, d = NA_real_,
+              ratio = NA_real_, cls = "Additive")
+  lv <- sort(unique(gv)); nl <- length(lv)
+  if (nl < 2) return(res)
+  d_code <- NULL
+  if (nl > 3) {
+    a_code <- gv
+  } else {
+    lo <- lv[1]; hi <- lv[nl]
+    a_code <- (gv - (lo + hi) / 2) / ((hi - lo) / 2)
+    if (nl == 3) d_code <- as.numeric(gv == lv[2])
+  }
+  Xm <- cbind(rep(1, length(yv)), a_code, d_code)
+  tss <- sum((yv - mean(yv))^2)
+  fm <- lm.fit(Xm, yv)
+  if (tss > 0) res$pve <- max(0, (1 - sum(fm$residuals^2) / tss) * 100)
+  Xf <- if (is.null(cov)) Xm else cbind(Xm, cov)
+  ff <- lm.fit(Xf, yv)
+  p  <- ncol(Xf)
+  res$a <- unname(ff$coefficients[2])
+  if (ff$rank == p && length(yv) > p) {
+    s2 <- sum(ff$residuals^2) / (length(yv) - p)
+    V  <- s2 * chol2inv(ff$qr$qr[1:p, 1:p, drop = FALSE])
+    res$se <- sqrt(V[2, 2])
+  }
+  if (!is.null(d_code)) {
+    res$d <- unname(ff$coefficients[3])
+    if (is.finite(res$a) && res$a != 0 && is.finite(res$d)) {
+      res$ratio <- abs(res$d / res$a)
+      res$cls <- if (res$ratio > 1) "Overdominance"
+                 else if (res$ratio > 0.5) "Dominance"
+                 else if (res$ratio > 0.2) "Partial Dom." else "Additive"
     }
-    active_cof <- setdiff(cofactors, c(m, exclude_markers))
-    active_cof <- active_cof[active_cof %in% colnames(X_valid)]
-    tryCatch({
-      df <- data.frame(y = pheno_v, focal = geno_v)
-      if (length(active_cof) > 0) {
-        cof_matrix <- X_valid[valid_idx, active_cof, drop=FALSE]
-        cof_matrix[is.na(cof_matrix)] <- 0
-        df <- cbind(df, cof_matrix)
-      }
-      df <- df[complete.cases(df), ]
-      if (nrow(df) < 8) next
-      if (length(active_cof) > 0) {
-        fit_full    <- lm(as.formula(paste("y ~ focal +", paste(active_cof, collapse=" + "))), data=df)
-        fit_reduced <- lm(as.formula(paste("y ~", paste(active_cof, collapse=" + "))), data=df)
-      } else {
-        fit_full <- lm(y ~ focal, data=df); fit_reduced <- lm(y ~ 1, data=df)
-      }
-      anova_result <- anova(fit_reduced, fit_full)
-      p_val <- anova_result[2, "Pr(>F)"]; lod <- -log10(max(p_val, 1e-300))
-      ct <- coef(summary(fit_full))
-      if (!"focal" %in% rownames(ct)) next
-      RSS_full <- sum(residuals(fit_full)^2); RSS_reduced <- sum(residuals(fit_reduced)^2)
-      pve_cim <- if (RSS_reduced > 0) max(0, (RSS_reduced - RSS_full) / RSS_reduced * 100) else NA
-      a_code <- df$focal - 1; d_code <- as.numeric(df$focal == 1)
-      has_het <- length(unique(d_code)) > 1
-      lm_effects <- if (has_het) lm(df$y ~ a_code + d_code) else lm(df$y ~ a_code)
-      pve_marker <- max(0, summary(lm_effects)$r.squared * 100)
-      ce <- coef(lm_effects); se_table <- coef(summary(lm_effects))
-      a_eff <- ce["a_code"]
-      se_a  <- if ("a_code" %in% rownames(se_table)) se_table["a_code", "Std. Error"] else NA
-      d_eff <- if (has_het) ce["d_code"] else NA
-      d_ratio <- if (!is.na(d_eff) && !is.na(a_eff) && a_eff != 0) abs(d_eff / a_eff) else NA
-      dom_class <- if (is.na(d_ratio)) "Additive"
-                   else if (d_ratio > 1) "Overdominance"
-                   else if (d_ratio > 0.5) "Dominance"
-                   else if (d_ratio > 0.2) "Partial Dom." else "Additive"
-      results_list[[m]] <- data.frame(
-        Marker=m, Chromosome=m_chr, Position=m_pos,
-        LOD=lod, P_Value=p_val,
-        PVE_Marker_Percent=pve_marker, PVE_CIM_Percent=pve_cim,
-        Additive_Effect=a_eff, SE_Additive=se_a,
-        CI_Lower=ifelse(is.na(se_a),NA,a_eff-1.96*se_a),
-        CI_Upper=ifelse(is.na(se_a),NA,a_eff+1.96*se_a),
-        Dominance_Effect=d_eff, Dominance_Ratio=d_ratio, Dominance_Class=dom_class,
-        N_Cofactors=length(active_cof), N_Samples=nrow(df), Method="CIM",
-        stringsAsFactors=FALSE)
-    }, error=function(e) cat("CIM error at", m, ":", e$message, "\n"))
   }
-  if (length(results_list) == 0) return(data.frame(Message="CIM produced no results"))
-  res <- do.call(rbind, results_list)
-  res[order(res$Chromosome, res$Position), ]
+  res
+}
+
+rows_to_df <- function(rows) {
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (!length(rows)) return(NULL)
+  cols <- names(rows[[1]])
+  out <- lapply(cols, function(k) unlist(lapply(rows, function(r) r[[k]]), use.names = FALSE))
+  names(out) <- cols
+  as.data.frame(out, stringsAsFactors = FALSE)
 }
 
 # ============================================================
-# MQM
+# LINEAR SCAN (SIM / CIM / MQM share this)
+#   cofactors = background markers; those within `window_cM` of the
+#   tested position (same chromosome) are dropped from the model so
+#   they cannot absorb the QTL being tested (Zeng 1994).
 # ============================================================
-qtl_scan_mqm <- function(X, y, marker_info) {
-  valid <- !is.na(y); X_v <- X[valid,,drop=FALSE]; y_v <- y[valid]
-  p_vals <- sapply(colnames(X_v), function(m) {
-    g <- X_v[,m]; v2 <- !is.na(g)
-    if (length(unique(g[v2]))<2||sum(v2)<8) return(1)
-    tryCatch(coef(summary(lm(y_v[v2]~g[v2])))[2,4],error=function(e) 1)
+qtl_scan_linear <- function(X, y, marker_info, cofactors = character(0),
+                            window_cM = 10, method = "SIM") {
+  mi <- marker_info[match(colnames(X), marker_info$Marker), , drop = FALSE]
+  Xc <- NULL; cof_chr <- cof_pos <- NULL
+  if (length(cofactors)) {
+    Xc <- impute_mean(X[, cofactors, drop = FALSE])
+    cm <- marker_info[match(cofactors, marker_info$Marker), , drop = FALSE]
+    cof_chr <- as.character(cm$Chromosome); cof_pos <- cm$Position
+  }
+  rows <- vector("list", ncol(X))
+  for (j in seq_len(ncol(X))) {
+    g  <- X[, j]
+    ok <- !is.na(g) & !is.na(y)
+    if (sum(ok) < 8 || length(unique(g[ok])) < 2) next
+    chr <- as.character(mi$Chromosome[j]); pos <- mi$Position[j]
+    if (is.na(pos)) next
+    use <- integer(0)
+    if (length(cofactors)) {
+      use <- which(cofactors != colnames(X)[j] &
+                   !(cof_chr == chr & abs(cof_pos - pos) <= window_cM))
+    }
+    yv <- y[ok]; gv <- g[ok]
+    X0 <- cbind(rep(1, length(yv)), if (length(use)) Xc[ok, use, drop = FALSE])
+    tst <- lr_test(yv, X0, cbind(X0, geno_design(gv)))
+    if (is.null(tst)) next
+    ef <- effect_stats(yv, gv, if (length(use)) Xc[ok, use, drop = FALSE] else NULL)
+    tss <- sum((yv - mean(yv))^2)
+    rows[[j]] <- list(
+      Marker = colnames(X)[j], Chromosome = chr, Position = pos,
+      LOD = tst$lod, P_Value = tst$p,
+      PVE_Marker_Percent = ef$pve,
+      # variance the marker explains over and above the cofactors (% of total)
+      PVE_CIM_Percent = if (length(use) && tss > 0) max(0, (tst$rss0 - tst$rss1) / tss * 100) else ef$pve,
+      Additive_Effect = ef$a, SE_Additive = ef$se,
+      CI_Lower = ef$a - 1.96 * ef$se, CI_Upper = ef$a + 1.96 * ef$se,
+      Dominance_Effect = ef$d, Dominance_Ratio = ef$ratio, Dominance_Class = ef$cls,
+      N_Cofactors = length(use), N_Samples = length(yv), Method = method
+    )
+  }
+  res <- rows_to_df(rows)
+  if (is.null(res)) return(data.frame(Message = paste("No results from", method)))
+  res <- res[order(match(res$Chromosome, chr_order(res$Chromosome)), res$Position), , drop = FALSE]
+  rownames(res) <- NULL
+  res
+}
+
+# Forward selection with backward elimination of background markers.
+# Candidates are screened by their correlation with the residuals of the
+# current model, then tested exactly with a partial F-test.
+select_cofactors <- function(X, y, marker_info, max_cof = 5, p_enter = 0.01,
+                             p_remove = 0.05, min_dist = 10) {
+  if (max_cof < 1) return(character(0))
+  keep <- !is.na(y)
+  Xi <- impute_mean(X[keep, , drop = FALSE]); yy <- y[keep]
+  n <- length(yy)
+  mi  <- marker_info[match(colnames(Xi), marker_info$Marker), , drop = FALSE]
+  chr <- as.character(mi$Chromosome); pos <- mi$Position
+  varying <- apply(Xi, 2, sd) > 0
+  one <- rep(1, n)
+  sel <- integer(0)
+
+  for (step in seq_len(max_cof)) {
+    X0  <- cbind(one, Xi[, sel, drop = FALSE])
+    res <- lm.fit(X0, yy)$residuals
+    sc  <- suppressWarnings(abs(as.numeric(cor(Xi, res))))
+    sc[is.na(sc) | !varying] <- 0
+    for (s in sel) sc[chr == chr[s] & abs(pos - pos[s]) <= min_dist] <- 0
+    sc[sel] <- 0
+    if (!any(sc > 0)) break
+    cand <- order(sc, decreasing = TRUE)[seq_len(min(30, sum(sc > 0)))]
+    best <- NA_integer_; best_p <- 1
+    for (cj in cand) {
+      t <- lr_test(yy, X0, cbind(X0, Xi[, cj]))
+      if (!is.null(t) && t$p < best_p) { best_p <- t$p; best <- cj }
+    }
+    if (is.na(best) || best_p >= p_enter) break
+    sel <- c(sel, best)
+  }
+
+  while (length(sel) > 1) {
+    ps <- vapply(seq_along(sel), function(k) {
+      X0 <- cbind(one, Xi[, sel[-k], drop = FALSE])
+      t  <- lr_test(yy, X0, cbind(X0, Xi[, sel[k]]))
+      if (is.null(t)) 1 else t$p
+    }, numeric(1))
+    if (max(ps) > p_remove) sel <- sel[-which.max(ps)] else break
+  }
+  colnames(Xi)[sel]
+}
+
+qtl_scan_sim <- function(X, y, marker_info) {
+  qtl_scan_linear(X, y, marker_info, character(0), 0, "SIM")
+}
+
+qtl_scan_cim <- function(X, y, marker_info, window_cM = 10, n_cofactors = 5) {
+  # cofactors closer together than the window would be dropped together anyway
+  cof <- select_cofactors(X, y, marker_info, max_cof = n_cofactors, min_dist = window_cM)
+  cat("CIM cofactors (", length(cof), "): ", paste(cof, collapse = ", "), "\n", sep = "")
+  res <- qtl_scan_linear(X, y, marker_info, cof, window_cM, "CIM")
+  attr(res, "cofactors") <- cof
+  res
+}
+
+# MQM-style: a larger background model (up to 15 cofactors) and the wider
+# 25 cM window that R/qtl's mqmscan uses by default.
+qtl_scan_mqm <- function(X, y, marker_info, window_cM = 25, max_cof = 15) {
+  cof <- select_cofactors(X, y, marker_info, max_cof = max_cof, p_enter = 0.01, p_remove = 0.02,
+                           min_dist = window_cM)
+  cat("MQM cofactors (", length(cof), "): ", paste(cof, collapse = ", "), "\n", sep = "")
+  res <- qtl_scan_linear(X, y, marker_info, cof, window_cM, "MQM")
+  attr(res, "cofactors") <- cof
+  res
+}
+
+# ============================================================
+# MACHINE-LEARNING SCANS
+#   Marker importance is rescaled to 0..scale and used as a LOD-like score.
+#   It is NOT a likelihood LOD; P_Value = 10^-score is only a monotone
+#   transform so that the same peak / interval code can be used.
+#   Every marker gets a row (score 0 when unimportant) so the profile is
+#   continuous along the chromosome.
+# ============================================================
+ml_result <- function(imp, X, y, marker_info, method, scale) {
+  imp$Importance[!is.finite(imp$Importance)] <- 0
+  imp$Importance <- pmax(imp$Importance, 0)
+  mx <- max(imp$Importance)
+  if (!is.finite(mx) || mx <= 0) return(data.frame(Message = "No important markers"))
+  imp$LOD <- imp$Importance / mx * scale
+  imp <- merge(imp, marker_info, by = "Marker", all.x = TRUE)
+  imp <- imp[!is.na(imp$Position), , drop = FALSE]
+  rows <- lapply(seq_len(nrow(imp)), function(i) {
+    m  <- imp$Marker[i]
+    g  <- X[, m]; v <- !is.na(g)
+    ef <- if (sum(v) >= 5) effect_stats(y[v], g[v]) else list(pve = NA_real_, a = NA_real_, se = NA_real_, d = NA_real_, ratio = NA_real_, cls = "Additive")
+    list(Marker = m, Chromosome = as.character(imp$Chromosome[i]), Position = imp$Position[i],
+         LOD = imp$LOD[i], P_Value = 10^(-imp$LOD[i]),
+         PVE_Marker_Percent = ef$pve, PVE_CIM_Percent = ef$pve,
+         Additive_Effect = ef$a, SE_Additive = ef$se,
+         CI_Lower = ef$a - 1.96 * ef$se, CI_Upper = ef$a + 1.96 * ef$se,
+         Dominance_Effect = ef$d, Dominance_Ratio = ef$ratio, Dominance_Class = ef$cls,
+         N_Cofactors = 0, N_Samples = length(y), Method = method)
   })
-  selected <- character(0); threshold <- 0.01
-  for (cand in names(sort(p_vals))[1:min(20,length(p_vals))]) {
-    test_model <- c(selected, cand)
-    df_t <- data.frame(y=y_v, X_v[,test_model,drop=FALSE])
-    df_t <- df_t[complete.cases(df_t),]
-    if (nrow(df_t)<10) next
-    tryCatch({
-      fw <- lm(y~.,data=df_t)
-      wo <- if(length(selected)>0) lm(as.formula(paste("y~",paste(selected,collapse="+"))),data=df_t) else lm(y~1,data=df_t)
-      p  <- anova(wo,fw)[2,"Pr(>F)"]
-      if (!is.na(p)&&p<threshold) selected <- test_model
-    },error=function(e){})
-  }
-  if (length(selected)==0) selected <- names(sort(p_vals))[1:min(5,length(p_vals))]
-  results_list <- list()
-  for (m in colnames(X_v)) {
-    g <- X_v[,m]; v2 <- !is.na(g)&!is.na(y_v)
-    gv <- g[v2]; yv <- y_v[v2]
-    if (length(unique(gv))<2||length(yv)<8) next
-    mi <- marker_info[marker_info$Marker==m,]
-    if (nrow(mi)==0) next
-    cof_m <- setdiff(selected,m)
-    tryCatch({
-      df2 <- data.frame(y=yv,focal=gv)
-      if (length(cof_m)>0){cm<-X_v[v2,cof_m,drop=FALSE];cm[is.na(cm)]<-0;df2<-cbind(df2,cm)}
-      df2 <- df2[complete.cases(df2),]
-      if (nrow(df2)<8) next
-      ff <- if(length(cof_m)>0) lm(as.formula(paste("y~focal+",paste(cof_m,collapse="+"))),data=df2) else lm(y~focal,data=df2)
-      fr <- if(length(cof_m)>0) lm(as.formula(paste("y~",paste(cof_m,collapse="+"))),data=df2) else lm(y~1,data=df2)
-      ct2 <- coef(summary(ff))
-      if (!"focal"%in%rownames(ct2)) next
-      p2 <- ct2["focal","Pr(>|t|)"]; lod2 <- -log10(max(p2,1e-300))
-      RF2 <- sum(residuals(ff)^2); RR2 <- sum(residuals(fr)^2)
-      pvc <- if(RR2>0) max(0,(RR2-RF2)/RR2*100) else NA
-      ac <- gv-1; dc2 <- as.numeric(gv==1); h2 <- length(unique(dc2))>1
-      le <- if(h2) lm(yv~ac+dc2) else lm(yv~ac)
-      pvm <- max(0,summary(le)$r.squared*100)
-      ce2 <- coef(le); se2 <- coef(summary(le))
-      ae <- ce2["ac"]; sea <- if("ac"%in%rownames(se2)) se2["ac","Std. Error"] else NA
-      de <- if(h2) ce2["dc2"] else NA
-      dr <- if(!is.na(de)&&!is.na(ae)&&ae!=0) abs(de/ae) else NA
-      dc3 <- if(is.na(dr)) "Additive" else if(dr>1) "Overdominance" else if(dr>0.5) "Dominance" else if(dr>0.2) "Partial Dom." else "Additive"
-      results_list[[m]] <- data.frame(
-        Marker=m,Chromosome=as.character(mi$Chromosome[1]),Position=mi$Position[1],
-        LOD=lod2,P_Value=p2,PVE_Marker_Percent=pvm,PVE_CIM_Percent=pvc,
-        Additive_Effect=ae,SE_Additive=sea,
-        CI_Lower=ifelse(is.na(sea),NA,ae-1.96*sea),CI_Upper=ifelse(is.na(sea),NA,ae+1.96*sea),
-        Dominance_Effect=de,Dominance_Ratio=dr,Dominance_Class=dc3,
-        N_Cofactors=length(cof_m),N_Samples=nrow(df2),Method="MQM",stringsAsFactors=FALSE)
-    },error=function(e){})
-  }
-  if (length(results_list)==0) return(data.frame(Message="MQM no results"))
-  res <- do.call(rbind,results_list); res[order(res$Chromosome,res$Position),]
+  res <- rows_to_df(rows)
+  res <- res[order(match(res$Chromosome, chr_order(res$Chromosome)), res$Position), , drop = FALSE]
+  rownames(res) <- NULL
+  res
 }
 
-# ============================================================
-# RF
-# ============================================================
 qtl_scan_rf <- function(X, y, marker_info) {
-  valid <- !is.na(y)&apply(X,1,function(r) !any(is.na(r)))
-  X_v <- X[valid,,drop=FALSE]; y_v <- y[valid]
-  rf_fit <- tryCatch(randomForest(x=X_v,y=y_v,ntree=500,importance=TRUE),error=function(e) NULL)
-  if (is.null(rf_fit)) return(data.frame(Message="Random Forest failed"))
-  imp <- importance(rf_fit,type=1)[,1]
-  imp_df <- data.frame(Marker=names(imp),Importance=imp)
-  imp_df <- imp_df[imp_df$Importance>0,]
-  if (nrow(imp_df)==0) return(data.frame(Message="No important markers"))
-  imp_df <- merge(imp_df,marker_info,by="Marker",all.x=TRUE)
-  imp_df <- imp_df[!is.na(imp_df$Position),]
-  max_imp <- max(imp_df$Importance); imp_df$LOD <- imp_df$Importance/max_imp*10
-  r2_vec <- sapply(imp_df$Marker,function(m){
-    g<-X_v[,m];v<-!is.na(g);if(sum(v)<5) return(NA)
-    summary(lm(y_v[v]~g[v]))$r.squared*100})
-  imp_df$PVE_Marker_Percent<-r2_vec; imp_df$PVE_CIM_Percent<-r2_vec
-  imp_df$Additive_Effect<-NA; imp_df$P_Value<-10^(-imp_df$LOD)
-  imp_df$SE_Additive<-NA; imp_df$CI_Lower<-NA; imp_df$CI_Upper<-NA
-  imp_df$Dominance_Effect<-NA; imp_df$Dominance_Ratio<-NA
-  imp_df$Dominance_Class<-"Additive"; imp_df$N_Cofactors<-0
-  imp_df$N_Samples<-sum(valid); imp_df$Method<-"RF"
-  imp_df <- imp_df[order(imp_df$Chromosome,imp_df$Position),]
-  imp_df[,c("Marker","Chromosome","Position","LOD","P_Value","PVE_Marker_Percent","PVE_CIM_Percent",
-            "Additive_Effect","SE_Additive","CI_Lower","CI_Upper","Dominance_Effect",
-            "Dominance_Ratio","Dominance_Class","N_Cofactors","N_Samples","Method")]
+  X0 <- X                       # keep NAs for the effect estimates
+  X <- impute_mode(X)
+  rf_fit <- tryCatch(randomForest(x = X, y = y, ntree = 500, importance = TRUE), error = function(e) NULL)
+  if (is.null(rf_fit)) return(data.frame(Message = "Random Forest failed"))
+  imp <- importance(rf_fit, type = 1)[, 1]
+  ml_result(data.frame(Marker = names(imp), Importance = as.numeric(imp)), X0, y, marker_info, "RF", 10)
 }
 
-# ============================================================
-# SVR
-# ============================================================
 qtl_scan_svr <- function(X, y, marker_info) {
-  valid <- !is.na(y)&apply(X,1,function(r) !any(is.na(r)))
-  X_v <- X[valid,,drop=FALSE]; y_v <- y[valid]
-  svr_fit <- tryCatch(svm(x=X_v,y=y_v,kernel="radial",scale=TRUE),error=function(e) NULL)
-  if (is.null(svr_fit)) return(data.frame(Message="SVR failed"))
-  baseline_pred  <- predict(svr_fit,X_v)
-  baseline_error <- mean((y_v-baseline_pred)^2)
-  importance <- sapply(colnames(X_v),function(m){
-    X_perm <- X_v; X_perm[,m] <- sample(X_perm[,m])
-    perm_pred <- predict(svr_fit,X_perm)
-    perm_error <- mean((y_v-perm_pred)^2)
-    (perm_error-baseline_error)/baseline_error})
-  imp_df <- data.frame(Marker=names(importance),Importance=importance)
-  imp_df <- imp_df[imp_df$Importance>0,]
-  if (nrow(imp_df)==0) return(data.frame(Message="No important markers"))
-  imp_df <- merge(imp_df,marker_info,by="Marker",all.x=TRUE)
-  imp_df <- imp_df[!is.na(imp_df$Position),]
-  max_imp <- max(imp_df$Importance); imp_df$LOD <- imp_df$Importance/max_imp*10
-  r2_vec <- sapply(imp_df$Marker,function(m){
-    g<-X_v[,m];v<-!is.na(g);if(sum(v)<5) return(NA)
-    summary(lm(y_v[v]~g[v]))$r.squared*100})
-  imp_df$PVE_Marker_Percent<-r2_vec; imp_df$PVE_CIM_Percent<-r2_vec
-  imp_df$Additive_Effect<-NA; imp_df$P_Value<-10^(-imp_df$LOD)
-  imp_df$SE_Additive<-NA; imp_df$CI_Lower<-NA; imp_df$CI_Upper<-NA
-  imp_df$Dominance_Effect<-NA; imp_df$Dominance_Ratio<-NA
-  imp_df$Dominance_Class<-"Additive"; imp_df$N_Cofactors<-0
-  imp_df$N_Samples<-sum(valid); imp_df$Method<-"SVR"
-  imp_df <- imp_df[order(imp_df$Chromosome,imp_df$Position),]
-  imp_df[,c("Marker","Chromosome","Position","LOD","P_Value","PVE_Marker_Percent","PVE_CIM_Percent",
-            "Additive_Effect","SE_Additive","CI_Lower","CI_Upper","Dominance_Effect",
-            "Dominance_Ratio","Dominance_Class","N_Cofactors","N_Samples","Method")]
+  X0 <- X
+  X <- impute_mode(X)
+  svr_fit <- tryCatch(svm(x = X, y = y, kernel = "radial", scale = TRUE), error = function(e) NULL)
+  if (is.null(svr_fit)) return(data.frame(Message = "SVR failed"))
+  baseline_error <- mean((y - predict(svr_fit, X))^2)
+  importance <- vapply(colnames(X), function(m) {
+    Xp <- X; Xp[, m] <- sample(Xp[, m])
+    (mean((y - predict(svr_fit, Xp))^2) - baseline_error) / baseline_error
+  }, numeric(1))
+  ml_result(data.frame(Marker = names(importance), Importance = as.numeric(importance)), X0, y, marker_info, "SVR", 10)
 }
 
-# ============================================================
-# XGBOOST
-# ============================================================
 qtl_scan_xgboost <- function(X, y, marker_info) {
-  valid <- !is.na(y)&apply(X,1,function(r) !any(is.na(r)))
-  X_v <- X[valid,,drop=FALSE]; y_v <- y[valid]
-  dtrain <- xgb.DMatrix(data=as.matrix(X_v),label=y_v)
+  X0 <- X
+  X <- impute_mode(X)
+  dtrain <- xgb.DMatrix(data = as.matrix(X), label = y)
   xgb_fit <- tryCatch(xgb.train(
-    data=dtrain,nrounds=100,objective="reg:squarederror",verbose=0,
-    params=list(max_depth=3,eta=0.1,subsample=0.8,colsample_bytree=0.8)),
-    error=function(e) NULL)
-  if (is.null(xgb_fit)) return(data.frame(Message="XGBoost failed"))
-  importance_matrix <- xgb.importance(model=xgb_fit)
-  imp_df <- data.frame(Marker=importance_matrix$Feature,Importance=importance_matrix$Gain)
-  imp_df <- imp_df[imp_df$Importance>0,]
-  if (nrow(imp_df)==0) return(data.frame(Message="No important markers"))
-  imp_df <- merge(imp_df,marker_info,by="Marker",all.x=TRUE)
-  imp_df <- imp_df[!is.na(imp_df$Position),]
-  max_imp <- max(imp_df$Importance); imp_df$LOD <- imp_df$Importance/max_imp*12
-  r2_vec <- sapply(imp_df$Marker,function(m){
-    g<-X_v[,m];v<-!is.na(g);if(sum(v)<5) return(NA)
-    summary(lm(y_v[v]~g[v]))$r.squared*100})
-  imp_df$PVE_Marker_Percent<-r2_vec; imp_df$PVE_CIM_Percent<-r2_vec
-  imp_df$Additive_Effect<-NA; imp_df$P_Value<-10^(-imp_df$LOD)
-  imp_df$SE_Additive<-NA; imp_df$CI_Lower<-NA; imp_df$CI_Upper<-NA
-  imp_df$Dominance_Effect<-NA; imp_df$Dominance_Ratio<-NA
-  imp_df$Dominance_Class<-"Additive"; imp_df$N_Cofactors<-0
-  imp_df$N_Samples<-sum(valid); imp_df$Method<-"XGBOOST"
-  imp_df <- imp_df[order(imp_df$Chromosome,imp_df$Position),]
-  imp_df[,c("Marker","Chromosome","Position","LOD","P_Value","PVE_Marker_Percent","PVE_CIM_Percent",
-            "Additive_Effect","SE_Additive","CI_Lower","CI_Upper","Dominance_Effect",
-            "Dominance_Ratio","Dominance_Class","N_Cofactors","N_Samples","Method")]
+    data = dtrain, nrounds = 100, objective = "reg:squarederror", verbose = 0,
+    params = list(max_depth = 3, eta = 0.1, subsample = 0.8, colsample_bytree = 0.8)),
+    error = function(e) NULL)
+  if (is.null(xgb_fit)) return(data.frame(Message = "XGBoost failed"))
+  im  <- xgb.importance(model = xgb_fit)
+  imp <- data.frame(Marker = colnames(X), Importance = 0, stringsAsFactors = FALSE)
+  imp$Importance[match(im$Feature, imp$Marker)] <- im$Gain
+  ml_result(imp, X0, y, marker_info, "XGBOOST", 12)
 }
 
 # ============================================================
 # MAIN DISPATCHER
 # ============================================================
 qtl_scan <- function(genotype_matrix, phenotype_vector, marker_info,
-                     method="CIM", n_cofactors=10, window_size=10) {
+                     method = "CIM", n_cofactors = 5, window_size = 10) {
   cat("\n=== QTL SCAN === Method:", method, "\n")
   valid_rows <- !is.na(phenotype_vector)
-  X_valid    <- genotype_matrix[valid_rows,,drop=FALSE]
-  y_valid    <- phenotype_vector[valid_rows]
-  nzv        <- apply(X_valid, 2, function(x) length(unique(na.omit(x))) < 2)
-  X_valid    <- X_valid[, !nzv, drop=FALSE]
-  cat("Markers after NZV removal:", ncol(X_valid), "\n")
-  if (method == "SIM")     return(qtl_scan_sim(X_valid, y_valid, marker_info))
-  if (method == "CIM")     return(qtl_scan_cim_improved(X_valid, y_valid, marker_info, window_size, n_cofactors))
-  if (method == "MQM")     return(qtl_scan_mqm(X_valid, y_valid, marker_info))
-  if (method == "RF")      return(qtl_scan_rf(X_valid, y_valid, marker_info))
-  if (method == "SVR")     return(qtl_scan_svr(X_valid, y_valid, marker_info))
-  if (method == "XGBOOST") return(qtl_scan_xgboost(X_valid, y_valid, marker_info))
-  data.frame(Message=paste("Unknown method:", method))
+  X <- as.matrix(genotype_matrix[valid_rows, , drop = FALSE])
+  y <- phenotype_vector[valid_rows]
+  nzv <- apply(X, 2, function(x) length(unique(na.omit(x))) < 2)
+  X   <- X[, !nzv, drop = FALSE]
+  cat("Individuals:", nrow(X), " Markers after NZV removal:", ncol(X), "\n")
+  if (method == "SIM")     return(qtl_scan_sim(X, y, marker_info))
+  if (method == "CIM")     return(qtl_scan_cim(X, y, marker_info, window_size, n_cofactors))
+  if (method == "MQM")     return(qtl_scan_mqm(X, y, marker_info))
+  if (method == "RF")      return(qtl_scan_rf(X, y, marker_info))
+  if (method == "SVR")     return(qtl_scan_svr(X, y, marker_info))
+  if (method == "XGBOOST") return(qtl_scan_xgboost(X, y, marker_info))
+  data.frame(Message = paste("Unknown method:", method))
 }
 
 # ============================================================
-# LOD SUPPORT INTERVAL
+# GENOME-WIDE PERMUTATION THRESHOLD  (Churchill & Doerge 1994)
+#   Shuffle the phenotype, record the largest single-marker-regression LOD
+#   anywhere in the genome, repeat; the (1 - alpha) quantile of those maxima
+#   is the genome-wide LOD threshold.  Computed with matrix algebra
+#   (RSS from class sums), so 1000 permutations take seconds.
 # ============================================================
-add_lod_support_interval <- function(sig_df, all_df, lod_drop=1.5) {
-  sig_df$Low_Flank <- sig_df$High_Flank <- NA_character_
-  sig_df$Interval_Start <- sig_df$Interval_End <- sig_df$Interval_Size_cM <- NA_real_
-  for (i in 1:nrow(sig_df)) {
-    m <- sig_df$Marker[i]; ch <- sig_df$Chromosome[i]
-    peak_lod <- sig_df$LOD[i]; peak_pos <- sig_df$Position[i]
-    chr_data <- all_df[as.character(all_df$Chromosome)==as.character(ch)&!is.na(all_df$LOD)&!is.na(all_df$Position),]
-    chr_data <- chr_data[order(chr_data$Position),]
-    if (nrow(chr_data)==0) next
-    threshold <- peak_lod - lod_drop
-    interval_markers <- chr_data[chr_data$LOD >= threshold,]
-    if (nrow(interval_markers) > 0) {
-      interval_start <- min(interval_markers$Position, peak_pos)
-      interval_end   <- max(interval_markers$Position, peak_pos)
-      sig_df$Interval_Start[i]   <- interval_start
-      sig_df$Interval_End[i]     <- interval_end
-      sig_df$Interval_Size_cM[i] <- interval_end - interval_start
-      below_markers <- chr_data[chr_data$Position < interval_start,]
-      above_markers <- chr_data[chr_data$Position > interval_end,]
-      sig_df$Low_Flank[i]  <- if(nrow(below_markers)>0) below_markers$Marker[nrow(below_markers)] else m
-      sig_df$High_Flank[i] <- if(nrow(above_markers)>0) above_markers$Marker[1] else m
-    } else {
-      peak_idx <- which(chr_data$Marker==m)
-      if (length(peak_idx)>0) {
-        sig_df$Low_Flank[i]  <- if(peak_idx>1) chr_data$Marker[peak_idx-1] else m
-        sig_df$High_Flank[i] <- if(peak_idx<nrow(chr_data)) chr_data$Marker[peak_idx+1] else m
-        sig_df$Interval_Start[i] <- sig_df$Position[i]
-        sig_df$Interval_End[i]   <- sig_df$Position[i]
-        sig_df$Interval_Size_cM[i] <- 0
+perm_max_lod <- function(X, y, n_perm = 1000, seed = 42) {
+  ok <- !is.na(y)
+  X <- as.matrix(X[ok, , drop = FALSE]); y <- y[ok]
+  n <- length(y)
+  vals <- sort(unique(as.vector(X[!is.na(X)])))
+  categorical <- length(vals) <= 3
+  M  <- (!is.na(X)) * 1
+  Nm <- colSums(M)
+  Nsafe <- pmax(Nm, 1)
+  if (categorical) {
+    Ig <- lapply(vals, function(v) { m <- (X == v); m[is.na(m)] <- FALSE; m * 1 })
+    Ng <- lapply(Ig, colSums)
+  } else {
+    Xz <- X; Xz[is.na(Xz)] <- 0
+    Sx <- colSums(Xz); Sxx <- colSums(Xz^2)
+    Sxx_c <- Sxx - Sx^2 / Nsafe
+  }
+  usable <- Nm >= 8
+  set.seed(seed)
+  out <- numeric(n_perm); done <- 0
+  while (done < n_perm) {
+    B  <- min(200, n_perm - done)
+    Y  <- vapply(seq_len(B), function(b) sample(y), numeric(n))
+    SY <- crossprod(M, Y); SY2 <- crossprod(M, Y^2)
+    rss0 <- SY2 - SY^2 / Nsafe
+    if (categorical) {
+      ssb <- 0
+      for (k in seq_along(Ig)) {
+        ng <- Ng[[k]]; ng[ng == 0] <- Inf
+        ssb <- ssb + crossprod(Ig[[k]], Y)^2 / ng
       }
+      rss1 <- SY2 - ssb
+    } else {
+      Sxy <- crossprod(Xz, Y) - Sx * SY / Nsafe
+      den <- Sxx_c; den[den <= 0] <- Inf
+      rss1 <- rss0 - Sxy^2 / den
+    }
+    lod <- Nm / 2 * log10(rss0 / rss1)
+    lod[!is.finite(lod)] <- 0
+    lod[!usable, ] <- 0
+    out[done + seq_len(B)] <- apply(lod, 2, max)
+    done <- done + B
+  }
+  out
+}
+
+# ============================================================
+# QTL REGIONS: peaks, flanking markers, support intervals
+#
+# 1. Per chromosome find local LOD maxima that pass the threshold
+#    (LOD >= thr and nominal P <= p_max).
+# 2. Two maxima are separate QTL only if the LOD curve falls at least
+#    `peak_drop` below the lower one between them (R/qtl2 find_peaks);
+#    otherwise the lower one is a shoulder of the higher peak.
+# 3. Support interval (R/qtl lodint): walk left and right from the peak
+#    while LOD >= peak - lod_drop.  The first marker outside on each side is
+#    the flanking marker (expandtomarkers = TRUE), so the region always
+#    covers the interval.  CI_Start/End are the interpolated positions where
+#    the curve crosses peak - lod_drop.
+# 4. Bayesian credible interval (R/qtl bayesint): posterior ~ 10^LOD x marker
+#    spacing, restricted to this peak's domain.
+# ============================================================
+REGION_COLUMNS <- c(
+  "QTL_ID", "Chromosome",
+  "Left_Marker", "Left_Position", "Peak_Marker", "Peak_Position", "Right_Marker", "Right_Position",
+  "Interval_Size_cM", "CI_Start_cM", "CI_End_cM", "Bayes_Start_cM", "Bayes_End_cM",
+  "N_Markers_In_Region", "LOD", "P_Value", "Genomewide_P",
+  "PVE_Marker_Percent", "PVE_CIM_Percent", "Additive_Effect", "SE_Additive",
+  "CI_Lower", "CI_Upper", "Dominance_Effect", "Dominance_Ratio", "Dominance_Class",
+  "N_Cofactors", "N_Samples", "Method", "Threshold_LOD", "LOD_Drop"
+)
+
+empty_regions <- function() {
+  chr <- c("QTL_ID", "Chromosome", "Left_Marker", "Peak_Marker", "Right_Marker", "Dominance_Class", "Method")
+  out <- lapply(REGION_COLUMNS, function(k) if (k %in% chr) character(0) else numeric(0))
+  names(out) <- REGION_COLUMNS
+  as.data.frame(out, stringsAsFactors = FALSE)
+}
+
+interp_cross <- function(x_out, y_out, x_in, y_in, target) {
+  if (!is.finite(y_in) || !is.finite(y_out) || y_in == y_out) return(x_in)
+  x <- x_out + (target - y_out) * (x_in - x_out) / (y_in - y_out)
+  min(max(x, min(x_out, x_in)), max(x_out, x_in))
+}
+
+call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max = 1,
+                             bayes_prob = 0.95, bayes = TRUE, perm_null = NULL) {
+  peak_drop <- max(peak_drop, lod_drop)
+  sc <- scan_all[!is.na(scan_all$LOD) & !is.na(scan_all$Position), , drop = FALSE]
+  out <- list()
+  keep_cols <- c("Marker", "Position", "LOD", "P_Value", "PVE_Marker_Percent", "PVE_CIM_Percent",
+                 "Additive_Effect", "SE_Additive", "CI_Lower", "CI_Upper", "Dominance_Effect",
+                 "Dominance_Ratio", "Dominance_Class", "N_Cofactors", "N_Samples", "Method")
+
+  for (ch in chr_order(sc$Chromosome)) {
+    d <- sc[as.character(sc$Chromosome) == ch, , drop = FALSE]
+    d <- d[order(d$Position), , drop = FALSE]
+    n <- nrow(d)
+    lod <- d$LOD; pos <- d$Position
+    left <- c(-Inf, lod[-n]); right <- c(lod[-1], -Inf)
+    p_ok <- is.na(d$P_Value) | d$P_Value <= p_max
+    cand <- which(lod > left & lod >= right & lod >= thr & p_ok)
+    if (!length(cand)) next
+    cand <- cand[order(-lod[cand])]
+
+    peaks <- integer(0)
+    for (j in cand) {
+      separate <- TRUE
+      for (k in peaks) {
+        if (min(lod[min(j, k):max(j, k)]) > lod[j] - peak_drop) { separate <- FALSE; break }
+      }
+      if (separate) peaks <- c(peaks, j)
+    }
+    peaks <- sort(peaks); k <- length(peaks)
+
+    dstart <- rep(1L, k); dend <- rep(n, k)
+    if (k > 1) for (a in 1:(k - 1)) {
+      seg <- peaks[a]:peaks[a + 1]
+      v <- seg[which.min(lod[seg])]
+      v <- min(max(v, peaks[a] + 1L), peaks[a + 1] - 1L)
+      dend[a] <- v - 1L; dstart[a + 1] <- v + 1L
+    }
+
+    dx <- if (n > 1) diff(pos) else 1
+    w  <- if (n > 1) (c(0, dx) + c(dx, 0)) / 2 else 1
+    w[w <= 0] <- if (any(w > 0)) min(w[w > 0]) / 10 else 1
+
+    for (a in seq_len(k)) {
+      i <- peaks[a]; target <- lod[i] - lod_drop
+      li <- i; while (li > dstart[a] && lod[li - 1] >= target) li <- li - 1L
+      ri <- i; while (ri < dend[a]   && lod[ri + 1] >= target) ri <- ri + 1L
+      lf <- if (li > 1) li - 1L else 1L
+      rf <- if (ri < n) ri + 1L else n
+      ci_s <- if (li > 1) interp_cross(pos[li - 1], lod[li - 1], pos[li], lod[li], target) else pos[1]
+      ci_e <- if (ri < n) interp_cross(pos[ri + 1], lod[ri + 1], pos[ri], lod[ri], target) else pos[n]
+
+      b_s <- b_e <- NA_real_
+      if (bayes) {
+        idx  <- dstart[a]:dend[a]
+        post <- 10^(lod[idx] - lod[i]) * w[idx]
+        post <- post / sum(post)
+        o    <- order(post, decreasing = TRUE)
+        m    <- which(cumsum(post[o]) >= bayes_prob)[1]
+        sel  <- c(idx[o[seq_len(m)]], i)
+        b_s  <- min(pos[sel]); b_e <- max(pos[sel])
+      }
+
+      row <- as.list(d[i, keep_cols, drop = FALSE])
+      row <- lapply(row, function(v) if (is.factor(v)) as.character(v) else v)
+      gw  <- if (!is.null(perm_null)) (sum(perm_null >= lod[i]) + 1) / (length(perm_null) + 1) else NA_real_
+      out[[length(out) + 1]] <- c(
+        list(QTL_ID = NA_character_, Chromosome = ch,
+             Left_Marker = d$Marker[lf], Left_Position = pos[lf],
+             Peak_Marker = row$Marker, Peak_Position = row$Position,
+             Right_Marker = d$Marker[rf], Right_Position = pos[rf],
+             Interval_Size_cM = pos[rf] - pos[lf],
+             CI_Start_cM = ci_s, CI_End_cM = ci_e, Bayes_Start_cM = b_s, Bayes_End_cM = b_e,
+             N_Markers_In_Region = rf - lf + 1L),
+        row[c("LOD", "P_Value")], list(Genomewide_P = gw),
+        row[c("PVE_Marker_Percent", "PVE_CIM_Percent", "Additive_Effect", "SE_Additive", "CI_Lower",
+              "CI_Upper", "Dominance_Effect", "Dominance_Ratio", "Dominance_Class", "N_Cofactors",
+              "N_Samples", "Method")],
+        list(Threshold_LOD = thr, LOD_Drop = lod_drop))
     }
   }
-  sig_df
+  res <- rows_to_df(out)
+  if (is.null(res)) return(empty_regions())
+  res <- res[order(match(res$Chromosome, chr_order(res$Chromosome)), res$Peak_Position), , drop = FALSE]
+  res$QTL_ID <- ave(seq_len(nrow(res)), res$Chromosome, FUN = seq_along)
+  res$QTL_ID <- paste0("QTL_", res$Chromosome, ".", res$QTL_ID)
+  rownames(res) <- NULL
+  res[, REGION_COLUMNS, drop = FALSE]
+}
+
+# Label every scanned marker with the QTL region it lies in.
+tag_scan_regions <- function(scan_all, regions) {
+  scan_all$QTL_ID <- NA_character_
+  for (i in seq_len(nrow(regions))) {
+    hit <- as.character(scan_all$Chromosome) == regions$Chromosome[i] &
+           scan_all$Position >= regions$Left_Position[i] & scan_all$Position <= regions$Right_Position[i]
+    scan_all$QTL_ID[hit] <- regions$QTL_ID[i]
+  }
+  scan_all
 }
 
 # ============================================================
-# CHROMOSOME IDEOGRAM — NOW ACCEPTS COLOR & SIZE PARAMS
+# MANHATTAN (one panel per chromosome, QTL regions shaded)
+# ============================================================
+draw_manhattan <- function(scan_all, regions, thr, plot_cfg, title = NULL) {
+  pd <- scan_all[!is.na(scan_all$LOD) & !is.na(scan_all$Position) & !is.na(scan_all$Chromosome), , drop = FALSE]
+  if (nrow(pd) == 0) { plot.new(); text(0.5, 0.5, "No scan results"); return(invisible()) }
+  pd$Chromosome <- as.character(pd$Chromosome)
+  chroms <- chr_order(pd$Chromosome)
+  n_cols <- ceiling(sqrt(length(chroms))); n_rows <- ceiling(length(chroms) / n_cols)
+  par(mfrow = c(n_rows, n_cols), mar = c(4, 4, 3, 1), bg = "white", oma = c(0, 0, if (is.null(title)) 0 else 2, 0))
+  lty <- switch(plot_cfg$threshold_style, solid = 1, dash = 2, dot = 3, dashdot = 4, 2)
+  shade <- adjustcolor(plot_cfg$sig_color, alpha.f = 0.14)
+
+  for (chr in chroms) {
+    d <- pd[pd$Chromosome == chr, , drop = FALSE]
+    d <- d[order(d$Position), , drop = FALSE]
+    ymax <- max(d$LOD, thr, na.rm = TRUE) * 1.12
+    plot(d$Position, d$LOD, type = "n", xlab = paste("Chr", chr, "position (cM)"), ylab = "LOD",
+         main = paste("Chr", chr), ylim = c(0, ymax), frame.plot = FALSE)
+    rg <- regions[as.character(regions$Chromosome) == chr, , drop = FALSE]
+    for (i in seq_len(nrow(rg))) {
+      rect(rg$Left_Position[i], 0, rg$Right_Position[i], ymax, col = shade, border = NA)
+    }
+    lines(d$Position, d$LOD, col = plot_cfg$nonsig_color, lwd = 1)
+    points(d$Position, d$LOD, pch = 16, cex = as.numeric(plot_cfg$nonsig_point_size) / 7, col = plot_cfg$nonsig_color)
+    abline(h = thr, lty = lty, col = plot_cfg$sig_color, lwd = as.numeric(plot_cfg$threshold_width))
+    for (i in seq_len(nrow(rg))) {
+      points(rg$Peak_Position[i], rg$LOD[i], pch = 18, cex = as.numeric(plot_cfg$sig_point_size) / 5, col = plot_cfg$sig_color)
+      text(rg$Peak_Position[i], rg$LOD[i], rg$Peak_Marker[i], pos = 3, cex = 0.5, col = "#333333", xpd = NA)
+    }
+  }
+  if (!is.null(title)) mtext(title, outer = TRUE, font = 2, cex = 0.9)
+}
+
+# ============================================================
+# CHROMOSOME IDEOGRAM: each QTL is drawn as its flanking-marker interval
+# (bar) with the peak marked (dot), one lane per model.
 # ============================================================
 make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
                                                lod_threshold = 2.0,
@@ -506,243 +740,72 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
                                                qtl_size_max   = 2.0) {
   if (is.null(all_markers_df) || nrow(all_markers_df) == 0) return(invisible(NULL))
 
-  chroms    <- sort(unique(as.character(all_markers_df$Chromosome)))
+  chroms    <- chr_order(all_markers_df$Chromosome)
   n_chr     <- length(chroms)
   x_gap     <- 1.8
   bar_w     <- 0.55
-  max_pos   <- max(all_markers_df$Position, na.rm=TRUE)
+  max_pos   <- max(all_markers_df$Position, na.rm = TRUE)
   model_names <- names(qtl_list)
 
-  par(mar=c(5, 4, 4, 8), bg="white", xpd=TRUE)
-
-  plot(0, 0, type="n",
-       xlim=c(0.2, n_chr * x_gap + 0.3),
-       ylim=c(-8, max_pos * 1.12),
-       xaxt="n", yaxt="n", xlab="", ylab="", main="", frame.plot=FALSE, bty="n")
-
-  y_ticks <- pretty(c(0, max_pos), n=7)
-  axis(2, at=y_ticks, labels=y_ticks, cex.axis=0.72, las=1,
-       col="#555555", col.axis="#333333", tcl=-0.3, lwd=0.8)
-  mtext("Genetic Position (cM)", side=2, line=2.5, cex=0.82, col="#222222", font=2)
+  par(mar = c(5, 4, 4, 8), bg = "white", xpd = TRUE)
+  plot(0, 0, type = "n", xlim = c(0.2, n_chr * x_gap + 0.3), ylim = c(-8, max_pos * 1.12),
+       xaxt = "n", yaxt = "n", xlab = "", ylab = "", main = "", frame.plot = FALSE, bty = "n")
+  y_ticks <- pretty(c(0, max_pos), n = 7)
+  axis(2, at = y_ticks, labels = y_ticks, cex.axis = 0.72, las = 1, col = "#555555", col.axis = "#333333", tcl = -0.3, lwd = 0.8)
+  mtext("Genetic Position (cM)", side = 2, line = 2.5, cex = 0.82, col = "#222222", font = 2)
 
   for (ci in seq_along(chroms)) {
-    chr      <- chroms[ci]
+    chr <- chroms[ci]
     x_center <- (ci - 1) * x_gap + 0.9
-
-    chr_m   <- all_markers_df[as.character(all_markers_df$Chromosome)==chr, ]
-    if (nrow(chr_m)==0) next
-    chr_len <- max(chr_m$Position, na.rm=TRUE)
-    chr_min <- min(chr_m$Position, na.rm=TRUE)
+    chr_m <- all_markers_df[as.character(all_markers_df$Chromosome) == chr, ]
+    if (nrow(chr_m) == 0) next
+    chr_len <- max(chr_m$Position, na.rm = TRUE)
+    chr_min <- min(chr_m$Position, na.rm = TRUE)
 
     n_bands <- max(8, round((chr_len - chr_min) / 8))
     band_h  <- (chr_len - chr_min) / n_bands
-
     for (bi in 1:n_bands) {
-      band_bot <- chr_min + (bi-1)*band_h
-      band_top <- chr_min + bi*band_h
-      bcol     <- if (bi %% 2 == 1) band_dark_col else band_light_col
-      rect(x_center - bar_w/2, band_bot, x_center + bar_w/2, band_top,
-           col=bcol, border=NA)
+      bcol <- if (bi %% 2 == 1) band_dark_col else band_light_col
+      rect(x_center - bar_w/2, chr_min + (bi-1)*band_h, x_center + bar_w/2, chr_min + bi*band_h, col = bcol, border = NA)
     }
+    rect(x_center - bar_w/2, chr_min, x_center + bar_w/2, chr_len, col = NA, border = border_col, lwd = 1.8)
+    symbols(x_center, chr_min, circles = bar_w/2, inches = FALSE, add = TRUE, fg = border_col, bg = band_light_col, lwd = 1.2)
+    symbols(x_center, chr_len, circles = bar_w/2, inches = FALSE, add = TRUE, fg = border_col, bg = band_dark_col, lwd = 1.2)
 
-    rect(x_center - bar_w/2, chr_min, x_center + bar_w/2, chr_len,
-         col=NA, border=border_col, lwd=1.8)
-
-    symbols(x_center, chr_min, circles=bar_w/2, inches=FALSE,
-            add=TRUE, fg=border_col, bg=band_light_col, lwd=1.2)
-    symbols(x_center, chr_len, circles=bar_w/2, inches=FALSE,
-            add=TRUE, fg=border_col, bg=band_dark_col, lwd=1.2)
-
-    cen_pos <- chr_min + (chr_len - chr_min)*0.42
-    polygon(c(x_center-bar_w/2, x_center, x_center+bar_w/2, x_center),
-            c(cen_pos - chr_len*0.025, cen_pos,
-              cen_pos - chr_len*0.025, cen_pos - chr_len*0.05),
-            col="white", border=border_col, lwd=1.2)
-    polygon(c(x_center-bar_w/2, x_center, x_center+bar_w/2, x_center),
-            c(cen_pos + chr_len*0.025, cen_pos,
-              cen_pos + chr_len*0.025, cen_pos + chr_len*0.05),
-            col="white", border=border_col, lwd=1.2)
-
-    n_models <- length(model_names)
     for (ti in seq_along(model_names)) {
-      trait    <- model_names[ti]
-      qtl_data <- qtl_list[[trait]]
-      if (is.null(qtl_data) || "Message" %in% colnames(qtl_data)) next
-
-      sig_qtls <- qtl_data[as.character(qtl_data$Chromosome)==chr &
-                           !is.na(qtl_data$LOD) &
-                           qtl_data$LOD >= lod_threshold, ]
-      if (nrow(sig_qtls)==0) next
-
-      col_m <- model_colors[trait]
-      if (is.na(col_m)) col_m <- "#CC0000"
-
-      x_off <- x_center + bar_w/2 + 0.08 + (ti-1)*0.22
-
-      for (ri in 1:nrow(sig_qtls)) {
-        pos     <- sig_qtls$Position[ri]
-        lod_val <- sig_qtls$LOD[ri]
-
-        segments(x_center + bar_w/2, pos, x_off - 0.04, pos,
-                 col=col_m, lwd=1.5)
-        points(x_off, pos, pch=16, col=col_m,
-               cex=pmax(qtl_size_min, pmin(qtl_size_max, 0.6 + lod_val/8)))
-        text(x_off + 0.15, pos,
-             paste0(round(lod_val,1)),
-             cex=0.55, col=col_m, font=2, adj=0)
+      trait <- model_names[ti]
+      q <- qtl_list[[trait]]
+      if (is.null(q) || nrow(q) == 0) next
+      q <- q[as.character(q$Chromosome) == chr, , drop = FALSE]
+      if (nrow(q) == 0) next
+      col_m <- model_colors[trait]; if (is.na(col_m)) col_m <- "#CC0000"
+      x_off <- x_center + bar_w/2 + 0.12 + (ti - 1) * 0.26
+      for (ri in seq_len(nrow(q))) {
+        segments(x_off, q$Left_Position[ri], x_off, q$Right_Position[ri], col = col_m, lwd = 4, lend = 1)
+        segments(x_center + bar_w/2, q$Peak_Position[ri], x_off, q$Peak_Position[ri], col = col_m, lwd = 1)
+        points(x_off, q$Peak_Position[ri], pch = 16, col = col_m,
+               cex = pmax(qtl_size_min, pmin(qtl_size_max, 0.6 + q$LOD[ri] / 8)))
+        text(x_off + 0.12, q$Peak_Position[ri], round(q$LOD[ri], 1), cex = 0.55, col = col_m, font = 2, adj = 0)
       }
     }
-
-    text(x_center, chr_min - max_pos*0.04, paste0("Chr", chr),
-         cex=0.72, font=2, col="#1A1A1A", adj=0.5)
+    text(x_center, chr_min - max_pos * 0.04, paste0("Chr", chr), cex = 0.72, font = 2, col = "#1A1A1A", adj = 0.5)
   }
 
   legend_x <- n_chr * x_gap + 0.5
-  legend_y  <- max_pos * 0.95
-  text(legend_x, legend_y + max_pos*0.07, "Models", cex=0.75, font=2, col="#1A1A1A", adj=0)
+  legend_y <- max_pos * 0.95
+  text(legend_x, legend_y + max_pos * 0.07, "Models", cex = 0.75, font = 2, col = "#1A1A1A", adj = 0)
   for (ti in seq_along(model_names)) {
-    tr    <- model_names[ti]
+    tr <- model_names[ti]
     col_m <- model_colors[tr]; if (is.na(col_m)) col_m <- "#CC0000"
-    y_leg <- legend_y - (ti-1)*max_pos*0.07
-    qtl_d <- qtl_list[[tr]]
-    n_sig <- if(!is.null(qtl_d)&&!"Message"%in%colnames(qtl_d))
-               sum(!is.na(qtl_d$LOD)&qtl_d$LOD>=lod_threshold,na.rm=TRUE) else 0
-    points(legend_x, y_leg, pch=16, col=col_m, cex=1.2)
-    text(legend_x + 0.18, y_leg,
-         paste0(tr, " (", n_sig, " QTL)"),
-         cex=0.65, col=col_m, font=1, adj=0)
+    y_leg <- legend_y - (ti - 1) * max_pos * 0.07
+    q <- qtl_list[[tr]]
+    n_sig <- if (is.null(q)) 0 else nrow(q)
+    points(legend_x, y_leg, pch = 16, col = col_m, cex = 1.2)
+    text(legend_x + 0.18, y_leg, paste0(tr, " (", n_sig, " QTL)"), cex = 0.65, col = col_m, adj = 0)
   }
+  text(legend_x, legend_y - length(model_names) * max_pos * 0.07 - max_pos * 0.03,
+       "bar = flanking-marker interval\ndot = QTL peak (LOD)", cex = 0.55, col = "#555555", adj = c(0, 1))
 
-  ttl <- if (!is.null(title_str)) title_str else paste0("QTL Chromosome Map  |  LOD ≥ ", lod_threshold)
-  title(main=ttl, cex.main=0.95, font.main=2, col.main="#1A1A1A", line=2)
-}
-
-# ============================================================
-# CHROMOSOME-WISE MANHATTAN PLOT (PLOTLY) — FULLY CUSTOMIZABLE
-# ============================================================
-make_plotly_manhattan_chromosomewise <- function(scan_all, lod_threshold=2.0,
-                                                  title="QTL Manhattan Plot",
-                                                  nonsig_color="#3A7D44",
-                                                  sig_color="#CC0000",
-                                                  point_size=6,
-                                                  sig_point_size=10,
-                                                  threshold_line_width=1.5,
-                                                  threshold_line_style="dash") {
-  blank <- plot_ly() %>% layout(title=title, plot_bgcolor="white", paper_bgcolor="white")
-  if (is.null(scan_all) || "Message" %in% colnames(scan_all)) return(blank)
-
-  pd <- scan_all[!is.na(scan_all$LOD) & !is.na(scan_all$Position) & !is.na(scan_all$Chromosome), ]
-  if (nrow(pd) == 0) return(blank)
-
-  pd$Chromosome <- as.character(pd$Chromosome)
-  pd$sig <- pd$LOD >= lod_threshold
-
-  chroms <- sort(unique(pd$Chromosome))
-  subplot_list <- list()
-
-  for (chr in chroms) {
-    chr_data <- pd[pd$Chromosome == chr, ]
-    chr_data <- chr_data[order(chr_data$Position), ]
-    nonsig   <- chr_data[!chr_data$sig, ]
-    sig_data <- chr_data[chr_data$sig, ]
-
-    p <- plot_ly()
-
-    if (nrow(nonsig) > 0) {
-      p <- p %>% add_trace(
-        data = nonsig, x = ~Position, y = ~LOD,
-        type = "scatter", mode = "markers",
-        marker = list(size = point_size, color = nonsig_color, opacity = 0.7),
-        text = ~paste0("<b>", Marker, "</b><br>Chr: ", Chromosome,
-                       "<br>Pos: ", round(Position, 1), " cM<br>LOD: ", round(LOD, 2),
-                       "<br>PVE: ", round(PVE_Marker_Percent, 1), "%"),
-        hoverinfo = "text", showlegend = FALSE, name = paste("Chr", chr)
-      )
-    }
-
-    if (nrow(sig_data) > 0) {
-      p <- p %>% add_trace(
-        data = sig_data, x = ~Position, y = ~LOD,
-        type = "scatter", mode = "markers",
-        marker = list(size = sig_point_size, color = sig_color,
-                      symbol = "diamond", line = list(width = 1, color = "#660000")),
-        text = ~paste0("<b>", Marker, "</b><br>Chr: ", Chromosome,
-                       "<br>Pos: ", round(Position, 1), " cM<br>LOD: ", round(LOD, 2),
-                       "<br>PVE: ", round(PVE_Marker_Percent, 1), "%"),
-        hoverinfo = "text", showlegend = FALSE, name = paste("Chr", chr, "Significant")
-      )
-    }
-
-    p <- p %>% add_segments(
-      x = min(chr_data$Position, na.rm=TRUE), xend = max(chr_data$Position, na.rm=TRUE),
-      y = lod_threshold, yend = lod_threshold,
-      line = list(color = sig_color, dash = threshold_line_style, width = threshold_line_width),
-      showlegend = FALSE, hoverinfo = "none"
-    )
-
-    p <- p %>% layout(
-      xaxis = list(title = paste("Chr", chr, "Position (cM)"), gridcolor = "#EEEEEE", zeroline = FALSE),
-      yaxis = list(title = if(chr == chroms[1]) "LOD Score" else "", gridcolor = "#EEEEEE", zeroline = FALSE),
-      plot_bgcolor = "white", paper_bgcolor = "white"
-    )
-
-    subplot_list[[chr]] <- p
-  }
-
-  n_chroms <- length(chroms)
-  n_cols   <- ceiling(sqrt(n_chroms))
-  n_rows   <- ceiling(n_chroms / n_cols)
-
-  combined_plot <- subplot(
-    subplot_list, nrows = n_rows, shareY = TRUE,
-    titleX = TRUE, titleY = TRUE, margin = 0.05
-  )
-
-  combined_plot %>% layout(
-    title = list(
-      text = paste0(title, " | ", sum(pd$sig, na.rm=TRUE), " significant QTLs"),
-      font = list(size = 14, color = "#111111")
-    ),
-    showlegend = FALSE,
-    font = list(color = "#111111"),
-    hoverlabel = list(bgcolor = "#FFFFFF", font = list(color = "#111111", size = 11))
-  )
-}
-
-# ============================================================
-# COMMON QTL FINDER
-# ============================================================
-find_common_qtl <- function(compare_res, lod_threshold, min_models=2, window_cM=5) {
-  sig_list <- list()
-  for (mth in names(compare_res)) {
-    r <- compare_res[[mth]]
-    if (is.null(r)||"Message"%in%colnames(r)) next
-    sig <- r[!is.na(r$LOD)&r$LOD>=lod_threshold,
-             c("Marker","Chromosome","Position","LOD","PVE_Marker_Percent","Additive_Effect"),drop=FALSE]
-    if (nrow(sig)>0){sig$Model<-mth;sig_list[[mth]]<-sig}
-  }
-  if (length(sig_list)==0) return(NULL)
-  all_sig <- do.call(rbind,sig_list)
-  all_sig$Chromosome <- as.character(all_sig$Chromosome)
-  marker_counts <- table(all_sig$Marker)
-  all_sig$N_Models_Detected <- as.integer(marker_counts[all_sig$Marker])
-  common <- all_sig[all_sig$N_Models_Detected>=min_models,]
-  if (nrow(common)==0) return(NULL)
-  markers_uniq <- unique(common$Marker)
-  summary_rows <- lapply(markers_uniq, function(mk) {
-    rows <- common[common$Marker==mk,]
-    base <- rows[which.max(rows$LOD), c("Marker","Chromosome","Position","N_Models_Detected")]
-    base$Models_List  <- paste(sort(unique(rows$Model)), collapse=", ")
-    base$Mean_LOD     <- round(mean(rows$LOD, na.rm=TRUE), 3)
-    base$Max_LOD      <- round(max(rows$LOD, na.rm=TRUE), 3)
-    base$Mean_PVE     <- round(mean(rows$PVE_Marker_Percent, na.rm=TRUE), 3)
-    base$Mean_Add_Eff <- round(mean(rows$Additive_Effect, na.rm=TRUE), 3)
-    for (mth in names(compare_res)) {
-      r_mth <- rows[rows$Model==mth,]
-      base[[paste0("LOD_",mth)]] <- if(nrow(r_mth)>0) round(r_mth$LOD[1],3) else NA
-    }
-    base
-  })
-  result <- do.call(rbind, summary_rows)
-  result[order(-result$N_Models_Detected, -result$Max_LOD),]
+  ttl <- if (!is.null(title_str)) title_str else paste0("QTL regions  |  LOD >= ", signif(lod_threshold, 3))
+  title(main = ttl, cex.main = 0.95, font.main = 2, col.main = "#1A1A1A", line = 2)
 }

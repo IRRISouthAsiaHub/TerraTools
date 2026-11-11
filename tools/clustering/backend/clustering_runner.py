@@ -25,6 +25,8 @@ class ClusteringEngine:
                 n_clusters=self.config.n_clusters,
                 test_size=self.config.test_size,
                 outdir=outdir,
+                pheno_file=self.config.pheno_file,
+                keep_test_pheno=self.config.keep_test_pheno,
             )
         except Exception as e:
             return {
@@ -33,7 +35,8 @@ class ClusteringEngine:
                     f"{e}\n\n"
                     "Expected input: a genotype matrix (CSV or TSV) with sample IDs "
                     "in the first column and SNP/marker columns after that. "
-                    "Missing genotypes should be coded as -1.\n\n"
+                    "Missing genotypes should be coded as -1. The optional phenotype "
+                    "file has sample IDs in the first column and the trait in the second.\n\n"
                     f"Debug info:\n{traceback.format_exc()}"
                 ),
             }

@@ -15,6 +15,7 @@ import os
 import subprocess
 import shutil
 
+from tools.common.save_dialog import save_dialog
 from tools.common.r_locator import find_rscript, get_r_env, rscript_not_found_message
 from tools.common.subprocess_utils import no_window_kwargs
 
@@ -50,6 +51,13 @@ LINKAGE_RUNNER = BACKEND_DIR / "linkage_runner.R"
 RESULT_DIR = Path(tempfile.mkdtemp(prefix="terratools_linkage_"))
 
 
+def _is_chr0(value):
+    try:
+        return float(value) == 0
+    except (TypeError, ValueError):
+        return False
+
+
 def run_r_backend(config):
     if not LINKAGE_RUNNER.exists():
         raise FileNotFoundError(
@@ -61,16 +69,30 @@ def run_r_backend(config):
     if rscript is None:
         raise RuntimeError(rscript_not_found_message())
 
-    payload = json.dumps(config, ensure_ascii=False)
+    # The configuration goes to R as a file, never on the command line:
+    # Windows caps a command line at 32,767 characters, and configs that
+    # carry real data exceed it (WinError 206 "filename or extension is
+    # too long" / R's "command line too long").
+    fd, config_path = tempfile.mkstemp(prefix="linkage_cfg_", suffix=".json", dir=str(RESULT_DIR))
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False)
 
-    process = subprocess.run(
-        [rscript, str(LINKAGE_RUNNER), payload],
-        capture_output=True,
-        text=True,
-        cwd=str(BACKEND_DIR),
-        env=get_r_env(rscript),
-        **no_window_kwargs(),
-    )
+    try:
+        process = subprocess.run(
+            [rscript, str(LINKAGE_RUNNER), config_path],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(BACKEND_DIR),
+            env=get_r_env(rscript),
+            **no_window_kwargs(),
+        )
+    finally:
+        try:
+            os.remove(config_path)
+        except OSError:
+            pass
 
     stdout = process.stdout.strip()
     stderr = process.stderr.strip()
@@ -88,15 +110,46 @@ def run_r_backend(config):
         raise RuntimeError("R linkage backend returned no output.")
 
     try:
-        return json.loads(stdout)
+        result = json.loads(stdout)
     except json.JSONDecodeError:
         start = stdout.find("{")
         end = stdout.rfind("}")
-        if start >= 0 and end > start:
-            return json.loads(stdout[start:end + 1])
-        raise RuntimeError(
-            "Could not parse R backend JSON output:\n" + stdout
-        )
+        if start < 0 or end <= start:
+            raise RuntimeError(
+                "Could not parse R backend JSON output:\n" + stdout
+            )
+        result = json.loads(stdout[start:end + 1])
+
+    # R reports its own failures as {"ok": false, "error": "..."}; those
+    # used to fall through and be treated as a successful result.
+    if isinstance(result, dict) and result.get("ok") is False:
+        raise RuntimeError(result.get("error") or "R linkage backend reported an error.")
+    return result
+
+
+# ============================================================
+# PLOT RE-RENDER WORKER ("Update" buttons)
+# ============================================================
+
+class _RenderWorker(QObject):
+
+    finished = Signal(str, dict)
+
+    def __init__(self, operation, payload):
+        super().__init__()
+        self.operation = operation
+        self.payload = payload
+
+    @Slot()
+    def run(self):
+        try:
+            result = run_r_backend(self.payload)
+            result.setdefault("status", "success")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            result = {"status": "error", "message": str(e)}
+        self.finished.emit(self.operation, result)
 
 
 # ============================================================
@@ -117,6 +170,21 @@ class LinkageBridge(QObject):
         self.last_config = None
         self.last_plot_settings = None
         self.uploaded_path = None
+        self._render_jobs = {}
+
+    @Slot(str, str)
+    def save_file(self, source_path, suggested_name):
+        """Native Save As + copy."""
+        try:
+            dest, _ = save_dialog(None, suggested_name)
+            if not dest:
+                return
+            shutil.copy2(source_path, dest)
+            self.statusUpdate.emit(f"Saved to {dest}")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.statusUpdate.emit(f"Save failed: {e}")
 
     # --------------------------------------------------------
     # FILE BROWSING
@@ -127,9 +195,9 @@ class LinkageBridge(QObject):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select Genotype Excel File",
+            "Select Genotype File",
             "",
-            "Excel Files (*.xlsx *.xls);;All Files (*)"
+            "Genotype Files (*.xlsx *.xls *.csv *.tsv);;All Files (*)"
         )
 
         return path or ""
@@ -154,7 +222,15 @@ class LinkageBridge(QObject):
             if not os.path.exists(path):
                 raise FileNotFoundError(path)
 
-            df = pd.read_excel(path, sheet_name=0)
+            from tools.common.genotype_layout import is_qtl_layout, to_marker_rows
+            if is_qtl_layout(path):
+                # the QTL Mapping layout (one row per individual): use it as one row per marker
+                path = to_marker_rows(path, tempfile.mkdtemp(prefix="terratools_linkage_upload_"))
+
+            if path.lower().endswith((".csv", ".tsv", ".txt")):
+                df = pd.read_csv(path, sep="	" if path.lower().endswith((".tsv", ".txt")) else ",")
+            else:
+                df = pd.read_excel(path, sheet_name=0)
 
             if "Marker" not in df.columns:
                 raise ValueError("Column 'Marker' not found.")
@@ -175,11 +251,24 @@ class LinkageBridge(QObject):
                 df["Chromosome"].dropna().astype(str).value_counts().sort_index()
             )
             chr_summary = [
-                {"Chromosome": chrom, "N_Markers": int(count)}
+                {"Chromosome": f"{chrom} (unplaced, excluded)" if _is_chr0(chrom) else chrom,
+                 "N_Markers": int(count)}
                 for chrom, count in chr_counts.items()
             ]
 
             n_individuals = max(int(len(df.columns) - 2), 0)
+
+            # Chromosome 0 = unplaced markers; the analysis leaves them out.
+            chr0 = pd.to_numeric(df["Chromosome"], errors="coerce") == 0
+            n_chr0 = int(chr0.sum())
+            real_chromosomes = [c for c in chromosomes if not _is_chr0(c)]
+            log = (
+                f"Loaded {len(df)} markers across {len(real_chromosomes)} "
+                f"chromosomes ({n_individuals} individuals)."
+            )
+            if n_chr0:
+                log += (f"\n{n_chr0} marker(s) on chromosome 0 (unplaced) will be "
+                        "left out of the map and listed in the QC report.")
 
             return json.dumps({
                 "status": "success",
@@ -187,12 +276,10 @@ class LinkageBridge(QObject):
                 "path": path,
                 "markers": int(len(df)),
                 "individuals": n_individuals,
-                "chromosomes": len(chromosomes),
-                "chromosome_values": chromosomes,
-                "log": (
-                    f"Loaded {len(df)} markers across {len(chromosomes)} "
-                    f"chromosomes ({n_individuals} individuals)."
-                ),
+                "chromosomes": len(real_chromosomes),
+                "chromosome_values": real_chromosomes,
+                "unplaced_markers": n_chr0,
+                "log": log,
                 # Kept both naming conventions so any other frontend code
                 # relying on the original "preview"/"columns" keys (if any)
                 # keeps working, while matching what linkage.html actually
@@ -341,104 +428,73 @@ class LinkageBridge(QObject):
     # chromosome selection, sizing, etc.) without re-running
     # the analysis itself.
 
+    # Each "Update" button redraws one plot. R reloads the saved analysis
+    # (result_rds) instead of receiving the whole result again, and the
+    # work runs on a background thread so the window never freezes.
+
+    _RENDER_TARGETS = {
+        "render_map_plot": ("showMapPlot", "map_plot"),
+        "render_density_plot": ("showDensityPlot", "density_plot"),
+        "render_heatmap_plot": ("showHeatmapPlot", "heatmap_plot"),
+    }
+
     @Slot(str)
     def render_map_plot(self, config_json):
-
-        print("[LINKAGE BRIDGE] render_map_plot() called", flush=True)
-
-        if not self.last_result or self.last_result.get("status") != "success":
-            self.statusUpdate.emit("Run analysis first.")
-            return
-
-        try:
-
-            config = json.loads(config_json)
-
-            payload = dict(config)
-            payload["operation"] = "render_map_plot"
-            payload["result"] = self.last_result
-            payload["output_dir"] = str(RESULT_DIR.resolve())
-            result = run_r_backend(payload)
-
-            self.last_result["map_plot"] = result.get("map_plot")
-
-            self.parent().browser.page().runJavaScript(
-                "showMapPlot(" + json.dumps(result) + ");"
-            )
-
-        except Exception as e:
-
-            self.parent().browser.page().runJavaScript(
-                "showMapPlot(" +
-                json.dumps({"status": "error", "message": str(e)}) +
-                ");"
-            )
+        self._start_render("render_map_plot", config_json)
 
     @Slot(str)
     def render_density_plot(self, config_json):
-
-        print("[LINKAGE BRIDGE] render_density_plot() called", flush=True)
-
-        if not self.last_result or self.last_result.get("status") != "success":
-            self.statusUpdate.emit("Run analysis first.")
-            return
-
-        try:
-
-            config = json.loads(config_json)
-
-            payload = dict(config)
-            payload["operation"] = "render_density_plot"
-            payload["result"] = self.last_result
-            payload["output_dir"] = str(RESULT_DIR.resolve())
-            result = run_r_backend(payload)
-
-            self.last_result["density_plot"] = result.get("density_plot")
-
-            self.parent().browser.page().runJavaScript(
-                "showDensityPlot(" + json.dumps(result) + ");"
-            )
-
-        except Exception as e:
-
-            self.parent().browser.page().runJavaScript(
-                "showDensityPlot(" +
-                json.dumps({"status": "error", "message": str(e)}) +
-                ");"
-            )
+        self._start_render("render_density_plot", config_json)
 
     @Slot(str)
     def render_heatmap_plot(self, config_json):
+        self._start_render("render_heatmap_plot", config_json)
 
-        print("[LINKAGE BRIDGE] render_heatmap_plot() called", flush=True)
+    def _start_render(self, operation, config_json):
+        print(f"[LINKAGE BRIDGE] {operation}() called", flush=True)
+        js_fn, _key = self._RENDER_TARGETS[operation]
 
         if not self.last_result or self.last_result.get("status") != "success":
-            self.statusUpdate.emit("Run analysis first.")
+            self._push_plot(js_fn, {"status": "error", "message": "Run the analysis first."})
+            return
+        if not self.last_result.get("result_rds"):
+            self._push_plot(js_fn, {"status": "error", "message": "Please run the analysis again (results are from an older version)."})
             return
 
         try:
-
-            config = json.loads(config_json)
-
-            payload = dict(config)
-            payload["operation"] = "render_heatmap_plot"
-            payload["result"] = self.last_result
-            payload["output_dir"] = str(RESULT_DIR.resolve())
-            result = run_r_backend(payload)
-
-            self.last_result["heatmap_plot"] = result.get("heatmap_plot")
-
-            self.parent().browser.page().runJavaScript(
-                "showHeatmapPlot(" + json.dumps(result) + ");"
-            )
-
+            payload = dict(json.loads(config_json))
         except Exception as e:
+            self._push_plot(js_fn, {"status": "error", "message": f"Invalid plot settings: {e}"})
+            return
+        payload.update(
+            operation=operation,
+            result_rds=self.last_result["result_rds"],
+            output_dir=str(RESULT_DIR.resolve()),
+        )
 
-            self.parent().browser.page().runJavaScript(
-                "showHeatmapPlot(" +
-                json.dumps({"status": "error", "message": str(e)}) +
-                ");"
-            )
+        thread = QThread()
+        worker = _RenderWorker(operation, payload)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run, Qt.QueuedConnection)
+        worker.finished.connect(self._render_finished, Qt.QueuedConnection)
+        worker.finished.connect(thread.quit, Qt.QueuedConnection)
+        worker.finished.connect(worker.deleteLater, Qt.QueuedConnection)
+        thread.finished.connect(thread.deleteLater, Qt.QueuedConnection)
+        # one slot per plot type, so updating two plots at once is fine
+        self._render_jobs[operation] = (thread, worker)
+        thread.start()
+
+    @Slot(str, dict)
+    def _render_finished(self, operation, result):
+        js_fn, key = self._RENDER_TARGETS[operation]
+        if result.get("status") == "success" and result.get(key) and self.last_result:
+            self.last_result[key] = result[key]   # Download buttons save the latest image
+        self._push_plot(js_fn, result)
+
+    def _push_plot(self, js_fn, result):
+        self.parent().browser.page().runJavaScript(
+            f"window.{js_fn} && window.{js_fn}({json.dumps(result)});"
+        )
 
     # --------------------------------------------------------
     # CYTOGENETIC IDEOGRAM DATA
@@ -540,6 +596,15 @@ class LinkageBridge(QObject):
 
             "removal_log":
                 self.last_result.get("removal_log_xlsx"),
+
+            "recombination":
+                self.last_result.get("recombination_xlsx"),
+
+            "qtl_input_csv":
+                self.last_result.get("qtl_input_csv"),
+
+            "qtl_input_xlsx":
+                self.last_result.get("qtl_input_xlsx"),
 
             "map_plot":
                 self.last_result.get("map_plot"),
@@ -644,6 +709,20 @@ class LinkageWorker(QObject):
 
             if "status" not in result:
                 result["status"] = "success"
+
+            # File for QTL Mapping: the linkage map matched to the input
+            # genotypes and transposed. A failure here must not hide an
+            # otherwise good linkage result.
+            if result.get("status") == "success" and result.get("result_xlsx"):
+                try:
+                    from tools.linkage.backend.linkage_qtl_export import export_qtl_input
+                    result.update(export_qtl_input(
+                        self.config["input_path"], result["result_xlsx"], self.output_dir
+                    ))
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    result["qtl_export_error"] = str(e)
 
             print(
                 "[LINKAGE WORKER] R backend returned:",

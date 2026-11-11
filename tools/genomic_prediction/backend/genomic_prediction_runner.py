@@ -29,6 +29,7 @@ live as the pipeline runs, and so a multi-minute run's output never has
 to sit fully buffered in a pipe.
 """
 
+import os
 import subprocess
 import sys
 import json
@@ -72,6 +73,7 @@ class GenomicPredictionEngine:
             "--feature_selection", "true" if c.feature_selection else "false",
             "--rfe_n_features", str(c.rfe_n_features),
             "--use_raw_genotypes", "true" if c.use_raw_genotypes else "false",
+            "--baselines", ",".join(c.baselines),
             "--outdir", str(outdir),
         ]
 
@@ -84,26 +86,22 @@ class GenomicPredictionEngine:
             # main.py intercepts this before touching PySide6/QtWebEngine.
             cmd = [sys.executable, "--worker", "genomic_prediction"] + flags
             cwd = None
+            env = None
         else:
             # Dev mode: sys.executable is a real python.exe, safe to point
             # directly at the CLI script.
             cmd = [sys.executable, str(self._cli_path)] + flags
-            cwd = str(self._cli_path.parent)  # so `import genomic_prediction_engine` resolves
-
-        # ── TEMPORARY DEBUG — remove once the frozen-mode issue is found ──
-        try:
-            with open(r"C:\Users\baboo\Desktop\terratools_cmd_debug.txt", "w") as _dbg:
-                _dbg.write(f"frozen={getattr(sys, 'frozen', False)}\n")
-                _dbg.write(f"sys.executable={sys.executable!r}\n")
-                _dbg.write(f"cmd={cmd!r}\n")
-        except Exception as _dbg_e:
-            pass
-        # ────────────────────────────────────────────────────────────────
+            cwd = str(self._cli_path.parent)  # (the CLI imports the `tools` package by absolute name)
+            # the CLI imports the `tools` package, which lives two levels above its folder
+            project_root = str(Path(__file__).resolve().parents[3])
+            env = dict(os.environ)
+            env["PYTHONPATH"] = project_root + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
 
         try:
             proc = subprocess.Popen(
                 cmd,
                 cwd=cwd,
+                env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,  # merge stderr into stdout for a single live stream
                 stdin=subprocess.DEVNULL,  # a frozen console=False app has no
@@ -111,6 +109,8 @@ class GenomicPredictionEngine:
                                             # the child can hang waiting on input
                                             # it will never receive
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 bufsize=1,  # line-buffered
                 **no_window_kwargs(),
             )
@@ -141,5 +141,5 @@ class GenomicPredictionEngine:
                            "Check the log above for the actual error.",
             }
 
-        with open(summary_path, "r") as f:
+        with open(summary_path, "r", encoding="utf-8") as f:
             return json.load(f)

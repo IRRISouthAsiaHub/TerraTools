@@ -18,8 +18,18 @@
 #   snp_file       - path to .csv/.txt/.tsv (rows = samples,
 #                    cols = SNP markers, first column = sample
 #                    IDs, values in {0,1,2,NA})
+#   train_file,    - INSTEAD of snp_file: the Training and Testing files
+#   test_file        written by the Clustering tool. Markers are centred on
+#                    the TRAINING lines' means and the additive matrix is
+#                    X Xt / number of markers, cut into the blocks
+#                    training x training and testing x training (the testing
+#                    lines do not influence the training block). Imputation
+#                    and the monomorphic filter also use the training lines.
+#                    Columns named phenotypes / Cluster are not markers.
 #   impute_method  - "mean" | "median" | "zero"
 #   matrix_types   - array subset of ["additive","dominance"]
+#
+# -1 is read as a missing call (the coding of the Clustering tool).
 # ============================================================
 
 suppressMessages({
@@ -133,10 +143,20 @@ read_snp_file <- function(path) {
 # LOAD + VALIDATE
 # ============================================================
 
-snp_file <- config$snp_file
+train_file <- config$train_file
+test_file  <- config$test_file
+split_mode <- !is.null(train_file) && nzchar(train_file)
 
-if (is.null(snp_file) || !file.exists(snp_file)) {
-    fail(paste("SNP file not found:", snp_file))
+if (split_mode) {
+    if (!file.exists(train_file)) fail(paste("Training file not found:", train_file))
+    if (is.null(test_file) || !nzchar(test_file) || !file.exists(test_file)) {
+        fail(paste("Testing file not found:", test_file))
+    }
+} else {
+    snp_file <- config$snp_file
+    if (is.null(snp_file) || !file.exists(snp_file)) {
+        fail(paste("SNP file not found:", snp_file))
+    }
 }
 
 impute_method <- config$impute_method
@@ -149,16 +169,46 @@ if (is.null(matrix_types) || length(matrix_types) == 0) {
 
 result <- tryCatch({
 
-    # ---- 1. Read file ----
-    geno_data <- read_snp_file(snp_file)
+    # ---- 1. Read file(s) ----
+    is_non_marker <- function(nm) grepl("^(phenotypes?|cluster)$", nm, ignore.case = TRUE)
 
-    if (ncol(geno_data) < 2) {
-        stop("File must have at least 2 columns (sample ID + markers).")
+    read_markers <- function(path) {
+        d <- read_snp_file(path)
+        if (ncol(d) < 2) {
+            stop("File must have at least 2 columns (sample ID + markers).")
+        }
+        g <- d[, -1, drop = FALSE]
+        list(ids = as.character(d[, 1]), geno = g[, !is_non_marker(colnames(g)), drop = FALSE])
     }
 
-    sample_ids  <- as.character(geno_data[, 1])
-    geno_matrix <- as.matrix(geno_data[, -1, drop = FALSE])
+    split_info <- NULL
+    if (split_mode) {
+        tr <- read_markers(train_file)
+        te <- read_markers(test_file)
+        shared_ids <- intersect(tr$ids, te$ids)
+        if (length(shared_ids) > 0) {
+            stop(paste0(length(shared_ids), " line(s) are in both the training and the testing file (e.g. ",
+                        paste(head(shared_ids, 3), collapse = ", "), "). A line must be in only one of them."))
+        }
+        common <- intersect(colnames(tr$geno), colnames(te$geno))
+        if (length(common) == 0) {
+            stop("The training and testing files have no marker columns in common.")
+        }
+        geno_matrix <- as.matrix(rbind(tr$geno[, common, drop = FALSE], te$geno[, common, drop = FALSE]))
+        sample_ids  <- c(tr$ids, te$ids)
+        split_info  <- list(n_train = length(tr$ids), n_test = length(te$ids),
+                            n_markers_train = ncol(tr$geno), n_markers_test = ncol(te$geno),
+                            n_markers_common = length(common))
+    } else {
+        d <- read_markers(snp_file)
+        geno_matrix <- as.matrix(d$geno)
+        sample_ids  <- d$ids
+    }
     storage.mode(geno_matrix) <- "numeric"
+
+    # -1 is a missing call (as in the Clustering tool), not a genotype
+    n_minus1 <- sum(geno_matrix == -1, na.rm = TRUE)
+    geno_matrix[geno_matrix == -1] <- NA
 
     if (nrow(geno_matrix) < 2) {
         stop("Need at least 2 samples to build a relationship matrix.")
@@ -166,12 +216,17 @@ result <- tryCatch({
 
     pct_miss <- round(100 * mean(is.na(geno_matrix)), 2)
 
+    # Rows that define the marker statistics: the training lines in split mode, every line otherwise
+    ref_rows <- if (split_mode) seq_len(split_info$n_train) else seq_len(nrow(geno_matrix))
+
     # ---- 2. Imputation ----
     geno_imputed <- apply(geno_matrix, 2, function(x) {
         if (any(is.na(x))) {
+            xr <- x[ref_rows]
+            if (all(is.na(xr))) xr <- x
             fill <- switch(impute_method,
-                            mean   = mean(x, na.rm = TRUE),
-                            median = median(x, na.rm = TRUE),
+                            mean   = mean(xr, na.rm = TRUE),
+                            median = median(xr, na.rm = TRUE),
                             zero   = 0)
             x[is.na(x)] <- fill
         }
@@ -179,7 +234,8 @@ result <- tryCatch({
     })
 
     # ---- 3. Remove monomorphic markers ----
-    marker_var <- apply(geno_imputed, 2, var, na.rm = TRUE)
+    marker_var <- apply(geno_imputed[ref_rows, , drop = FALSE], 2, var, na.rm = TRUE)
+    marker_var[is.na(marker_var)] <- 0
     mono_count <- sum(marker_var == 0)
     geno_imputed <- geno_imputed[, marker_var > 0, drop = FALSE]
 
@@ -202,7 +258,13 @@ result <- tryCatch({
     D_mat <- NULL
 
     if ("additive" %in% matrix_types) {
-        A_mat <- rrBLUP::A.mat(geno_coded)
+        if (split_mode) {
+            # centre every marker on the training lines' mean, then X Xt / number of markers
+            Xc <- sweep(geno_imputed, 2, colMeans(geno_imputed[ref_rows, , drop = FALSE]))
+            A_mat <- tcrossprod(Xc) / ncol(Xc)
+        } else {
+            A_mat <- rrBLUP::A.mat(geno_coded)
+        }
         rownames(A_mat) <- colnames(A_mat) <- sample_ids
     }
 
@@ -219,9 +281,29 @@ result <- tryCatch({
             pct_missing = pct_miss,
             maf_pass = maf_pass,
             mono_removed = mono_count,
-            matrix_types = as.list(matrix_types)
+            minus1_as_missing = n_minus1,
+            matrix_types = as.list(matrix_types),
+            mode = if (split_mode) "split" else "single",
+            additive_method = if (split_mode) "centred on training means, X Xt / markers" else "rrBLUP::A.mat"
         )
     )
+    if (split_mode) {
+        out$summary$split <- split_info
+        n_tr    <- split_info$n_train
+        tr_ids  <- sample_ids[seq_len(n_tr)]
+        te_ids  <- sample_ids[(n_tr + 1):length(sample_ids)]
+        # old block files must not survive a run that did not write them
+        unlink(file.path(output_dir, c("training_additive.csv", "test_additive.csv",
+                                       "training_dominance.csv", "test_dominance.csv")))
+    }
+
+    # Rows x columns of M as a CSV whose first column is `sample_id` and whose other columns are named by `cols`
+    write_block <- function(M, rows, cols, path) {
+        B  <- signif(M[rows, cols, drop = FALSE], 7)
+        df <- data.frame(sample_id = rows, B, check.names = FALSE, stringsAsFactors = FALSE)
+        write.csv(df, path, row.names = FALSE)
+        path
+    }
 
     # ---- Additive outputs ----
     if (!is.null(A_mat)) {
@@ -237,9 +319,15 @@ result <- tryCatch({
 
         out$table_additive <- to_records(matrix_preview(A_mat))
 
-        additive_csv <- file.path(output_dir, "Additive_Matrix.csv")
-        write.csv(A_mat, additive_csv, row.names = TRUE)
-        out$additive_csv <- additive_csv
+        if (split_mode) {
+            # training x training  /  testing x training
+            out$train_additive_csv <- write_block(A_mat, tr_ids, tr_ids, file.path(output_dir, "training_additive.csv"))
+            out$test_additive_csv  <- write_block(A_mat, te_ids, tr_ids, file.path(output_dir, "test_additive.csv"))
+        } else {
+            additive_csv <- file.path(output_dir, "Additive_Matrix.csv")
+            write.csv(A_mat, additive_csv, row.names = TRUE)
+            out$additive_csv <- additive_csv
+        }
     }
 
     # ---- Dominance outputs ----
@@ -256,9 +344,14 @@ result <- tryCatch({
 
         out$table_dominance <- to_records(matrix_preview(D_mat))
 
-        dominance_csv <- file.path(output_dir, "Dominance_Matrix.csv")
-        write.csv(D_mat, dominance_csv, row.names = TRUE)
-        out$dominance_csv <- dominance_csv
+        if (split_mode) {
+            out$train_dominance_csv <- write_block(D_mat, tr_ids, tr_ids, file.path(output_dir, "training_dominance.csv"))
+            out$test_dominance_csv  <- write_block(D_mat, te_ids, tr_ids, file.path(output_dir, "test_dominance.csv"))
+        } else {
+            dominance_csv <- file.path(output_dir, "Dominance_Matrix.csv")
+            write.csv(D_mat, dominance_csv, row.names = TRUE)
+            out$dominance_csv <- dominance_csv
+        }
     }
 
     out

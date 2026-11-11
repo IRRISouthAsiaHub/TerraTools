@@ -20,3 +20,27 @@ export function useRunStates() {
     () => states,
   )
 }
+
+/* ───────────── Small confirmations ("Saved to …") ───────────── */
+
+let notices = []
+let noticeId = 0
+const noticeSubs = new Set()
+const emitNotices = () => noticeSubs.forEach((f) => f())
+
+export function dismissNotice(id) {
+  notices = notices.filter((n) => n.id !== id)
+  emitNotices()
+}
+
+/** pushNotice({ text, kind: 'ok' | 'err' }) — shown as a toast for a few seconds. */
+export function pushNotice({ text, kind = 'ok' }) {
+  const id = ++noticeId
+  notices = [...notices, { id, text, kind }]
+  emitNotices()
+  setTimeout(() => dismissNotice(id), kind === 'err' ? 9000 : 5000)
+}
+
+export function useNotices() {
+  return useSyncExternalStore((f) => { noticeSubs.add(f); return () => noticeSubs.delete(f) }, () => notices)
+}

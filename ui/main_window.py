@@ -9,6 +9,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebChannel import QWebChannel
 
 from ui.bridge import TerraToolsBridge
+from ui.file_bridge import FileBridge
 from ui.frontend import load_frontend
 from ui.tool_registry import register_tool_bridges
 
@@ -70,6 +71,8 @@ class MainWindow(QMainWindow):
         self.channel = QWebChannel()
         self.bridge = TerraToolsBridge(self)
         self.channel.registerObject("terraTools", self.bridge)
+        self.file_bridge = FileBridge(self)           # image downloads, shared by every tool
+        self.channel.registerObject("terraFiles", self.file_bridge)
         self.tool_bridges = register_tool_bridges(self.channel, self)
         self.browser.page().setWebChannel(self.channel)
 

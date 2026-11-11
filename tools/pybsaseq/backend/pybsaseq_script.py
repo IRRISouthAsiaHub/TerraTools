@@ -556,8 +556,11 @@ def zeroSV(li):
 def replace_zero(li):
     # Replace the 'empty' placeholders at the beginning of the list with the nearest non-empty value
     i = 0
-    while li[i]=='empty':
+    while i < len(li) and li[i]=='empty':
         i += 1
+    if i == len(li):
+        raise SystemExit("A chromosome has no sliding window with at least %s variants (the 'min SVs' value in the misc parameters). "
+                         "Use a larger sliding window, lower the minimum number of variants, or remove that chromosome." % min_SVs)
 
     j = 0
     while j < i:

@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 
 from tools.mendelian.config import MendelianConfig
+from tools.common.genotype_layout import is_qtl_layout, to_marker_rows
 from tools.common.r_locator import find_rscript, rscript_not_found_message
 from tools.common.subprocess_utils import no_window_kwargs
 
@@ -40,12 +41,18 @@ class MendelianEngine:
 
         outdir = Path(tempfile.mkdtemp(prefix="terratools_mendelian_"))
 
+        # A file in the QTL Mapping layout (the one Linkage Mapping exports) is turned into one row per marker first.
+        input_file = self.config.input_file
+        if is_qtl_layout(input_file):
+            input_file = to_marker_rows(input_file, outdir)
+
         cmd = [
             rscript,
             str(self._cli_path),
-            "--input", self.config.input_file,
+            "--input", input_file,
             "--pop", self.config.pop,
             "--pthr", str(self.config.pthr),
+            "--mtc", self.config.mtc_method,
             "--missing", self.config.missing_codes,
             "--drop_unplaced", "true" if self.config.drop_unplaced else "false",
             "--outdir", str(outdir),

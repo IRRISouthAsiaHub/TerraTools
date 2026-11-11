@@ -211,6 +211,10 @@ export function mockToolBridge(kind) {
     resultReady,
     statusUpdate,
     browse_file: (cb) => setTimeout(() => cb('C:\\data\\demo_genotypes.csv'), 300),
+    browse_phenotype: (cb) => setTimeout(() => cb('C:\\data\\phenotypes.csv'), 300),
+    browse_vcf: (cb) => setTimeout(() => cb('C:\\data\\variants.vcf.gz'), 300),
+    get_phenotype_columns: (p, cb) => setTimeout(() => cb(JSON.stringify(['Yield', 'Height'])), 150),
+    rice3k_info: (cb) => setTimeout(() => cb(JSON.stringify({ n_samples: 3024, n_markers: 52600, examples: ['B001', 'B002', 'B003'], template: 'C:\\tmp\\rice3k_phenotype_template.csv' })), 100),
     save_file: (src, name) => statusUpdate.emit(`Saved ${name} (mock)`),
   }
   const run = () => {
@@ -223,13 +227,25 @@ export function mockToolBridge(kind) {
         resultReady.emit(JSON.stringify({
           status: 'success',
           plots: {
-            '01_Manhattan_OLS': svg('Manhattan — OLS', 1),
-            '02_Manhattan_MLM': svg('Manhattan — MLM', 2),
-            '03_QQ_OLS': svg('QQ — OLS', 3),
-            '04_QQ_MLM': svg('QQ — MLM', 4),
+            '01_Manhattan': svg('Manhattan — all models', 1), '02_QQ': svg('QQ plot', 3),
           },
-          excel: 'C:\\tmp\\gwas.xlsx', zip: 'C:\\tmp\\gwas.zip',
-          summary: 'Models run: OLS, MLM\nSignificant markers (Bonferroni): 7\nTop marker: Chr3_1289221 (p = 2.1e-9)',
+          excel: 'C:\\tmp\\gwas.xlsx', zip: 'C:\\tmp\\gwas.zip', mta_csv: 'C:\\tmp\\gwas_mtas.csv', qc_csv: 'C:\\tmp\\gwas_qc_stages.csv',
+          message: '',
+          summary: 'Samples: 250 analysed of 252  |  SNPs: 4,812 analysed of 5,000\nGenotype encoding: 0/1/2 alternate-allele dosage (chosen by the user).\nOLS: 14 genome-wide significant; λ = 3.4\nMLM: 1 genome-wide significant; λ = 1.02',
+          model_table: [
+            { Model: 'OLS', SNPs_Tested: 4812, Genomic_Lambda: 3.41, Min_P: 2.1e-12, Bonferroni_threshold_p: 1.04e-5, Bonferroni_hits: 14, BH_hits: 220, Permutation_threshold_p: 8.2e-6, Permutation_hits: 14, Category_rule: 'bonferroni', Genome_wide: 14, Suggestive: 40, Invalid_Statistics: 0, Result: '14 genome-wide significant' },
+            { Model: 'MLM', SNPs_Tested: 4812, Genomic_Lambda: 1.02, Min_P: 3.3e-9, Bonferroni_threshold_p: 1.04e-5, Bonferroni_hits: 1, BH_hits: 1, Permutation_threshold_p: 1.3e-5, Permutation_hits: 1, Category_rule: 'bonferroni', Genome_wide: 1, Suggestive: 2, Invalid_Statistics: 0, Result: '1 genome-wide significant' },
+          ],
+          mta_table: [
+            { Model: 'MLM', Category: 'Genome-wide significant', Rank: 1, SNP: 'Chr3_1289221', Chr: 3, Position: 1289221, Alleles: 'A/G', MAF: 0.21, Effect: 0.62, SE: 0.1, P_value: 3.3e-9, P_Bonferroni: 1.6e-5, P_BH: 1.6e-5, neg_log10P: 8.48, LOD: 7.9, 'PVE_%': 6.4, PVE_basis: 'mixed-model marginal', Criterion: 'Bonferroni: p <= 1.04e-05' },
+            { Model: 'MLM', Category: 'Exploratory (not significant)', Rank: 1, SNP: 'Chr7_402110', Chr: 7, Position: 402110, Alleles: 'C/T', MAF: 0.3, Effect: 0.2, SE: 0.09, P_value: 0.0004, P_Bonferroni: 1, P_BH: 0.9, neg_log10P: 3.4, LOD: 2.5, 'PVE_%': 1.1, PVE_basis: 'mixed-model marginal', Criterion: 'top-ranked marker; passed no threshold' },
+          ],
+          qc_table: [
+            { stage: 'Input', rule: '250 samples, 5,000 SNPs read', samples_removed: 0, snps_removed: 0, samples_left: 250, snps_left: 5000 },
+            { stage: 'Minor allele frequency', rule: 'MAF >= 0.05', samples_removed: 0, snps_removed: 188, samples_left: 248, snps_left: 4812 },
+          ],
+          diagnostics: [{ Model: 'MLM', SNPs_Tested: 4812, Invalid_Statistics: 0, Genomic_Lambda: 1.02, Min_P: 3.3e-9, Convergence: 'converged', REML_check: 'passed', Heritability_null: 0.54 }],
+          errors: {}, notes: [],
         }))
       } else {
         resultReady.emit(JSON.stringify({

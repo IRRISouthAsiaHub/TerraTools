@@ -63,14 +63,31 @@ def prepare_macos_r() -> Path | None:
                 tar.extractall(staging, filter="tar")
             else:
                 tar.extractall(staging)
+        # Nobody but the unpacking user may modify these files: the runtime is
+        # executed by every account that uses the app, so it must not be
+        # replaceable by another local user.
+        for root, dirs, files in os.walk(staging):
+            for name in dirs + files:
+                p = os.path.join(root, name)
+                if not os.path.islink(p):
+                    os.chmod(p, os.stat(p).st_mode & ~0o022)
+        os.chmod(staging, os.stat(staging).st_mode & ~0o022)
         # Contents only reference MACOS_R_PREFIX, so moving the finished
         # tree into place is safe (and a half-unpacked tree never is used).
         shutil.rmtree(MACOS_R_PREFIX, ignore_errors=True)
-        staging.rename(MACOS_R_PREFIX)
-        stamp.write_text(wanted)
-        # Let every user account on this Mac use (and update) it.
         try:
-            os.chmod(MACOS_R_PREFIX.parent, 0o777)
+            staging.rename(MACOS_R_PREFIX)
+        except OSError as e:
+            shutil.rmtree(staging, ignore_errors=True)
+            raise RuntimeError(
+                f"Could not install the R runtime at {MACOS_R_PREFIX}: {e}. Another user account on this Mac "
+                "probably installed an older copy; ask them to update TerraTools, or remove that folder as an administrator."
+            ) from e
+        stamp.write_text(wanted)
+        # Shared location like /tmp: every account can create its entry, but
+        # (sticky bit) nobody can delete or replace another account's files.
+        try:
+            os.chmod(MACOS_R_PREFIX.parent, 0o1777)
         except OSError:
             pass
         print("[TerraTools] R runtime ready.", flush=True)
@@ -124,6 +141,10 @@ def find_rscript() -> str | None:
         # Developer setup via setup_r_env.sh
         if is_windows:
             candidates.append(root / "r_env" / "Scripts" / "Rscript.exe")
+            # portable R copied into the project (the folder the installer is built from)
+            for folder in ("r_runtime_build", "r_runtime"):
+                candidates.append(root / folder / "bin" / "x64" / "Rscript.exe")
+                candidates.append(root / folder / "bin" / "Rscript.exe")
         else:
             candidates.append(root / "r_env" / "bin" / "Rscript")
 

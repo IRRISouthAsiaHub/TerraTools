@@ -1,0 +1,7 @@
+﻿"Trait / statistic","PC1","PC2","PC3"
+"Yield",-0.593,0.004,-0.805
+"Plant_Height",-0.57,0.705,0.423
+"Days_to_Flowering",0.569,0.709,-0.416
+"Eigenvalue",2.223,0.44,0.338
+"Variance explained (%)",74.08,14.66,11.26
+"Cumulative variance (%)",74.08,88.74,100

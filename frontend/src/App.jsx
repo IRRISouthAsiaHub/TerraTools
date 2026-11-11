@@ -3,38 +3,50 @@ import { Sidebar, TopBar, RunToasts } from './components/Shell.jsx'
 import { Background } from './components/kit.jsx'
 import { RouteContext } from './lib/runState.js'
 import Dashboard from './pages/Dashboard.jsx'
+import GenofileConverterTool from './pages/GenofileConverterTool.jsx'
 import MendelianTool from './pages/MendelianTool.jsx'
 import LinkageTool from './pages/LinkageTool.jsx'
+import GenotypeViewerTool from './pages/GenotypeViewerTool.jsx'
 import QtlTool from './pages/QtlTool.jsx'
 import GeneExtractorTool from './pages/GeneExtractorTool.jsx'
+import GenePrioritizationTool from './pages/GenePrioritizationTool.jsx'
 import PybsaseqTool from './pages/PybsaseqTool.jsx'
 import QtlSeqTool from './pages/QtlSeqTool.jsx'
 import DiversityTool from './pages/DiversityTool.jsx'
 import GwasTool from './pages/GwasTool.jsx'
+import EtGwasTool from './pages/EtGwasTool.jsx'
 import ClusteringTool from './pages/ClusteringTool.jsx'
 import AdditiveDominanceTool from './pages/AdditiveDominanceTool.jsx'
 import GenomicPredictionTool from './pages/GenomicPredictionTool.jsx'
 import CrossSelectionTool from './pages/CrossSelectionTool.jsx'
 import HeterosisTool from './pages/HeterosisTool.jsx'
 import PhenotypicTool from './pages/PhenotypicTool.jsx'
+import FavourableAlleleTool from './pages/FavourableAlleleTool.jsx'
+import HelpPage from './pages/HelpPage.jsx'
 
 // Hash route -> page. Keys match the tool ids in lib/tools.js.
 const ROUTES = {
   '': Dashboard,
+  genofile: GenofileConverterTool,
   mendelian: MendelianTool,
   linkage: LinkageTool,
+  genotype_viewer: GenotypeViewerTool,
   qtl: QtlTool,
   gene_extractor: GeneExtractorTool,
+  gene_prioritization: GenePrioritizationTool,
   pybsaseq: PybsaseqTool,
   qtl_seq: QtlSeqTool,
   diversity: DiversityTool,
   gwas: GwasTool,
+  et_gwas: EtGwasTool,
   clustering: ClusteringTool,
   additive_dominance: AdditiveDominanceTool,
   genomic_prediction: GenomicPredictionTool,
   cross_selection: CrossSelectionTool,
   heterosis: HeterosisTool,
   phenotypic: PhenotypicTool,
+  favourable_allele: FavourableAlleleTool,
+  help: HelpPage,
 }
 
 const parse = () => {

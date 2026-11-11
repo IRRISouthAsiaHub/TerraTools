@@ -1,0 +1,3 @@
+SNP,Chr,Position,MAF,AF_low,AF_random,AF_high,Delta_AF_high_minus_low,Chi2,P_value,Q_value,Slope_logodds,SE,PVE_%,Counted_allele_enriched_in,Bonferroni_significant
+Chr8_24014817,8,24014817,0.0866667,0,0.0166667,0.325,0.325,73.4739,1.38024e-09,6.03166e-07,2.56395,0.457545,14.854,high bulk,True
+Chr3_9825966,3,9825966,0.37,0.133333,0.4,0.65,0.516667,69.5281,3.79559e-09,8.29337e-07,1.1891,0.155542,24.5106,high bulk,True

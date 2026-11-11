@@ -42,6 +42,9 @@ dependencies:
   - r-reshape2
   - r-gridextra
   - r-openxlsx
+  - r-ragg
+  - r-pbkrtest
+  - r-tibble
   - r-nloptr
   - r-lmertest
   - r-viridislite
@@ -50,6 +53,9 @@ dependencies:
   - r-writexl
   # Used by the R backends but previously missing here:
   - r-ggrepel
+  # Balloon heatmap of the Favourable Allele Analysis tool (tools/favourable_allele/backend/balloon_heatmap.R):
+  - r-ggtext
+  - r-patchwork
   - r-caret
 
   # ── Packages conda-forge doesn't provide ────────────────────────────────
@@ -57,7 +63,9 @@ dependencies:
   # agricolae's conda build needs AlgDesign, which has no macOS arm64 build.
   # These four are compiled from CRAN after the environment is created
   # (build_macos/build_macos.sh does this automatically):
-  #     install.packages(c("AlgDesign", "enhancer", "agricolae", "sommer"))
+  #     install.packages(c("AlgDesign", "enhancer", "agricolae", "sommer", "mrMLM"))
+  # mrMLM (with lars, ncvreg, sampling, sbl, BEDMatrix, coin, data.table, doParallel, foreach and Rcpp, which install
+  # as its dependencies) runs the mrMLM and FASTmrMLM models of the GWAS tool.
   # Their dependencies that ARE on conda-forge come from here:
   - r-rcpp
   - r-rcpparmadillo

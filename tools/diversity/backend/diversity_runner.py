@@ -24,6 +24,7 @@ class DiversityEngine:
                 input_file=self.config.input_file,
                 n_clusters=self.config.n_clusters,
                 top_blocks=self.config.top_blocks,
+                radar_normalized=self.config.radar_normalized,
                 outdir=outdir,
             )
             return result

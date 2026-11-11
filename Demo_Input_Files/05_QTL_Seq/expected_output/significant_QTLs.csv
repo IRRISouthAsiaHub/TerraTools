@@ -1,0 +1,2 @@
+Chromosome,Start,End,Peak_Position,Peak_Delta_SNP_index,Mean_Delta_SNP_index,Minimum_Delta_SNP_index,Maximum_Delta_SNP_index,SNP_Count,Significance_Level,Confidence_Threshold,Direction,QTL_ID,Window_Count,Window_Extent_Start,Window_Extent_End,Peak_Window_Start,Peak_Window_End,P_Threshold,Interval_Basis
+chr2,8770001,15220000,11850000,0.588035,0.456864,0.264242,0.588035,534,99%,0.400707,Index allele enriched in the high bulk (positive Delta),QTL1,648,7700001,16170000,10850001,12850000,0.01,top_level

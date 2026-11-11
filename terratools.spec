@@ -53,12 +53,29 @@ else:
     print("[terratools.spec] React frontend is up to date.")
 
 # ── Data files: the React frontend and tool assets ────────────────────────
+def collect_tree(src, dest):
+    """Every file under `src` as a PyInstaller data entry, minus things that
+    must not ship: results/ folders (output from running the tools on the
+    developer's own data — genotype matrices, hybrid results, even BAM files —
+    which the tools recreate when they run), Python caches and R history."""
+    skip_dirs = {"results", "__pycache__"}
+    entries = []
+    for f in sorted(Path(src).rglob("*")):
+        rel = f.relative_to(src)
+        if not f.is_file() or skip_dirs & set(rel.parts[:-1]):
+            continue
+        if f.suffix in (".pyc", ".pyo") or f.name == ".Rhistory":
+            continue
+        entries.append((str(f), str(Path(dest) / rel.parent)))
+    return entries
+
+
 datas = [
     # React frontend — a single self-contained index.html used by every
     # window. Run `npm run build` in frontend/ before packaging.
     (str(PROJECT_ROOT / "frontend" / "dist"), "frontend/dist"),
-    (str(PROJECT_ROOT / "tools"), "tools"),   # backends, configs and (if you bundled it) OS_model.dat
-    (str(PROJECT_ROOT / "ui"), "ui"),
+    *collect_tree(PROJECT_ROOT / "tools", "tools"),   # backends, R scripts, configs (and OS_model.dat if bundled)
+    *collect_tree(PROJECT_ROOT / "ui", "ui"),
     (str(PROJECT_ROOT / "terratools.ico"), "."),   # main window icon
 ]
 
@@ -74,6 +91,10 @@ hidden_imports = [
     "scipy.special.cython_special",
     # imbalanced-learn (gene prioritization)
     "imblearn.over_sampling",
+    # Genotype Viewer (GenoSee): Biopython is imported only when a species is added from a FASTA file
+    "Bio.SeqIO",
+    "tqdm",
+    "vcf",
     # PySide6 WebEngine
     "PySide6.QtWebEngineWidgets",
     "PySide6.QtWebEngineCore",

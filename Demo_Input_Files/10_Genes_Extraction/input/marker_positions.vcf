@@ -1,0 +1,9 @@
+##fileformat=VCFv4.2
+##source=TerraTools demo (positions only)
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr01	19308987	M001	A	G	.	.	.
+chr05	6833061	M002	A	G	.	.	.
+chr01	20562598	M003	A	G	.	.	.
+chr05	7328783	M004	A	G	.	.	.
+chr01	21011077	M005	A	G	.	.	.
+chr05	8080666	M006	A	G	.	.	.

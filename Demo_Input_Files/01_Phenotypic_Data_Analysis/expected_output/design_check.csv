@@ -1,0 +1,4 @@
+﻿"Environment","Plots","Accessions","Replications","Blocks","Plots per block","Min. plots per accession","Max. plots per accession","Accessions repeated (checks)","Accessions with one plot","SED: two checks","SED: a new entry and a check","SED: two new entries, different blocks","SED: two new entries, same block"
+"Dry_2024",60,44,1,5,"12",1,5,4,40,1.462,2.735,3.655,3.269
+"Wet_2024",60,44,1,5,"12",1,5,4,40,1.096,2.051,2.741,2.451
+"Dry_2025",60,44,1,5,"12",1,5,4,40,1.394,2.608,3.485,3.117

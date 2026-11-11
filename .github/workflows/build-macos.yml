@@ -1,18 +1,57 @@
 name: Build macOS app
 
-# Manual trigger only. Builds TerraTools.app and packages it as
-# installer_output/TerraTools.dmg, uploaded as a downloadable workflow
-# artifact — useful if you don't have a Mac handy, since PyInstaller,
-# TensorFlow and PySide6 all have to be built natively on macOS.
+# Builds TerraTools.app and packages it as TerraTools.dmg.
+#
+#  * Run manually (Actions > Build macOS app > Run workflow), or push a tag such as
+#    v1.0.0 to also publish the DMG as a GitHub Release.
+#  * With the Apple secrets from build_macos/SIGNING.md the app is signed with a
+#    Developer ID certificate and notarized by Apple, so it opens on any Mac with no
+#    security warning. Without them it is only ad-hoc signed and users must approve
+#    the first launch (the DMG then contains a READ ME FIRST.txt that explains how).
+
 on:
   workflow_dispatch: {}
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write      # needed to attach the DMG to a release
 
 jobs:
   build:
     runs-on: macos-14   # Apple Silicon (arm64) — the DMG runs on M1/M2/M3/M4 Macs
-    timeout-minutes: 120
+    timeout-minutes: 180
+    env:
+      MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
     steps:
       - uses: actions/checkout@v4
+
+      # Imports the Developer ID certificate into a throw-away keychain.
+      - name: Import signing certificate
+        id: cert
+        if: env.MACOS_CERTIFICATE != ''
+        env:
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          echo "$MACOS_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/certificate.p12" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          rm -f "$RUNNER_TEMP/certificate.p12"
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)".*/\1/')"
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::The certificate has no 'Developer ID Application' identity. Export the Developer ID Application certificate (with its private key) as .p12."
+            exit 1
+          fi
+          echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
+          echo "Signing identity: $IDENTITY"
 
       # conda provides both the Python build env and the bundled R runtime
       - uses: conda-incubator/setup-miniconda@v3
@@ -23,11 +62,44 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Build app and DMG
+      - name: Version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.0"; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Build, sign and notarize
         shell: bash -l {0}
+        env:
+          TERRATOOLS_VERSION: ${{ steps.ver.outputs.version }}
+          CODESIGN_IDENTITY: ${{ steps.cert.outputs.identity }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: bash build_macos/build_macos.sh
+
+      - name: Check the DMG as a user would see it
+        run: |
+          hdiutil attach installer_output/TerraTools.dmg -mountpoint /tmp/tt_dmg -nobrowse -quiet
+          codesign --verify --deep --strict --verbose=2 /tmp/tt_dmg/TerraTools.app
+          spctl --assess --type execute --verbose=4 /tmp/tt_dmg/TerraTools.app || \
+            echo "::warning::Gatekeeper does not accept this build (expected when it is not notarized)."
+          hdiutil detach /tmp/tt_dmg -quiet
 
       - uses: actions/upload-artifact@v4
         with:
           name: TerraTools-macOS-arm64
           path: installer_output/TerraTools.dmg
+
+      # A release download is the DMG itself. A workflow artifact is a zip that the
+      # browser marks as downloaded-from-the-internet, so prefer releases for users.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --generate-notes --title "TerraTools $GITHUB_REF_NAME"
+          gh release upload "$GITHUB_REF_NAME" installer_output/TerraTools.dmg --clobber

@@ -8,6 +8,7 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
+from tools.common.save_dialog import save_dialog
 from tools.mendelian.config import MendelianConfig
 from tools.mendelian.backend.mendelian_runner import MendelianEngine
 from ui.frontend import load_frontend
@@ -57,12 +58,7 @@ class MendelianBridge(QObject):
         """Native Save As dialog + copy, since <a download> is unreliable
         for local file:// URLs inside QWebEngineView."""
         try:
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window,
-                "Save File",
-                suggested_name,
-                "All Files (*)"
-            )
+            dest_path, _ = save_dialog(self._parent_window, suggested_name)
             if not dest_path:
                 return
             shutil.copy2(source_path, dest_path)

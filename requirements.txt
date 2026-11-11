@@ -8,6 +8,13 @@ statsmodels
 openpyxl
 plotly
 pycirclize
+# Genotype Viewer (GenoSee): tqdm for its progress bars, biopython to add a species from a genome FASTA,
+# PyVCF3 (the `vcf` module GenoSee's VCF converter imports) to read VCF files
+tqdm
+biopython
+PyVCF3
+# QTL-seq: optional BAM read counting. pysam has no Windows build (there TerraTools uses it from WSL if present).
+pysam; sys_platform != "win32"
 # PySide6 already includes Qt WebEngine (via its PySide6-Addons dependency)
 PySide6
 joblib

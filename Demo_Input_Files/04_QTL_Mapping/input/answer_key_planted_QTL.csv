@@ -1,0 +1,6 @@
+Trait,Planted QTL marker,Chromosome,Additive effect,Expected
+Yield,chr01_20562598,1,2.0,"large peak, about 60 % of the variance"
+Yield,chr05_7328783,5,1.2,"second, smaller peak"
+Plant_Height,chr09_15429734,9,4.0,peak on chromosome 9
+Plant_Height,chr05_7328783,5,2.5,"peak on chromosome 5, shared with Yield"
+No_QTL_Trait,none,,0.0,no QTL (negative control)

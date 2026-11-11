@@ -8,6 +8,7 @@ from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
+from tools.common.save_dialog import save_dialog
 from tools.clustering.config import ClusteringConfig
 from tools.clustering.backend.clustering_runner import ClusteringEngine
 from ui.frontend import load_frontend
@@ -15,9 +16,13 @@ from ui.frontend import load_frontend
 
 class _ClusteringWorker(QObject):
     """Runs ClusteringEngine.run() on a background thread so the UI never
-    freezes during PCA/K-Means."""
+    freezes during PCA/K-Means.
 
-    finished = Signal(dict)
+    The result travels as a JSON string: a Python dict passed through a Qt
+    Signal becomes a QVariantMap, which re-sorts every key alphabetically and
+    would scramble the column order of the membership table."""
+
+    finished = Signal(str)
 
     def __init__(self, config: ClusteringConfig):
         super().__init__()
@@ -27,7 +32,7 @@ class _ClusteringWorker(QObject):
     def run(self):
         engine = ClusteringEngine(self.config)
         result = engine.run()
-        self.finished.emit(result)
+        self.finished.emit(json.dumps(result))
 
 
 class ClusteringBridge(QObject):
@@ -52,14 +57,22 @@ class ClusteringBridge(QObject):
         )
         return file_path or ""
 
+    @Slot(result=str)
+    def browse_pheno_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self._parent_window,
+            "Select Phenotype File (sample IDs + trait)",
+            "",
+            "Phenotype Files (*.csv *.tsv *.txt *.xlsx);;All Files (*)"
+        )
+        return file_path or ""
+
     @Slot(str, str)
     def save_file(self, source_path: str, suggested_name: str):
         """Native Save As dialog + copy, since <a download> is unreliable
         for local file:// URLs inside QWebEngineView."""
         try:
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window, "Save File", suggested_name, "All Files (*)"
-            )
+            dest_path, _ = save_dialog(self._parent_window, suggested_name)
             if not dest_path:
                 return
             shutil.copy2(source_path, dest_path)
@@ -106,8 +119,13 @@ class ClusteringBridge(QObject):
 
         self._thread.start()
 
-    @Slot(dict)
-    def _on_finished(self, result: dict):
+    @Slot(str)
+    def _on_finished(self, result_json: str):
+        try:
+            result = json.loads(result_json)
+        except Exception:
+            result = {"status": "error", "message": "The clustering result could not be read."}
+            result_json = json.dumps(result)
         if result.get("status") == "success":
             self.statusUpdate.emit(
                 f"Done — {result.get('n_clusters_used')} clusters, "
@@ -115,7 +133,7 @@ class ClusteringBridge(QObject):
             )
         else:
             self.statusUpdate.emit(f"Error: {result.get('message', 'Unknown error')}")
-        self.resultReady.emit(json.dumps(result))
+        self.resultReady.emit(result_json)
 
 
 class ClusteringWindow(QMainWindow):

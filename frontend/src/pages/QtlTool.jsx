@@ -25,9 +25,12 @@ const MODEL_DESC = [
   ['SIM', 'Single-marker regression'], ['CIM', 'Composite interval mapping'], ['MQM', 'Multiple QTL model'],
   ['RF', 'Random Forest importance'], ['SVR', 'Kernel-based regression'], ['XGBOOST', 'Gradient boosting'],
 ]
-const QTL_COLS = ['Marker', 'Chromosome', 'Position', 'LOD', 'P_Value', 'PVE_Marker_Percent', 'Additive_Effect', 'Interval_Size_cM', 'Method']
-const CMP_COLS = ['Marker', 'Chromosome', 'Position', 'Models_List', 'Mean_LOD', 'Max_LOD', 'Mean_PVE']
-const COMMON_COLS = ['Marker', 'Chromosome', 'Position', 'N_Models_Detected', 'Models_List', 'Mean_LOD', 'Max_LOD', 'Mean_PVE']
+const QTL_COLS = ['QTL_ID', 'Chromosome', 'Left_Marker', 'Peak_Marker', 'Right_Marker', 'Left_Position', 'Peak_Position', 'Right_Position',
+  'Interval_Size_cM', 'CI_Start_cM', 'CI_End_cM', 'LOD', 'P_Value', 'Genomewide_P', 'PVE_Marker_Percent', 'PVE_CIM_Percent',
+  'Additive_Effect', 'SE_Additive', 'Dominance_Effect', 'Dominance_Class', 'Method']
+const CMP_COLS = ['Region_ID', 'Chromosome', 'Left_Marker', 'Peak_Marker', 'Right_Marker', 'Left_Position', 'Right_Position', 'Region_Size_cM',
+  'Left_Mb', 'Peak_Mb', 'Right_Mb', 'Order_Check', 'N_Models_Detected', 'Models_List', 'Peak_Range_cM', 'Mean_LOD', 'Max_LOD', 'Mean_PVE']
+const COMMON_COLS = CMP_COLS
 
 const PLOT_DEFAULTS = {
   manhattan_height: 800, manhattan_width: 1400, nonsig_point_size: 6, sig_point_size: 10,
@@ -44,14 +47,20 @@ export default function QtlTool() {
   const [tab, setTab] = useState('analysis')
   const [geno, setGeno] = useState('')
   const [pheno, setPheno] = useState('')
+  const [linkMap, setLinkMap] = useState('')
   const [traits, setTraits] = useState(null)
   const [trait, setTrait] = useState('')
   const [method, setMethod] = useState('CIM')
   const [lod, setLod] = useState(2.5)
-  const [valFrac, setValFrac] = useState(0.2)
+  const [valFrac, setValFrac] = useState(0)
   const [cof, setCof] = useState(5)
   const [win, setWin] = useState(10)
-  const [lodDrop, setLodDrop] = useState(1)
+  const [lodDrop, setLodDrop] = useState(1.5)
+  const [peakDrop, setPeakDrop] = useState(2)
+  const [pThr, setPThr] = useState(0.05)
+  const [thrMode, setThrMode] = useState('lod')
+  const [nPerm, setNPerm] = useState(1000)
+  const [permAlpha, setPermAlpha] = useState(0.05)
   const [plot, setPlot] = useState(PLOT_DEFAULTS)
   const [models, setModels] = useState(['SIM', 'CIM', 'MQM'])
   const [cmp, setCmp] = useState(null)
@@ -60,6 +69,7 @@ export default function QtlTool() {
   const [minModels, setMinModels] = useState(2)
   const [common, setCommon] = useState(null)
   const [commonStatus, setCommonStatus] = useState('')
+  const [commonBusy, setCommonBusy] = useState(false)
   const setP = (k) => (v) => setPlot((p) => ({ ...p, [k]: v }))
 
   tool.onResult(() => setTab('results'))
@@ -68,12 +78,13 @@ export default function QtlTool() {
     showCompareResult: (r) => {
       setCmpBusy(false)
       if (!r) return
-      setCmpStatus(r.status === 'success' ? 'Model comparison completed.' : r.message || 'Comparison failed.')
+      setCmpStatus(r.message || (r.status === 'success' ? 'Model comparison completed.' : 'Comparison failed.'))
       if (r.status === 'success') setCmp(r)
     },
     showCommonResult: (r) => {
+      setCommonBusy(false)
       if (!r) return
-      setCommonStatus(r.status === 'error' ? r.message || 'Failed.' : 'Common QTL found.')
+      setCommonStatus(r.status === 'error' ? r.message || 'Failed.' : `Found ${(r.table || []).length} common QTL region(s).`)
       if (r.status !== 'error') setCommon(r)
     },
   })
@@ -88,22 +99,23 @@ export default function QtlTool() {
     if (cols && cols.length) tool.setStatus('Phenotype loaded. Select a trait.')
   }
 
+  const settings = () => ({
+    threshold_mode: thrMode, lod_threshold: lod, n_perm: nPerm, perm_alpha: permAlpha, p_threshold: pThr,
+    lod_drop: lodDrop, peak_drop: peakDrop, validation_fraction: valFrac, n_cofactors: cof, window_size: win,
+  })
   const run = () => {
     if (!geno || !pheno) return tool.fail('Please select both genotype and phenotype files.')
     if (!trait) return tool.fail('Please select a phenotype/trait.')
-    tool.run({
-      genotype_file: geno, phenotype_file: pheno, phenotype_column: trait, mapping_method: method,
-      lod_threshold: lod, validation_fraction: valFrac, n_cofactors: cof, window_size: win, lod_drop: lodDrop, plot,
-    })
+    tool.run({ genotype_file: geno, phenotype_file: pheno, ...(linkMap ? { linkage_map_file: linkMap } : {}), phenotype_column: trait, mapping_method: method, ...settings(), plot })
   }
   const compare = () => {
     if (models.length < 2) return setCmpStatus('Select at least two models.')
     setCmpStatus('Running model comparison...'); setCmpBusy(true)
     bridge.run_compare(JSON.stringify({
-      genotype_file: geno, phenotype_file: pheno, phenotype_column: trait, models, lod_threshold: lod, lod_drop: lodDrop, plot,
+      genotype_file: geno, phenotype_file: pheno, ...(linkMap ? { linkage_map_file: linkMap } : {}), phenotype_column: trait, models, ...settings(), plot,
     }))
   }
-  const findCommon = () => { setCommonStatus('Searching…'); bridge.find_common(JSON.stringify({ min_models: minModels, lod_threshold: lod })) }
+  const findCommon = () => { setCommonStatus('Searching…'); setCommonBusy(true); bridge.find_common(JSON.stringify({ min_models: minModels, lod_threshold: lod })) }
   const savePlot = () => { bridge.save_plot_settings(JSON.stringify(plot)); tool.setStatus('Plot settings saved.') }
   const dl = (t) => bridge && bridge.download_result(t)
 
@@ -130,20 +142,44 @@ export default function QtlTool() {
                 <label className="field-title">Phenotype CSV</label>
                 <FilePicker value={pheno} placeholder="Select phenotype CSV…" onBrowse={pickPheno} />
               </div>
+              <div className="field">
+                <label className="field-title">Linkage map (optional)</label>
+                <FilePicker value={linkMap} placeholder="Select Linkage Mapping output…" onBrowse={async () => { const p = await tool.browse('browse_linkage_map'); if (p) setLinkMap(p) }} />
+                <div className="field-hint">The Linkage Mapping output (Retained Markers / Linkage Map .xlsx): its marker positions place the QTL intervals on the genome for the QTL Intervals file.</div>
+              </div>
               <SelectField label="Trait / Phenotype" value={trait} onChange={setTrait}
                 options={traits && traits.length ? traits : [{ value: '', label: traits ? 'No traits found' : 'Load phenotype file first' }]} />
             </Card>
             <Card title="Analysis Settings" icon={Settings2} delay={0.06}>
               <SelectField label="Mapping Method" value={method} onChange={setMethod} options={METHODS} />
-              <Slider label="LOD Threshold" value={lod} onChange={setLod} min={0.5} max={10} step={0.1} format={(v) => v.toFixed(1)} />
-              <Slider label="Validation Fraction" value={valFrac} onChange={setValFrac} min={0.1} max={0.4} step={0.05} format={(v) => v.toFixed(2)} />
-              {method === 'CIM' && (
-                <div className="grid-2" style={{ marginTop: 6 }}>
-                  <TextField label="CIM cofactors (K)" type="number" min={1} max={20} value={cof} onChange={setCof} />
-                  <TextField label="Window (± markers)" type="number" min={3} max={30} value={win} onChange={setWin} />
+              <SelectField label="Significance threshold" value={thrMode} onChange={setThrMode}
+                options={[{ value: 'lod', label: 'Fixed LOD threshold' }, { value: 'permutation', label: 'Genome-wide permutation test (SIM / CIM / MQM)' }]} />
+              {thrMode === 'lod' ? (
+                <Slider label="LOD Threshold" value={lod} onChange={setLod} min={0.5} max={10} step={0.1} format={(v) => v.toFixed(1)} />
+              ) : (
+                <div className="grid-2">
+                  <TextField label="Permutations" type="number" min={100} max={10000} step={100} value={nPerm} onChange={setNPerm} />
+                  <TextField label="Genome-wide α" type="number" min={0.01} max={0.2} step={0.01} value={permAlpha} onChange={setPermAlpha} />
                 </div>
               )}
-              <TextField label="LOD Drop — Support Interval" type="number" min={0.3} max={2} step={0.1} value={lodDrop} onChange={setLodDrop} />
+              <div className="grid-2" style={{ marginTop: 6 }}>
+                <TextField label="Peak p-value cut-off" type="number" min={0.000001} max={1} step={0.01} value={pThr} onChange={setPThr} />
+                <TextField label="Peak separation (LOD drop)" type="number" min={0.5} max={5} step={0.1} value={peakDrop} onChange={setPeakDrop} />
+              </div>
+              <TextField label="Support interval — LOD drop (1.5 ≈ 95%)" type="number" min={0.3} max={3} step={0.1} value={lodDrop} onChange={setLodDrop} />
+              {method === 'CIM' && (
+                <div className="grid-2" style={{ marginTop: 6 }}>
+                  <TextField label="CIM cofactors (max)" type="number" min={1} max={20} value={cof} onChange={setCof} />
+                  <TextField label="CIM window (cM)" type="number" min={1} max={50} value={win} onChange={setWin} />
+                </div>
+              )}
+              <Slider label="Hold-out fraction (0 = use all individuals)" value={valFrac} onChange={setValFrac} min={0} max={0.4} step={0.05} format={(v) => v.toFixed(2)} />
+              <Note>
+                A QTL is a region: one peak (local LOD maximum above the threshold and p-value cut-off) with the flanking markers
+                where the LOD falls more than the “LOD drop” below the peak. Two peaks on a chromosome are separate QTL only if the
+                curve dips by at least “Peak separation” between them. RF / SVR / XGBoost scores are importance values on a LOD-like
+                scale, not true LOD.
+              </Note>
             </Card>
             <Card title="Dataset Information" icon={Database} delay={0.12}>
               <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -170,13 +206,32 @@ export default function QtlTool() {
                 <button className="btn btn-secondary" onClick={() => dl('ideogram')}><Image size={15} /> Ideogram PNG</button>
                 <button className="btn btn-secondary" onClick={() => dl('qtl_csv')}><FileText size={15} /> QTL Table CSV</button>
                 <button className="btn btn-secondary" onClick={() => dl('full_csv')}><FileText size={15} /> Full Scan CSV</button>
+                {r.interval_csv && <button className="btn btn-secondary" onClick={() => dl('interval_csv')}><FileText size={15} /> QTL Intervals CSV</button>}
               </div>
+              {r.interval_note && <div className="info-line">{r.interval_note}</div>}
+              {(r.interval_remarks || []).map((m, i) => <div key={'ir' + i} className="info-line">{m}</div>)}
+              {!r.interval_remarks && r.interval_skipped && r.interval_skipped.length > 0 && (
+                <div className="info-line">
+                  Not in the interval file (fewer than two markers with a physical position on the chromosome): {r.interval_skipped.join(', ')}
+                </div>
+              )}
               <div className="plot-title">Chromosome-wise Manhattan Plot</div>
               <Pic src={r.manhattan} label="QTL Manhattan Plot" />
               <div className="plot-title">Chromosome Ideogram</div>
               <Pic src={r.ideogram} label="QTL Chromosome Ideogram" />
-              <div className="plot-title">Significant QTL</div>
+              <div className="plot-title">QTL regions</div>
+              <div className="info-line">
+                {s.significant_qtl ?? 0} QTL · LOD threshold {s.threshold_lod != null ? Number(s.threshold_lod).toFixed(2) : '—'}
+                {s.threshold_note ? ` (${s.threshold_note})` : ''} · support interval {s.lod_drop}-LOD drop
+                {s.imputed_genotypes ? ` · ${s.imputed_genotypes} missing genotypes filled from flanking markers` : ''}
+                {s.cofactors && s.cofactors.length ? ` · cofactors: ${s.cofactors.join(', ')}` : ''}
+              </div>
               <DataTable rows={r.qtl_table} columns={QTL_COLS} maxHeight={420} />
+              <div className="field-hint" style={{ marginTop: 8 }}>
+                Additive effect (a) = half the difference between the two homozygote classes, in trait units; positive means the allele
+                of the higher-coded parent (genotype 2 / “b”) raises the trait. For CIM / MQM it is estimated with the background
+                cofactors in the model. PVE_Marker = single-marker R²; the full CSV has every column (dominance, SE, 95% CI, Bayes interval).
+              </div>
             </>
           )}
         </TabPane>
@@ -239,7 +294,10 @@ export default function QtlTool() {
             <Card title="Multi-Model Ideogram" icon={MapIcon}>{cmp && cmp.ideogram ? <Pic src={cmp.ideogram} label="Comparison Ideogram" /> : <div className="empty-state" style={{ padding: 20 }}>Comparison ideogram will appear here.</div>}</Card>
             <Card title="QTL Counts per Model" icon={ChartColumn}>{cmp && cmp.bar ? <Pic src={cmp.bar} label="QTL Comparison" /> : <div className="empty-state" style={{ padding: 20 }}>Comparison chart will appear here.</div>}</Card>
           </div>
-          <Card title="Comparison Table" icon={Table2}><DataTable rows={cmp && cmp.table} columns={CMP_COLS} maxHeight={380} /></Card>
+          <Card title="Comparison Table" icon={Table2}>
+            {cmp && cmp.csv && <button className="btn btn-secondary" style={{ marginBottom: 12 }} onClick={() => dl('compare_csv')}><FileText size={15} /> Download table (CSV)</button>}
+            <DataTable rows={cmp && cmp.table} columns={CMP_COLS} maxHeight={380} />
+          </Card>
         </TabPane>
       )}
       {tab === 'common' && (
@@ -248,14 +306,17 @@ export default function QtlTool() {
             <div style={{ maxWidth: 450 }}>
               <Slider label="Minimum Models Detecting QTL" value={minModels} onChange={setMinModels} min={2} max={6} />
             </div>
-            <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={findCommon}><Search size={16} /> Find Common QTL</button>
+            <button className="btn btn-secondary" style={{ marginTop: 16 }} onClick={findCommon} disabled={commonBusy}><Search size={16} /> {commonBusy ? 'Searching…' : 'Find Common QTL'}</button>
             {commonStatus && <div className="info-line">{commonStatus}</div>}
           </Card>
           <div className="plot-grid-2">
             <Card title="Common QTL Ideogram" icon={MapIcon}>{common && common.ideogram ? <Pic src={common.ideogram} label="Common QTL Ideogram" /> : <div className="empty-state" style={{ padding: 20 }}>Common-QTL ideogram will appear here.</div>}</Card>
             <Card title="Common QTL Counts" icon={ChartColumn}>{common && common.bar ? <Pic src={common.bar} label="Common QTL Counts" /> : <div className="empty-state" style={{ padding: 20 }}>Common-QTL counts will appear here.</div>}</Card>
           </div>
-          <Card title="Common QTL Table" icon={Table2}><DataTable rows={common && common.table} columns={COMMON_COLS} maxHeight={380} /></Card>
+          <Card title="Common QTL Table" icon={Table2}>
+            {common && common.csv && <button className="btn btn-secondary" style={{ marginBottom: 12 }} onClick={() => dl('common_csv')}><FileText size={15} /> Download table (CSV)</button>}
+            <DataTable rows={common && common.table} columns={COMMON_COLS} maxHeight={380} />
+          </Card>
         </TabPane>
       )}
     </ToolPage>

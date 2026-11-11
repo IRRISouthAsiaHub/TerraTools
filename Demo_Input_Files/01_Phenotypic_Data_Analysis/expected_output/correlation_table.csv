@@ -1,0 +1,4 @@
+﻿"Trait 1","Trait 2","r","Accessions","P","Sig."
+"Yield","Plant_Height",0.637,44,3.383e-6,"***"
+"Yield","Days_to_Flowering",-0.636,44,3.525e-6,"***"
+"Plant_Height","Days_to_Flowering",-0.56,44,7.662e-5,"***"

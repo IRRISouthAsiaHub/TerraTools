@@ -1,10 +1,28 @@
 # LINKAGE RUNNER R BACKEND
 # Generated from the supplied app (13)(1).R; Shiny UI/server removed.
 
+# Map-construction engine (grouping, order search, multipoint ML) lives in linkage_ml.R next to this file.
+local({
+  here <- tryCatch(dirname(sys.frame(1)$ofile), error = function(e) NULL)
+  if (is.null(here) || !length(here) || is.na(here)) {
+    fa <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+    here <- if (length(fa)) dirname(normalizePath(fa[1], winslash = "/")) else getwd()
+  }
+  src <- file.path(here, "linkage_ml.R")
+  if (!file.exists(src)) src <- file.path(getwd(), "linkage_ml.R")
+  source(src, local = FALSE, encoding = "UTF-8")
+})
+
 load_and_convert_data <- function(filepath) {
-  wb_raw <- tryCatch(loadWorkbook(filepath),
-                     error = function(e) stop("Cannot open workbook: ", e$message))
-  df_raw <- read.xlsx(filepath, sheet = 1, colNames = TRUE)
+  if (grepl("[.](csv|tsv|txt)$", filepath, ignore.case = TRUE)) {
+    sep <- if (grepl("[.](tsv|txt)$", filepath, ignore.case = TRUE)) "	" else ","
+    df_raw <- read.table(filepath, header = TRUE, sep = sep, quote = "\"", comment.char = "",
+                         check.names = FALSE, stringsAsFactors = FALSE, na.strings = c("", "NA"))
+  } else {
+    wb_raw <- tryCatch(loadWorkbook(filepath),
+                       error = function(e) stop("Cannot open workbook: ", e$message))
+    df_raw <- read.xlsx(filepath, sheet = 1, colNames = TRUE)
+  }
   if (!("Chromosome" %in% colnames(df_raw))) stop("Column 'Chromosome' not found.")
   if (!("Marker"     %in% colnames(df_raw))) stop("Column 'Marker' not found.")
 
@@ -127,13 +145,18 @@ calculate_recombination <- function(population_type, genotype1, genotype2) {
     Aa_Aa <- sum(g1=="ab" & g2=="ab"); Aa_BB <- sum(g1=="ab" & g2=="b")
     BB_AA <- sum(g1=="b"  & g2=="a");  BB_Aa <- sum(g1=="b"  & g2=="ab")
     BB_BB <- sum(g1=="b"  & g2=="b")
+    # EM for the F2 intercross. Every class except Aa/Aa has a known number
+    # of recombinant gametes (AA/BB = 2, AA/Aa = 1, ...). A double
+    # heterozygote is either AB/ab (0 recombinant gametes, prob. q^2) or
+    # Ab/aB (2 recombinant gametes, prob. r^2), so its expected count is
+    # 2 * r^2 / (q^2 + r^2). (This previously used 2rq here, which pushed
+    # every estimate towards 0.25 and inflated all F2 map distances.)
     r <- 0.25
     for (iter in 1:200) {
       r_old <- r; q <- 1 - r
-      p_parental <- q^2 + r^2; p_recomb <- 2 * r * q
-      norm <- p_parental + p_recomb
-      n_recomb_AaAa <- if (norm > 0) Aa_Aa * p_recomb / norm else 0
-      recomb_count  <- 2*(AA_BB+BB_AA) + (AA_Aa+Aa_AA+Aa_BB+BB_Aa) + 2*n_recomb_AaAa
+      p_coupling  <- q^2 + r^2
+      n_recomb_AaAa <- if (p_coupling > 0) Aa_Aa * 2 * r^2 / p_coupling else 0
+      recomb_count  <- 2*(AA_BB+BB_AA) + (AA_Aa+Aa_AA+Aa_BB+BB_Aa) + n_recomb_AaAa
       r_new <- max(1e-6, min(recomb_count / (2*n), 0.4999))
       r <- r_new
       if (abs(r - r_old) < 1e-8) break
@@ -183,7 +206,14 @@ perform_chi_square_test <- function(df, population_type) {
   p_values
 }
 
-correct_errors_and_impute_missing <- function(df) {
+# Standardises genotype calls (anything other than a / b / ab becomes NA) and
+# drops individuals with no data at all.  Missing calls are deliberately NOT
+# imputed: replacing them with the marker's most common genotype ignores
+# linkage, so every imputed call looks like a non-recombinant for one neighbour
+# and a random draw for the other, which biases the recombination fractions
+# (and map distances) upwards.  calculate_recombination() already uses only the
+# individuals genotyped at both markers.
+correct_errors_and_impute_missing <- function(df, impute = FALSE) {
   valid_geno    <- c("a", "b", "ab")
   geno_start    <- which(colnames(df) == "Chromosome") + 1
   if (length(geno_start) == 0 || geno_start > ncol(df)) return(df)
@@ -203,7 +233,7 @@ correct_errors_and_impute_missing <- function(df) {
     df       <- df[, sort(unique(keep_idx)), drop = FALSE]
   }
   geno_cols_idx2 <- setdiff(geno_start:ncol(df), which(colnames(df) == ".input_order"))
-  if (length(geno_cols_idx2) > 0) {
+  if (impute && length(geno_cols_idx2) > 0) {
     df[, geno_cols_idx2] <- t(apply(df[, geno_cols_idx2, drop = FALSE], 1, function(row) {
       nas <- is.na(row)
       if (all(nas) || !any(nas)) return(row)
@@ -224,6 +254,155 @@ quality_control <- function(df, missing_threshold = 0.1) {
   miss_frac <- rowMeans(is.na(geno))
   miss_frac[is.na(miss_frac)] <- 1
   df[miss_frac <= missing_threshold, ]
+}
+
+# -----------------------------------------------------------------------------
+# Physical (bp) positions
+#
+# The map is built in cM: recombination fraction r between neighbours -> cM through the
+# mapping function (Kosambi/Haldane) -> cumulative position along the group. A genome
+# annotation is in bp, so each marker also gets a physical position. It is READ from the
+# marker name when the name carries one (chr02_16919033, IRGSP1_C02_34852782,
+# MSU7_9_14567436_Indel); markers without one are placed by linear interpolation of cM
+# between the markers of the same chromosome that have one. Past the last positioned marker, or in a
+# group with none, the Kosambi cM position x the bp-per-cM factor of the chromosome / population is used.
+# The Linkage Map sheet itself is left untouched: QTL Mapping reads it.
+# -----------------------------------------------------------------------------
+
+physical_from_name <- function(x) {
+  chr <- rep(NA_integer_, length(x)); bp <- rep(NA_real_, length(x))
+  for (i in seq_along(x)) {
+    tok <- strsplit(as.character(x[i]), "[_:.-]")[[1]]
+    if (length(tok) < 2) next
+    for (j in seq_len(length(tok) - 1L)) {
+      t <- sub("^(chr|chromosome|c|lg|ch)", "", tok[j], ignore.case = TRUE)
+      if (grepl("^[0-9]+$", t) && grepl("^[0-9]{4,}$", tok[j + 1L])) {
+        chr[i] <- as.integer(t); bp[i] <- as.numeric(tok[j + 1L]); break
+      }
+    }
+  }
+  data.frame(Physical_Chromosome = chr, Physical_bp = bp)
+}
+
+physical_map <- function(linkage_map) {
+  empty <- list(markers = data.frame(), summary = data.frame())
+  if (is.null(linkage_map) || !nrow(linkage_map)) return(empty)
+  lm <- linkage_map[!is.na(linkage_map$Position), c("Marker", "Chromosome", "Position"), drop = FALSE]
+  if (!nrow(lm)) return(empty)
+  ph <- physical_from_name(lm$Marker)
+  out <- cbind(lm, ph)
+  out$Physical_Source <- ifelse(is.na(out$Physical_bp), "", "marker name")
+  groups <- unique(as.character(out$Chromosome))
+  info <- list()
+  for (g in groups) {
+    idx <- which(as.character(out$Chromosome) == g)
+    have <- idx[!is.na(out$Physical_bp[idx])]
+    chrom <- NA_integer_
+    if (length(have)) {
+      tb <- sort(table(out$Physical_Chromosome[have]), decreasing = TRUE)
+      chrom <- as.integer(names(tb)[1])
+      on <- have[out$Physical_Chromosome[have] == chrom]
+      # a marker with no position in its name, inside the positioned range: interpolate its cM
+      if (length(on) >= 2) {
+        ref <- data.frame(cm = out$Position[on], bp = out$Physical_bp[on])
+        ref <- ref[order(ref$cm), ]
+        miss <- setdiff(idx, have)
+        if (length(miss)) {
+          est <- suppressWarnings(approx(ref$cm, ref$bp, xout = out$Position[miss], ties = mean, rule = 1)$y)
+          ok <- !is.na(est)
+          out$Physical_bp[miss[ok]] <- round(est[ok])
+          out$Physical_Chromosome[miss[ok]] <- chrom
+          out$Physical_Source[miss[ok]] <- "interpolated from cM"
+        }
+      }
+    }
+    src <- out$Physical_Source[idx] == "marker name"
+    on <- idx[src & out$Physical_Chromosome[idx] %in% chrom]
+    len  <- max(out$Position[idx], na.rm = TRUE)
+    span <- if (length(on) >= 2) diff(range(out$Physical_bp[on])) else NA_real_
+    rho  <- if (length(on) >= 3) suppressWarnings(cor(out$Position[on], out$Physical_bp[on], method = "spearman")) else NA_real_
+    info[[g]] <- list(idx = idx, chrom = chrom, len = len, span = span, rho = rho, n_name = length(on))
+  }
+
+  # bp per cM of the whole population: physical span / genetic length, from the groups whose cM order
+  # follows the genome (all positioned groups when none does)
+  gs <- Filter(function(i) !is.na(i$span) && i$len > 0, info)
+  good <- Filter(function(i) !is.na(i$rho) && abs(i$rho) >= 0.9, gs)
+  use <- if (length(good)) good else gs
+  pop_factor <- if (length(use)) sum(vapply(use, function(i) i$span, 0)) / sum(vapply(use, function(i) i$len, 0)) else NA_real_
+
+  # a marker the interpolation cannot place (beyond the last positioned marker of its group, or in a group
+  # with none): its Kosambi cM position x the bp-per-cM factor, counted from the nearest positioned marker
+  # with the group's own factor, or from 0 with the population's factor
+  for (g in groups) {
+    i <- info[[g]]; idx <- i$idx
+    miss <- idx[is.na(out$Physical_bp[idx])]
+    if (!length(miss)) next
+    anchored <- idx[!is.na(out$Physical_bp[idx]) & out$Physical_Chromosome[idx] %in% i$chrom]
+    if (length(anchored) >= 2 && !is.na(i$span) && i$len > 0) {
+      fac <- (i$span / i$len) * (if (!is.na(i$rho) && i$rho < 0) -1 else 1)
+      for (m in miss) {
+        d <- abs(out$Position[anchored] - out$Position[m]); k <- anchored[which.min(d)]
+        out$Physical_bp[m] <- max(1, round(out$Physical_bp[k] + (out$Position[m] - out$Position[k]) * fac))
+        out$Physical_Chromosome[m] <- i$chrom
+        out$Physical_Source[m] <- "cM x chromosome factor"
+      }
+    } else if (!is.na(pop_factor)) {
+      gchr <- suppressWarnings(as.integer(g))
+      out$Physical_bp[miss] <- pmax(1, round(out$Position[miss] * pop_factor))
+      out$Physical_Chromosome[miss] <- gchr
+      out$Physical_Source[miss] <- "cM x population factor"
+    }
+  }
+
+  summ <- lapply(groups, function(g) {
+    i <- info[[g]]
+    data.frame(
+      Linkage_Group = g, Physical_Chromosome = i$chrom,
+      Markers = length(i$idx), Markers_With_bp_In_Name = i$n_name,
+      Length_cM = round(i$len, 2),
+      Physical_Span_Mb = if (is.na(i$span)) NA_real_ else round(i$span / 1e6, 3),
+      Mb_per_cM = if (is.na(i$span) || i$len <= 0) NA_real_ else round(i$span / 1e6 / i$len, 4),
+      cM_vs_bp_Spearman = if (is.na(i$rho)) NA_real_ else round(i$rho, 3),
+      Collinearity = if (is.na(i$rho)) "not enough positioned markers"
+                     else if (abs(i$rho) >= 0.9) "map follows the genome"
+                     else if (abs(i$rho) >= 0.5) "partly out of order"
+                     else "map order differs from the genome - bp from cM is unreliable",
+      stringsAsFactors = FALSE)
+  })
+  summ <- do.call(rbind, summ)
+  if (!is.na(pop_factor)) {
+    summ <- rbind(summ, data.frame(
+      Linkage_Group = "All groups", Physical_Chromosome = NA_integer_, Markers = sum(summ$Markers),
+      Markers_With_bp_In_Name = sum(summ$Markers_With_bp_In_Name), Length_cM = round(sum(summ$Length_cM), 2),
+      Physical_Span_Mb = round(sum(summ$Physical_Span_Mb, na.rm = TRUE), 3), Mb_per_cM = round(pop_factor / 1e6, 4),
+      cM_vs_bp_Spearman = NA_real_,
+      Collinearity = sprintf("population factor: 1 cM = %.0f kb (groups whose cM order follows the genome)", pop_factor / 1e3),
+      stringsAsFactors = FALSE))
+  }
+  list(markers = out, summary = summ)
+}
+
+# Puts the bp next to the cM wherever the cM is reported: the Linkage Map, Retained and All Markers
+# tables get Physical_Chromosome / Physical_bp, and every adjacent-marker pair in the Recombination
+# table gets its two bp positions and the distance in bp next to its RF and cM distance.
+attach_bp <- function(tbl, bp, cols = c("Physical_Chromosome", "Physical_bp")) {
+  if (is.null(tbl) || !nrow(tbl) || !nrow(bp)) return(tbl)
+  i <- match(as.character(tbl$Marker), as.character(bp$Marker))
+  for (cn in cols) tbl[[cn]] <- bp[[cn]][i]
+  tbl
+}
+
+attach_bp_to_pairs <- function(rec, bp) {
+  if (is.null(rec) || !nrow(rec) || !nrow(bp)) return(rec)
+  i1 <- match(as.character(rec$Marker1), as.character(bp$Marker))
+  i2 <- match(as.character(rec$Marker2), as.character(bp$Marker))
+  rec$Marker1_bp <- bp$Physical_bp[i1]
+  rec$Marker2_bp <- bp$Physical_bp[i2]
+  same <- !is.na(bp$Physical_Chromosome[i1]) & bp$Physical_Chromosome[i1] %in% bp$Physical_Chromosome[i2] &
+          bp$Physical_Chromosome[i1] == bp$Physical_Chromosome[i2]
+  rec$Distance_bp <- ifelse(same, abs(rec$Marker2_bp - rec$Marker1_bp), NA_real_)
+  rec
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -302,8 +481,103 @@ scale_linkage_map <- function(linkage_map, max_total_cm, method = "proportional"
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+#  MARKER ORDER
+#  The map is built by adding up the distances between NEIGHBOURING markers, so
+#  the order of the markers in the file is the order of the map. A file whose
+#  rows were sorted by marker NAME (chr01_1044946, chr01_1175585, chr01_34201543,
+#  chr01_717702, ...) is therefore not in physical order and gives a meaningless
+#  map: neighbours are far apart on the chromosome, their recombination fractions
+#  are inflated and the map direction changes from stretch to stretch.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Physical position (bp) read from a marker NAME: the number that follows the token naming the
+# marker's chromosome, e.g. chr02_16919033, IRGSP1_C02_34852782, MSU7_1_4797026_C-T, S2_1234567.
+# NA when the name carries no position (gene markers such as Wx-A-NB, array probe IDs, ...).
+parse_marker_position <- function(marker, chromosome) {
+  chr <- suppressWarnings(as.integer(as.character(chromosome)))
+  if (is.na(chr)) return(NA_real_)
+  tok <- strsplit(as.character(marker), "[_:.\\-]")[[1]]
+  if (length(tok) < 2) return(NA_real_)
+  for (i in seq_len(length(tok) - 1)) {
+    t <- sub("^(chromosome|chr|ch|lg|c|s)", "", tok[i], ignore.case = TRUE)
+    if (grepl("^[0-9]+$", t) && as.integer(t) == chr && grepl("^[0-9]{4,}$", tok[i + 1]))
+      return(as.numeric(tok[i + 1]))
+  }
+  NA_real_
+}
+
+# mode: "auto"     re-order a chromosome by physical position only when the file lists it in
+#                  ALPHABETICAL order of the marker names (the signature of an accidental sort);
+#       "physical" always sort every chromosome by the position in the marker names;
+#       "file"     keep the order of the file.
+order_markers_by_position <- function(df, mode = "auto") {
+  mode <- tolower(as.character(mode))
+  if (!mode %in% c("auto", "file", "physical")) mode <- "auto"
+  if (mode == "file")
+    return(list(df = df, note = "  Marker ORDER preserved from input file (as requested).\n"))
+
+  chrs <- unique(df$Chromosome[order(df$.input_order)])
+  moved <- character(0); kept <- character(0); unreadable <- character(0); n_nopos <- 0L
+  for (chr in chrs) {
+    idx <- which(df$Chromosome == chr)
+    idx <- idx[order(df$.input_order[idx])]
+    if (length(idx) < 3) next
+    pos <- vapply(as.character(df$Marker[idx]), parse_marker_position, numeric(1), chromosome = chr)
+    if (mean(!is.na(pos)) < 0.9) { unreadable <- c(unreadable, as.character(chr)); next }
+    pos_f <- ifelse(is.na(pos), Inf, pos)          # markers without a readable position go last
+    phys  <- order(pos_f, seq_along(pos_f))
+    if (identical(phys, seq_along(phys))) next     # already in physical order
+    nm <- as.character(df$Marker[idx])
+    alphabetical <- identical(nm, nm[order(nm, method = "radix")]) ||
+                    identical(nm, nm[order(tolower(nm), method = "radix")])
+    if (mode == "auto" && !alphabetical) { kept <- c(kept, as.character(chr)); next }
+    slots <- sort(df$.input_order[idx])
+    df$.input_order[idx[phys]] <- slots
+    n_nopos <- n_nopos + sum(is.na(pos))
+    moved <- c(moved, as.character(chr))
+  }
+
+  note <- character(0)
+  if (length(moved))
+    note <- c(note, sprintf("  Marker ORDER: chromosome(s) %s re-ordered by the physical position in the marker names%s.\n",
+                            paste(moved, collapse = ", "),
+                            if (mode == "auto") " (the file listed them alphabetically, which is not map order)" else ""),
+              if (n_nopos > 0) sprintf("  %d marker(s) without a readable position were placed at the end of their chromosome.\n", n_nopos))
+  if (length(kept))
+    note <- c(note, sprintf("  WARNING: chromosome(s) %s are not in physical order of the marker names but were kept as in the file. Choose 'Sort by physical position' if that order is not intended.\n",
+                            paste(kept, collapse = ", ")))
+  if (length(unreadable))
+    note <- c(note, sprintf("  Marker positions could not be read from the names on chromosome(s) %s; file order kept.\n",
+                            paste(unreadable, collapse = ", ")))
+  if (!length(note))
+    note <- "  Marker ORDER preserved from input file (already in physical order).\n"
+  list(df = df, note = paste(note, collapse = ""))
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 #  MASTER ANALYSIS
 # ═══════════════════════════════════════════════════════════════════════════════
+
+# map_method: "ml"     search the order from the data (JoinMap / Lep-MAP3 logic) and estimate the
+#                      distances by multipoint maximum likelihood;
+#             "fixed"  keep the marker order (file / physical, see marker_order) and only estimate
+#                      the distances by multipoint maximum likelihood;
+#             "legacy" earlier behaviour: file order, distances from neighbouring pairs only.
+default_map_config <- function(...) {
+  cfg <- list(map_method = "ml", mapping_function = "kosambi", genotyping_error = 0.01,
+              grouping = "given", group_check = "remove", group_lod = 5, min_group_size = 2L,
+              min_lod = 3, fit_threshold_cm = 10, polish_window = 4L, suspect_p = 0.05,
+              max_group_markers = 2500L, max_given_candidates = 800L, max_seconds = 240,
+              prefer_given_lod = 3, move_window = 8L, marker_order = "auto", recombination_threshold = 0.45)
+  over <- list(...)
+  # search_effort sets how hard the order is searched: fast / standard / thorough
+  eff <- tolower(as.character(over$search_effort %||% "standard"))
+  w <- switch(eff, fast = c(3L, 5L), thorough = c(5L, 10L), c(4L, 8L))
+  cfg$polish_window <- w[1]; cfg$move_window <- w[2]
+  over$search_effort <- NULL
+  for (nm in names(over)) if (!is.null(over[[nm]])) cfg[[nm]] <- over[[nm]]
+  cfg
+}
 
 create_linkage_map <- function(df,
                                population_type         = "F2",
@@ -313,7 +587,9 @@ create_linkage_map <- function(df,
                                scaling_method          = "proportional",
                                enable_chi_square       = FALSE,
                                chi_square_alpha        = 0.05,
-                               use_bonferroni          = FALSE) {
+                               use_bonferroni          = FALSE,
+                               marker_order            = "auto",
+                               map_config              = default_map_config()) {
 
   empty_result <- function(df_in = df) {
     list(original_data        = df_in,
@@ -329,8 +605,10 @@ create_linkage_map <- function(df,
          qc_report            = "No data passed QC.")
   }
 
-  df_orig <- df
   if (!(".input_order" %in% colnames(df))) df$.input_order <- seq_len(nrow(df))
+  order_res <- order_markers_by_position(df, marker_order)
+  df <- order_res$df
+  df_orig <- df
 
   removal_log <- data.frame(
     Marker     = character(0), Chromosome = character(0),
@@ -339,6 +617,25 @@ create_linkage_map <- function(df,
   )
 
   n_input <- nrow(df)
+
+  # Chromosome 0 is the usual label for unplaced/unanchored markers, not a
+  # real linkage group — leave those markers out of the map and say so.
+  chr_num  <- suppressWarnings(as.numeric(as.character(df$Chromosome)))
+  unplaced <- !is.na(chr_num) & chr_num == 0
+  n_chr0   <- sum(unplaced)
+  if (n_chr0 > 0) {
+    removal_log <- rbind(removal_log, data.frame(
+      Marker     = df$Marker[unplaced],
+      Chromosome = as.character(df$Chromosome[unplaced]),
+      Reason     = "Unplaced (chromosome 0)",
+      Detail     = "Chromosome 0 is not a linkage group; marker not mapped",
+      stringsAsFactors = FALSE
+    ))
+    df <- df[!unplaced, , drop = FALSE]
+  }
+  if (nrow(df) == 0) {
+    res <- empty_result(df_orig); res$removal_log <- removal_log; return(res)
+  }
 
   df <- correct_errors_and_impute_missing(df)
 
@@ -438,23 +735,50 @@ create_linkage_map <- function(df,
   }
 
   n_after_qc <- nrow(df)
+  n_before_map <- n_after_qc
+
+  map_config$recombination_threshold <- recombination_threshold
+  map_config$marker_order <- marker_order
+  use_ml <- !identical(map_config$map_method, "legacy")
+  marker_fit <- data.frame(); chrom_summary <- data.frame(); ml_report <- ""
+  if (use_ml) {
+    ml <- lm_build_maps(df, population_type, map_config, removal_log)
+    removal_log <- ml$removal_log
+    df$Chromosome <- ml$chromosome
+    df$.input_order <- ifelse(is.na(ml$map_rank), df$.input_order, ml$map_rank)
+    df <- df[ml$keep, , drop = FALSE]
+    marker_fit <- ml$marker_fit; chrom_summary <- ml$chrom_summary
+    ml_report <- ml$report
+    if (nrow(df) == 0) {
+      res <- empty_result(df_orig); res$removal_log <- removal_log; return(res)
+    }
+  }
+  n_after_qc <- nrow(df)
 
   qc_msg <- paste0(
-    "QC Report (v6.0)\n",
+    "QC Report (v7.0)\n",
     "================\n",
     "  Markers input              : ", n_input, "\n",
+    "  Removed (chromosome 0)     : ", n_chr0, "\n",
     "  Removed (missing data)     : ", length(failed_miss), "\n",
     "  Removed (monomorphic)      : ", length(mono_markers), "\n",
     "  Removed (chi-square)       : ", n_failed_chi, "\n",
+    if (use_ml) paste0("  Removed (map construction) : ", n_before_map - n_after_qc, "  (see Removal Log)\n"),
     "  Markers retained           : ", n_after_qc, "\n\n",
     chi_note, "\n\n",
-    "  Marker ORDER preserved from input file.\n",
+    order_res$note,
+    if (use_ml) paste0("\nMap construction\n----------------\n", ml_report, "\n\n"),
     "  First marker of each chromosome = 0 cM.\n"
   )
 
-  pos_result         <- build_positions_from_input_order(df, population_type, recombination_threshold)
-  positions_list     <- pos_result$positions_list
-  recombination_rows <- pos_result$recombination_rows
+  if (use_ml) {
+    positions_list     <- ml$positions_list
+    recombination_rows <- ml$recombination_rows
+  } else {
+    pos_result         <- build_positions_from_input_order(df, population_type, recombination_threshold)
+    positions_list     <- pos_result$positions_list
+    recombination_rows <- pos_result$recombination_rows
+  }
   rec_df <- if (length(recombination_rows) > 0) do.call(rbind, recombination_rows)
             else                                 data.frame()
 
@@ -491,6 +815,18 @@ create_linkage_map <- function(df,
     mutate(Status = "Retained") %>%
     arrange(Chromosome, Position)
 
+  # cM -> bp, in the same step as RF -> cM
+  bp_tbl <- physical_map(scaled$scaled_map)$markers
+  scaled$scaled_map     <- attach_bp(scaled$scaled_map, bp_tbl, c("Physical_Chromosome", "Physical_bp", "Physical_Source"))
+  retained_markers_list <- attach_bp(retained_markers_list, bp_tbl)
+  all_markers_positions <- attach_bp(all_markers_positions, bp_tbl, "Physical_bp")
+  rec_df                <- attach_bp_to_pairs(rec_df, bp_tbl)
+
+  total_before <- if (nrow(scaled$chrom_lengths_before)) sum(scaled$chrom_lengths_before$Original_Length, na.rm = TRUE) else 0
+  if (total_before > max_total_cm)
+    qc_msg <- paste0(qc_msg, "\n  NOTE: the estimated map is ", round(total_before, 1), " cM long and was scaled down to ",
+                     max_total_cm, " cM (Max Total Map Length). Raise that limit to keep the estimated distances.\n")
+
   list(original_data         = df_orig,
        recombination_data    = rec_df,
        linkage_map           = scaled$scaled_map,
@@ -499,6 +835,8 @@ create_linkage_map <- function(df,
        chrom_lengths_before  = scaled$chrom_lengths_before,
        chrom_lengths_after   = scaled$chrom_lengths_after,
        removal_log           = removal_log,
+       marker_fit            = marker_fit,
+       chrom_summary         = chrom_summary,
        qc_report             = qc_msg)
 }
 
@@ -808,8 +1146,12 @@ create_recombination_heatmap <- function(rec_data, selected_chr, top_n = 60) {
   if (nrow(df) == 0)
     return(ggplot() + annotate("text",x=.5,y=.5,label="No data for selected chromosomes.",size=5) + theme_void())
 
-  # Limit pairs for readability
-  if (nrow(df) > top_n) df <- df[1:top_n, ]
+  # Limit pairs for readability — shared across the selected chromosomes, so
+  # every chromosome gets a panel (taking the first N rows overall used to
+  # fill the whole plot with chromosome 1).
+  chr_levels <- unique(df$Chromosome)
+  per_chr <- max(1, ceiling(top_n / length(chr_levels)))
+  df <- do.call(rbind, lapply(chr_levels, function(ch) head(df[df$Chromosome == ch, ], per_chr)))
 
   df$pair <- paste0(df$Marker1, "\n", df$Marker2)
   df$pair <- factor(df$pair, levels = rev(unique(df$pair)))
@@ -828,7 +1170,7 @@ create_recombination_heatmap <- function(rec_data, selected_chr, top_n = 60) {
     ) +
     facet_wrap(~Chromosome, scales = "free_y", ncol = 3) +
     labs(title    = "Adjacent Marker Recombination Fractions",
-         subtitle = paste0("Showing ", nrow(df), " marker pairs"),
+         subtitle = paste0("Showing ", nrow(df), " marker pairs (up to ", per_chr, " per chromosome)"),
          x = NULL, y = "Marker Pair") +
     theme_minimal(base_size = 11) +
     theme(
@@ -1020,7 +1362,20 @@ run_linkage <- function(config) {
     scaling_method          = as.character(config$scaling_method %||% "proportional"),
     enable_chi_square       = as_bool(config$enable_chi_square, FALSE),
     chi_square_alpha        = as_num(config$chi_square_alpha, 0.05),
-    use_bonferroni           = as_bool(config$use_bonferroni, FALSE)
+    use_bonferroni           = as_bool(config$use_bonferroni, FALSE),
+    marker_order             = as.character(config$marker_order %||% "auto"),
+    map_config               = default_map_config(
+      map_method        = as.character(config$map_method %||% "ml"),
+      mapping_function  = as.character(config$mapping_function %||% "kosambi"),
+      genotyping_error  = as_num(config$genotyping_error, 0.01),
+      grouping          = as.character(config$grouping %||% "given"),
+      group_check       = as.character(config$group_check %||% "remove"),
+      group_lod         = as_num(config$group_lod, 5),
+      min_lod           = as_num(config$min_lod, 3),
+      fit_threshold_cm  = as_num(config$fit_threshold_cm, 10),
+      search_effort     = as.character(config$search_effort %||% "standard"),
+      max_seconds       = as_num(config$max_seconds, 240)
+    )
   )
 
   output_dir <- as.character(config$output_dir %||%
@@ -1028,8 +1383,14 @@ run_linkage <- function(config) {
                                        "linkage_results"))
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
+  result$physical <- physical_map(result$linkage_map)
   rendered <- render_linkage_plots(result, config, output_dir)
-  written  <- write_linkage_outputs(result, output_dir)
+  written  <- write_linkage_outputs(result, output_dir, heatmap_png = rendered$heatmap_plot)
+
+  # Keep the full R result so the plot "Update" buttons can re-render
+  # from it without re-running the analysis or round-tripping it as JSON.
+  result_rds <- file.path(output_dir, "linkage_result.rds")
+  saveRDS(result, result_rds)
 
   lm <- result$linkage_map
   rec <- result$recombination_data
@@ -1072,6 +1433,16 @@ run_linkage <- function(config) {
     recombination_data = rec,
     recombination_data_columns = if (ncol(rec)) colnames(rec) else character(0),
 
+    marker_fit = result$marker_fit,
+    marker_fit_columns = if (!is.null(result$marker_fit) && ncol(result$marker_fit)) colnames(result$marker_fit) else character(0),
+    chrom_summary = result$chrom_summary,
+    chrom_summary_columns = if (!is.null(result$chrom_summary) && ncol(result$chrom_summary)) colnames(result$chrom_summary) else character(0),
+
+    physical_map = result$physical$markers,
+    physical_map_columns = colnames(result$physical$markers),
+    physical_summary = result$physical$summary,
+    physical_summary_columns = colnames(result$physical$summary),
+
     chromosomes = chromosomes,
     qc_report = result$qc_report,
 
@@ -1085,7 +1456,9 @@ run_linkage <- function(config) {
     density_plot = rendered$density_plot,
     heatmap_plot = rendered$heatmap_plot,
 
+    result_rds = normalizePath(result_rds, winslash = "/", mustWork = FALSE),
     result_xlsx = written$result_xlsx,
+    recombination_xlsx = written$recombination_xlsx,
     all_markers_xlsx = written$all_markers_xlsx,
     retained_markers_xlsx = written$retained_markers_xlsx,
     removal_log_xlsx = written$removal_log_xlsx
@@ -1154,13 +1527,23 @@ render_linkage_plots <- function(result, config, output_dir) {
 # Excel exports
 # -----------------------------------------------------------------------------
 
-write_linkage_outputs <- function(result, output_dir) {
+recombination_table <- function(result) {
+  rec <- result$recombination_data
+  if (is.null(rec) || !nrow(rec)) {
+    rec <- empty_df(c("Marker1", "Marker2", "RecombinationFraction", "MapDistance_cM", "Chromosome"))
+  }
+  rec
+}
+
+write_linkage_outputs <- function(result, output_dir, heatmap_png = NULL) {
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
   result_xlsx <- file.path(output_dir, "linkage_results.xlsx")
   all_xlsx <- file.path(output_dir, "all_markers.xlsx")
   retained_xlsx <- file.path(output_dir, "retained_markers.xlsx")
   removal_xlsx <- file.path(output_dir, "removal_log.xlsx")
+  recomb_xlsx <- file.path(output_dir, "recombination.xlsx")
+  rec <- recombination_table(result)
 
   # Full workbook
   wb <- createWorkbook()
@@ -1168,7 +1551,19 @@ write_linkage_outputs <- function(result, output_dir) {
   writeData(wb, "Linkage Map", result$linkage_map)
 
   addWorksheet(wb, "Recombination")
-  writeData(wb, "Recombination", result$recombination_data)
+  writeData(wb, "Recombination", rec)
+
+  if (!is.null(result$physical) && nrow(result$physical$markers)) {
+    addWorksheet(wb, "Physical Map")
+    writeData(wb, "Physical Map", result$physical$markers)
+    addWorksheet(wb, "Physical Summary")
+    writeData(wb, "Physical Summary", result$physical$summary)
+  }
+
+  if (!is.null(heatmap_png) && file.exists(heatmap_png)) {
+    addWorksheet(wb, "Recombination Heatmap")
+    insertImage(wb, "Recombination Heatmap", heatmap_png, width = 12, height = 10, units = "in")
+  }
 
   addWorksheet(wb, "Retained Markers")
   writeData(wb, "Retained Markers", result$retained_markers_list)
@@ -1178,6 +1573,15 @@ write_linkage_outputs <- function(result, output_dir) {
 
   addWorksheet(wb, "Removal Log")
   writeData(wb, "Removal Log", result$removal_log)
+
+  if (!is.null(result$chrom_summary) && nrow(result$chrom_summary)) {
+    addWorksheet(wb, "Chromosome Summary")
+    writeData(wb, "Chromosome Summary", result$chrom_summary)
+  }
+  if (!is.null(result$marker_fit) && nrow(result$marker_fit)) {
+    addWorksheet(wb, "Marker Fit")
+    writeData(wb, "Marker Fit", result$marker_fit)
+  }
 
   addWorksheet(wb, "QC Report")
   writeData(wb, "QC Report",
@@ -1206,7 +1610,17 @@ write_linkage_outputs <- function(result, output_dir) {
   writeData(wb_rem, "Removal Log", result$removal_log)
   saveWorkbook(wb_rem, removal_xlsx, overwrite = TRUE)
 
+  wb_rec <- createWorkbook()
+  addWorksheet(wb_rec, "Recombination")
+  writeData(wb_rec, "Recombination", rec)
+  if (!is.null(heatmap_png) && file.exists(heatmap_png)) {
+    addWorksheet(wb_rec, "Heatmap")
+    insertImage(wb_rec, "Heatmap", heatmap_png, width = 12, height = 10, units = "in")
+  }
+  saveWorkbook(wb_rec, recomb_xlsx, overwrite = TRUE)
+
   list(
+    recombination_xlsx = normalizePath(recomb_xlsx, winslash = "/", mustWork = FALSE),
     result_xlsx = normalizePath(result_xlsx, winslash = "/", mustWork = FALSE),
     all_markers_xlsx = normalizePath(all_xlsx, winslash = "/", mustWork = FALSE),
     retained_markers_xlsx = normalizePath(retained_xlsx, winslash = "/", mustWork = FALSE),
@@ -1227,16 +1641,87 @@ sanitize_for_json <- function(x) {
   x
 }
 
+# -----------------------------------------------------------------------------
+# Plot "Update" buttons: redraw one plot from the saved analysis result
+# -----------------------------------------------------------------------------
+
+render_single_plot <- function(config) {
+  op  <- as.character(config$operation)
+  rds <- config$result_rds
+  if (is.null(rds) || !file.exists(rds)) {
+    stop("The analysis result is no longer available - please run the analysis again.")
+  }
+  result <- readRDS(rds)
+  output_dir <- as.character(config$output_dir %||% dirname(rds))
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+  chromosomes <- sort_chromosomes(result$linkage_map$Chromosome)
+  selected <- as_chr_vec(config$chromosomes, chromosomes)
+  selected <- selected[selected %in% chromosomes]
+  if (!length(selected)) selected <- chromosomes
+
+  # New file name per render, so the app never shows a cached older image.
+  stamp <- gsub("[^0-9]", "", format(Sys.time(), "%H%M%OS3"))
+  out <- function(prefix) file.path(output_dir, paste0(prefix, "_", stamp, ".png"))
+  done <- function(key, path) {
+    setNames(list("success", normalizePath(path, winslash = "/", mustWork = FALSE)), c("status", key))
+  }
+
+  if (op == "render_map_plot") {
+    p <- create_ggplot_linkage_map(
+      result$linkage_map, selected,
+      show_labels   = as_bool(config$show_labels, FALSE),
+      label_size    = as_num(config$label_size, 2.5),
+      color_palette = as.character(config$color_palette %||% "Set2"),
+      chrom_width   = as_num(config$chrom_width, 0.4),
+      point_size    = as_num(config$point_size, 2.5),
+      chrom_spacing = as_num(config$chrom_spacing, 2.5),
+      plot_theme    = as.character(config$theme %||% "dark")
+    )
+    path <- out("linkage_map")
+    ggsave(path, p, width = 12, height = max(6, as_num(config$plot_height, 700) / 70), dpi = 300, bg = "white")
+    return(done("map_plot", path))
+  }
+
+  if (op == "render_density_plot") {
+    p <- create_marker_density_plot(result$linkage_map, selected, bin_width = as_num(config$bin_width, 10))
+    path <- out("marker_density")
+    ggsave(path, p, width = 12, height = 9, dpi = 300, bg = "white")
+    return(done("density_plot", path))
+  }
+
+  if (op == "render_heatmap_plot") {
+    top_n <- as.integer(as_num(config$top_n, 60))
+    p <- create_recombination_heatmap(result$recombination_data, selected, top_n = top_n)
+    per_chr <- ceiling(top_n / length(selected))
+    height  <- max(6, min(45, 1.5 + ceiling(length(selected) / 3) * per_chr * 0.32))
+    path <- out("recombination_heatmap")
+    ggsave(path, p, width = 12, height = height, dpi = 300, bg = "white", limitsize = FALSE)
+    return(done("heatmap_plot", path))
+  }
+
+  stop("Unknown operation: ", op)
+}
+
 run_linkage_cli <- function(json_text) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     stop("Package 'jsonlite' is required for CLI mode.")
   }
 
+  # The app passes the path of a JSON file: passing the JSON itself on the
+  # command line breaks Windows' 32,767-character limit (WinError 206).
+  if (length(json_text) == 1 && file.exists(json_text)) {
+    json_text <- paste(readLines(json_text, encoding = "UTF-8", warn = FALSE), collapse = "\n")
+  }
   config <- jsonlite::fromJSON(json_text, simplifyVector = TRUE)
 
   ans <- tryCatch(
     {
-      res <- run_linkage(config)
+      res <- if (startsWith(as.character(config$operation %||% ""), "render_")) {
+        render_single_plot(config)
+      } else {
+        run_linkage(config)
+      }
       jsonlite::toJSON(sanitize_for_json(res),
                        dataframe = "rows",
                        auto_unbox = TRUE,

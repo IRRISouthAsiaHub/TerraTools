@@ -1,18 +1,4 @@
-import json
-import shutil
-import subprocess
 from pathlib import Path
-
-from tools.common.r_locator import find_rscript, rscript_not_found_message
-from tools.common.subprocess_utils import no_window_kwargs
-
-
-# ============================================================
-# PATHS
-# ============================================================
-
-BACKEND_DIR = Path(__file__).resolve().parent
-R_SCRIPT = BACKEND_DIR / "gene_extractor.R"
 
 
 def _error(message):
@@ -29,97 +15,50 @@ def _error(message):
 def run_extraction(config, results_dir):
     """
     config: {
-        "extracted_markers_path": str,
-        "gene_markers_path": str,
-        "rice_gene_path": str
+        "marker_path": str,   # QTL results: the QTL Intervals file of QTL Mapping (QTL_ID, QTL_Start, QTL_End), any
+                              # Chromosome + Start + End table, or the QTL table of QTL Mapping (positions in cM)
+        "gff_path": str,      # GFF3 gene annotation
+        "positions_path": str,  # REQUIRED: the genetic map with the base-pair position of the markers (a table Marker,
+                              # Chromosome, bp; also the 'Physical Map' sheet of a Linkage Mapping workbook) or, when there
+                              # is no map, a VCF (CHROM, POS, ID). It places the QTL of a QTL table in cM on the genome.
+        "interval": str,      # optional, QTL table in cM: "ci" (confidence interval, default) or "flank" (left to right marker)
+        "fasta_path": str,    # optional reference FASTA: adds each gene's sequence
+        "match": str          # optional: "inside" (gene completely inside the region, default) or "overlap"
     }
 
-    results_dir: Path or str, directory the R script will write
-                 Markers_with_physical_position.xlsx and
-                 Genes_in_gene_regions.xlsx into.
+    results_dir: Path or str, directory Genes_in_gene_regions.xlsx, Gene_ID_list.txt (and Gene_sequences.fasta)
+    are written to.
 
     Returns a dict:
         {
-          "status": "success",
-          "markers": [ {Markers, Chromosome, Position}, ... ],
-          "genes":   [ {Chromosome, Start, Stop, Strand, Gene_id,
-                         Description, gene_start, gene_stop}, ... ],
-          "markers_file": "<path>",
-          "genes_file": "<path>"
+          "status": "success", "input_kind": "interval",
+          "genes": [ {Chromosome, Start, Stop, Strand, Gene_id, Description, Region_ID, Region_Start, Region_End,
+                       Name, Feature, Source, Length_bp,
+                       <other GFF attributes>}, ... ],
+          "columns": [...], "region_summary": [ {Region_ID, Chromosome, Region_Start, Region_End, Genes} ],
+          "region_columns": [...], "gene_ids": int,
+          "genes_file": "<path>", "gene_list_file": "<path>", "fasta_file": "<path>" (with a FASTA), "warnings": [...]
         }
     or:
         { "status": "error", "message": "..." }
     """
+    from tools.gene_extractor.backend.gff_genes import GeneExtractionError, run_gff_extraction
 
-    extracted_markers_path = config.get("extracted_markers_path")
-    gene_markers_path = config.get("gene_markers_path")
-    rice_gene_path = config.get("rice_gene_path")
-
-    # Same validation the original Shiny observeEvent(input$extract, ...) did
-    if not extracted_markers_path or not gene_markers_path or not rice_gene_path:
-        return _error("Please upload all three required files.")
-
-    for label, path in (
-        ("Extracted markers", extracted_markers_path),
-        ("gene markers", gene_markers_path),
-        ("Rice gene list", rice_gene_path),
-    ):
-        if not Path(path).exists():
-            return _error(f"{label} file not found: {path}")
-
-    rscript = find_rscript()
-    if not rscript:
-        return _error(rscript_not_found_message())
-
-    results_dir = Path(results_dir)
-    results_dir.mkdir(parents=True, exist_ok=True)
-
-    cmd = [
-        rscript,
-        str(R_SCRIPT),
-        str(extracted_markers_path),
-        str(gene_markers_path),
-        str(rice_gene_path),
-        str(results_dir),
-    ]
+    for key, label in (("marker_path", "QTL results"), ("gff_path", "Annotation (GFF3)")):
+        if not config.get(key):
+            return _error("Please upload the QTL results, the genetic map (or a VCF) and the annotation (GFF3) file.")
+        if not Path(config[key]).exists():
+            return _error(f"{label} file not found: {config[key]}")
+    if not config.get("positions_path"):
+        return _error("Please select the genetic map (Marker, Chromosome, bp) or, if there is no map, a VCF file.")
+    if not Path(config["positions_path"]).exists():
+        return _error(f"Genetic map / VCF file not found: {config['positions_path']}")
+    if config.get("fasta_path") and not Path(config["fasta_path"]).exists():
+        return _error(f"Reference FASTA file not found: {config['fasta_path']}")
 
     try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=300,
-            **no_window_kwargs(),
-        )
-    except subprocess.TimeoutExpired:
-        return _error("gene extraction timed out.")
+        return run_gff_extraction(config, results_dir)
+    except GeneExtractionError as e:
+        return _error(str(e))
     except Exception as e:
-        return _error(f"Failed to launch R backend: {e}")
-
-    stdout = (proc.stdout or "").strip()
-    stderr = (proc.stderr or "").strip()
-
-    if not stdout:
-        return _error(stderr or "R script produced no output.")
-
-    try:
-        result = json.loads(stdout)
-    except json.JSONDecodeError:
-        # If R printed warnings/messages before the JSON, try to recover
-        # the JSON object from the last line of stdout.
-        last_line = stdout.splitlines()[-1] if stdout.splitlines() else ""
-        try:
-            result = json.loads(last_line)
-        except json.JSONDecodeError:
-            return _error(f"Could not parse R output: {stdout[:500]}")
-
-    if result.get("status") == "error":
-        return result
-
-    # normalize missing fields defensively
-    result.setdefault("markers", [])
-    result.setdefault("genes", [])
-    result.setdefault("markers_file", str(results_dir / "Markers_with_physical_position.xlsx"))
-    result.setdefault("genes_file", str(results_dir / "Genes_in_gene_regions.xlsx"))
-
-    return result
+        return _error(f"Gene extraction failed: {e}")

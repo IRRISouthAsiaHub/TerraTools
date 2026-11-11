@@ -1,77 +1,76 @@
 import json
-from pathlib import Path
+import os
+import shutil
+import sys
+import threading
 
 from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
-import PySide6.QtWebChannel
-from PySide6.QtWebEngineCore import QWebEngineSettings
-from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog, QMainWindow
 
-from tools.qtl_seq.backend import qtlseq_runner
-from ui.frontend import load_frontend
-from tools.common.paths import results_dir
+from tools.qtl_seq import config
+from tools.qtl_seq.backend import deps, pipeline, validation
+
+RESULT_DIR = config.RESULT_DIR
 
 
 # ============================================================
-# PATHS
+# WORKERS (nothing heavy runs on the UI thread)
 # ============================================================
 
-QTLSEQ_DIR = Path(__file__).resolve().parent
-
-RESULT_DIR = results_dir("qtl_seq", QTLSEQ_DIR / "results")
-
-
-# ============================================================
-# WORKER
-# ============================================================
-
-class QTLSeqWorker(QObject):
+class RunWorker(QObject):
 
     finished = Signal(dict)
-    error = Signal(str)
+    progress = Signal(str)
 
-    def __init__(self, config, output_dir):
-
+    def __init__(self, cfg, holder):
         super().__init__()
-
-        self.config = config
-        self.output_dir = output_dir
+        self.cfg = cfg
+        self.holder = holder
 
     @Slot()
     def run(self):
-
-        print(
-            "[QTL-SEQ WORKER] run() called on worker thread",
-            flush=True
-        )
-
         try:
-
-            result = qtlseq_runner.run_qtlseq(
-                self.config,
-                results_dir=self.output_dir
-            )
-
-            print(
-                "[QTL-SEQ WORKER] run_qtlseq() returned, status:",
-                result.get("status"),
-                flush=True
-            )
-
-            self.finished.emit(result)
-
-            print(
-                "[QTL-SEQ WORKER] finished signal emitted",
-                flush=True
-            )
-
+            result, res = pipeline.run_analysis(
+                self.cfg, RESULT_DIR,
+                progress=lambda pct, msg: self.progress.emit(json.dumps({"pct": round(pct, 1), "message": msg})),
+                cancelled=self.holder["cancel"].is_set)
+            self.holder["res"] = res
         except Exception as e:
+            result = {"status": "error", "message": f"QTL-seq failed: {e}"}
+        self.finished.emit(result)
 
-            print(
-                "[QTL-SEQ WORKER] error:", e, flush=True
-            )
 
-            self.error.emit(str(e))
+class CheckWorker(QObject):
+
+    finished = Signal(str)
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg
+
+    @Slot()
+    def run(self):
+        try:
+            self.finished.emit(json.dumps(pipeline.check_inputs(self.cfg)))
+        except Exception as e:
+            self.finished.emit(json.dumps({"status": "error", "ok": False, "errors": [str(e)], "warnings": [], "files": {}}))
+
+
+class ValidationWorker(QObject):
+
+    finished = Signal(str)
+
+    def __init__(self, key, seed, holder):
+        super().__init__()
+        self.key, self.seed, self.holder = key, seed, holder
+
+    @Slot()
+    def run(self):
+        try:
+            self.finished.emit(json.dumps(validation.run_validation(self.key, self.seed)))
+        except Exception as e:
+            self.finished.emit(json.dumps({"status": "error", "message": f"Validation failed: {e}"}))
 
 
 # ============================================================
@@ -82,334 +81,242 @@ class QTLSeqBridge(QObject):
 
     resultReady = Signal(str)
     statusUpdate = Signal(str)
+    progressUpdate = Signal(str)
+    inputsChecked = Signal(str)
+    validationReady = Signal(str)
 
-    def __init__(self, parent_window=None):
-
-        super().__init__()
-
-        self._parent_window = parent_window
-        self._thread = None
-        self._worker = None
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._window = parent
+        self._threads = []
+        self._holder = {"cancel": threading.Event(), "res": None}
         self.last_result = None
 
-    # --------------------------------------------------------
-    # FILE BROWSING
-    # --------------------------------------------------------
-
-    @Slot(result=str)
-    def browse_ref_file(self):
-
-        path, _ = QFileDialog.getOpenFileName(
-            self._parent_window,
-            "Select Reference FASTA",
-            "",
-            "FASTA Files (*.fa *.fasta *.fna);;All Files (*)"
-        )
-
+    # ---------------------------------------------------------- files
+    def _open(self, title, filt):
+        path, _ = QFileDialog.getOpenFileName(self._window, title, "", filt)
         return path or ""
 
     @Slot(result=str)
-    def browse_reads_file(self):
+    def browse_fasta(self):
+        return self._open("Select the reference genome", "FASTA (*.fa *.fasta *.fna *.fa.gz *.fasta.gz);;All files (*)")
 
-        path, _ = QFileDialog.getOpenFileName(
-            self._parent_window,
-            "Select FASTQ / BAM File",
-            "",
-            "Reads (*.fastq *.fq *.fastq.gz *.fq.gz *.bam);;"
-            "All Files (*)"
-        )
+    @Slot(result=str)
+    def browse_bam(self):
+        return self._open("Select a BAM file", "BAM (*.bam);;All files (*)")
 
-        return path or ""
+    @Slot(result=str)
+    def browse_vcf(self):
+        return self._open("Select a VCF file", "VCF (*.vcf *.vcf.gz *.bcf);;All files (*)")
 
-    @Slot(str, str)
-    def save_file(self, source_path: str, suggested_name: str):
-        """Native Save As dialog + copy, since <a download> is
-        unreliable for local file:// URLs inside QWebEngineView."""
+    @Slot(result=str)
+    def browse_annotation(self):
+        return self._open("Select a gene annotation", "GFF3 / GTF (*.gff *.gff3 *.gtf *.gff.gz *.gff3.gz *.gtf.gz);;All files (*)")
 
-        try:
-
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window,
-                "Save File",
-                suggested_name,
-                "All Files (*)"
-            )
-
-            if not dest_path:
-                return
-
-            import shutil
-            shutil.copy2(source_path, dest_path)
-
-            print(
-                "[QTL-SEQ BRIDGE] saved",
-                source_path, "to", dest_path,
-                flush=True
-            )
-
-            self.statusUpdate.emit(f"Saved to {dest_path}")
-
-        except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
-            self.statusUpdate.emit(f"Save failed: {e}")
-
-    # --------------------------------------------------------
-    # RUN
-    # --------------------------------------------------------
+    @Slot(result=str)
+    def browse_folder(self):
+        return QFileDialog.getExistingDirectory(self._window, "Select the output folder") or ""
 
     @Slot(str)
-    def run_qtlseq(self, config_json: str):
+    def open_folder(self, path):
+        if path and os.path.isdir(path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
-        print(
-            "[QTL-SEQ BRIDGE] run_qtlseq() called",
-            flush=True
-        )
+    # ---------------------------------------------------------- information
+    @Slot(result=str)
+    def get_defaults(self):
+        return json.dumps({"defaults": config.DEFAULTS, "output_default": str(RESULT_DIR)})
 
+    @Slot(result=str)
+    def get_dependencies(self):
+        return json.dumps(deps.check())
+
+    @Slot(result=str)
+    def get_validation_experiments(self):
+        return json.dumps(validation.reference_summary())
+
+    # ---------------------------------------------------------- threads
+    def _start(self, worker, done_signal, done_slot):
+        thread = QThread()
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run, Qt.QueuedConnection)
+        done_signal.connect(done_slot, Qt.QueuedConnection)
+        done_signal.connect(thread.quit, Qt.QueuedConnection)
+        thread.finished.connect(thread.deleteLater, Qt.QueuedConnection)
+        thread.finished.connect(lambda w=worker: self._release(w), Qt.QueuedConnection)
+        self._threads.append((thread, worker))
+        thread.start()
+
+    def _release(self, worker):
+        self._threads = [(t, w) for t, w in self._threads if w is not worker]
+
+    # ---------------------------------------------------------- checks
+    @Slot(str)
+    def check_inputs(self, config_json):
         try:
-            config = json.loads(config_json)
+            cfg = json.loads(config_json)
         except Exception as e:
-
-            self.resultReady.emit(json.dumps({
-                "status": "error",
-                "message": f"Invalid configuration: {e}"
-            }))
-
+            self.inputsChecked.emit(json.dumps({"status": "error", "ok": False, "errors": [f"Could not read the settings: {e}"],
+                                                 "warnings": [], "files": {}}))
             return
+        self.statusUpdate.emit("Checking the input files…")
+        worker = CheckWorker(cfg)
+        self._start(worker, worker.finished, self._on_checked)
 
-        for key in ("ref_file", "parent_file_r1", "bulk1_file_r1", "bulk2_file_r1"):
+    @Slot(str)
+    def _on_checked(self, payload):
+        self.inputsChecked.emit(payload)
+        self.statusUpdate.emit("Input check finished.")
 
-            if not config.get(key):
+    # ---------------------------------------------------------- run
+    @Slot(str)
+    def run_qtlseq(self, config_json):
+        try:
+            cfg = json.loads(config_json)
+        except Exception as e:
+            self._fail(f"Could not read the settings: {e}")
+            return
+        self._holder["cancel"] = threading.Event()
+        self._holder["res"] = None
+        self.statusUpdate.emit("Starting…")
+        worker = RunWorker(cfg, self._holder)
+        worker.progress.connect(self._on_progress, Qt.QueuedConnection)
+        self._start(worker, worker.finished, self._on_finished)
 
-                self.resultReady.emit(json.dumps({
-                    "status": "error",
-                    "message":
-                        "Please select all required input files "
-                        "(reference, and at least R1 reads for "
-                        "parent, bulk1, and bulk2)."
-                }))
+    @Slot()
+    def cancel(self):
+        self._holder["cancel"].set()
+        self.statusUpdate.emit("Cancelling… the current step is finishing.")
 
-                return
-
-        print("\n===== QTL-SEQ CONFIGURATION =====")
-        print(config)
-        print("==================================\n")
-
-        self.statusUpdate.emit("Running QTL-seq analysis...")
-
-        self._thread = QThread()
-        self._worker = QTLSeqWorker(config, RESULT_DIR)
-        self._worker.moveToThread(self._thread)
-
-        self._thread.started.connect(
-            self._worker.run, Qt.QueuedConnection
-        )
-
-        self._worker.finished.connect(
-            self._on_finished, Qt.QueuedConnection
-        )
-
-        self._worker.error.connect(
-            self._on_error, Qt.QueuedConnection
-        )
-
-        self._worker.finished.connect(
-            self._thread.quit, Qt.QueuedConnection
-        )
-
-        self._worker.finished.connect(
-            self._worker.deleteLater, Qt.QueuedConnection
-        )
-
-        self._thread.finished.connect(
-            self._thread.deleteLater, Qt.QueuedConnection
-        )
-
-        print(
-            "[QTL-SEQ BRIDGE] about to call self._thread.start()",
-            flush=True
-        )
-
-        self._thread.start()
-
-        print(
-            "[QTL-SEQ BRIDGE] self._thread.start() returned",
-            flush=True
-        )
+    @Slot(str)
+    def _on_progress(self, payload):
+        self.progressUpdate.emit(payload)
+        try:
+            self.statusUpdate.emit(json.loads(payload).get("message", ""))
+        except Exception:
+            pass
 
     @Slot(dict)
-    def _on_finished(self, result: dict):
-
-        print(
-            "[QTL-SEQ BRIDGE] _on_finished() called, status:",
-            result.get("status"),
-            flush=True
-        )
-
-        self.last_result = result
-
-        if result.get("status") == "success":
-            self.statusUpdate.emit(
-                "QTL-seq analysis completed successfully."
-            )
+    def _on_finished(self, result):
+        status = result.get("status")
+        if status == "success":
+            self.last_result = result
+            self.statusUpdate.emit("QTL-seq analysis finished.")
+        elif status == "cancelled":
+            self.statusUpdate.emit("Cancelled.")
         else:
-            self.statusUpdate.emit(
-                f"Error: {result.get('message', 'Unknown error')}"
-            )
-
-        print(
-            "[QTL-SEQ BRIDGE] about to emit resultReady...",
-            flush=True
-        )
-
+            self.statusUpdate.emit("QTL-seq analysis failed.")
         self.resultReady.emit(json.dumps(result))
 
-        print(
-            "[QTL-SEQ BRIDGE] resultReady emitted",
-            flush=True
-        )
+    def _fail(self, message):
+        self.statusUpdate.emit(message)
+        self.resultReady.emit(json.dumps({"status": "error", "message": message}))
+
+    # ---------------------------------------------------------- one chromosome
+    @Slot(str, result=str)
+    def get_chromosome(self, chrom):
+        res = self._holder.get("res")
+        if res is None:
+            return json.dumps({"status": "error", "message": "Run the analysis first."})
+        return json.dumps(pipeline.chromosome_payload(res, chrom))
+
+    # ---------------------------------------------------------- validation
+    @Slot(str, int)
+    def run_validation(self, key, seed):
+        self.statusUpdate.emit("Running the validation on simulated data…")
+        worker = ValidationWorker(key, int(seed), self._holder)
+        self._start(worker, worker.finished, self._on_validated)
 
     @Slot(str)
-    def _on_error(self, message: str):
+    def _on_validated(self, payload):
+        self.validationReady.emit(payload)
+        self.statusUpdate.emit("Validation finished.")
 
-        print(
-            "[QTL-SEQ BRIDGE] _on_error() called:",
-            message,
-            flush=True
-        )
-
-        result = {"status": "error", "message": message}
-
-        self.last_result = result
-
-        self.statusUpdate.emit("QTL-seq analysis failed.")
-
-        self.resultReady.emit(json.dumps(result))
-
-    # --------------------------------------------------------
-    # DOWNLOAD
-    # --------------------------------------------------------
-
-    @Slot(str)
-    def download_result(self, result_type: str):
-
-        print(
-            "[QTL-SEQ BRIDGE] download_result() called for:",
-            result_type,
-            flush=True
-        )
-
-        if not self.last_result:
-
-            self.statusUpdate.emit(
-                "Run the analysis first."
-            )
-
-            return
-
-        key_map = {
-            "snp": "snp_csv",
-            "window": "window_csv",
-            "plot": "plot",
-        }
-
-        key = key_map.get(result_type)
-
-        source = self.last_result.get(key) if key else None
-
-        if not source or not Path(source).exists():
-
-            self.statusUpdate.emit(
-                "Result file not found."
-            )
-
-            return
-
-        suggested = Path(source).name
-
+    # ---------------------------------------------------------- downloads
+    @Slot(str, str)
+    def save_file(self, source_path, suggested_name):
+        """Native Save As + copy (an <a download> link is unreliable for file:// pages)."""
         try:
-
-            dest_path, _ = QFileDialog.getSaveFileName(
-                self._parent_window,
-                "Save File",
-                suggested,
-                "All Files (*)"
-            )
-
-            if not dest_path:
+            if not source_path or not os.path.exists(source_path):
+                self.statusUpdate.emit("That file is not available.")
                 return
-
-            import shutil
-            shutil.copy2(source, dest_path)
-
-            print(
-                "[QTL-SEQ BRIDGE] saved", result_type,
-                "to", dest_path,
-                flush=True
-            )
-
-            self.statusUpdate.emit("Result saved.")
-
+            dest, _ = QFileDialog.getSaveFileName(self._window, "Save", suggested_name or os.path.basename(source_path))
+            if not dest:
+                return
+            shutil.copy2(source_path, dest)
+            self.statusUpdate.emit(f"Saved to {dest}")
         except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
             self.statusUpdate.emit(f"Save failed: {e}")
+
+    @Slot(str, str)
+    def download_result(self, key, fmt):
+        """key: a name from result['files']; fmt 'png' / 'pdf' for figures (both exist for every figure)."""
+        if not self.last_result:
+            self.statusUpdate.emit("Run the analysis first.")
+            return
+        files = self.last_result.get("files", {})
+        src = files.get(key)
+        if isinstance(src, dict):
+            return
+        if src and fmt in ("pdf", "png") and src.lower().endswith(".png"):
+            src = os.path.splitext(src)[0] + "." + fmt
+        self.save_file(src or "", os.path.basename(src or ""))
+
+    @Slot(str, str)
+    def download_chromosome_plot(self, chrom, fmt):
+        if not self.last_result:
+            return
+        src = (self.last_result.get("files", {}).get("chrom_plots") or {}).get(chrom)
+        if src:
+            src = os.path.splitext(src)[0] + "." + (fmt if fmt in ("png", "pdf") else "png")
+            self.save_file(src, os.path.basename(src))
+
+    @Slot(str)
+    def download_all(self, _unused=""):
+        """Copy the whole result folder to a place of the user's choice."""
+        if not self.last_result:
+            self.statusUpdate.emit("Run the analysis first.")
+            return
+        src = self.last_result["out_dir"]
+        dest = QFileDialog.getExistingDirectory(self._window, "Copy the result folder to…")
+        if not dest:
+            return
+        try:
+            target = os.path.join(dest, os.path.basename(src))
+            shutil.copytree(src, target, dirs_exist_ok=True)
+            self.statusUpdate.emit(f"Copied to {target}")
+        except Exception as e:
+            self.statusUpdate.emit(f"Copy failed: {e}")
 
 
 # ============================================================
-# WINDOW
+# STANDALONE WINDOW (ToolManager.open_qtl_seq, kept for testing)
 # ============================================================
 
 class QTLSeqWindow(QMainWindow):
 
     def __init__(self, parent=None):
-
         super().__init__(parent)
 
-        self.setWindowTitle("TerraTools — QTL-seq (BSA)")
-        self.resize(1400, 900)
+        from PySide6.QtWebChannel import QWebChannel
+        from PySide6.QtWebEngineWidgets import QWebEngineView
+        from ui.frontend import load_frontend
 
+        self.setWindowTitle("TerraTools — QTL-seq")
+        self.resize(1400, 900)
         self.browser = QWebEngineView()
         self.setCentralWidget(self.browser)
-
-        # Local file:// results (plots, CSVs) live outside the
-        # html's own directory, so local content needs
-        # permission to load them.
-        settings = self.browser.settings()
-        settings.setAttribute(
-            QWebEngineSettings.LocalContentCanAccessFileUrls, True
-        )
-        settings.setAttribute(
-            QWebEngineSettings.LocalContentCanAccessRemoteUrls, False
-        )
-
-        self.bridge = QTLSeqBridge(parent_window=self)
-        self.channel = PySide6.QtWebChannel.QWebChannel()
+        self.channel = QWebChannel(self.browser.page())
+        self.bridge = QTLSeqBridge(self)
         self.channel.registerObject("qtlSeqBridge", self.bridge)
         self.browser.page().setWebChannel(self.channel)
-
-        print("[QTL-SEQ WINDOW] loading React frontend", flush=True)
-
         load_frontend(self.browser, "qtl_seq")
 
-        self.browser.loadFinished.connect(self._page_loaded)
 
-    def _page_loaded(self, success):
+if __name__ == "__main__":
+    from PySide6.QtWidgets import QApplication
 
-        if success:
-
-            print(
-                "[QTL-SEQ WINDOW] HTML loaded successfully",
-                flush=True
-            )
-
-        else:
-
-            print(
-                "[QTL-SEQ WINDOW] ERROR: HTML failed to load",
-                flush=True
-            )
+    app = QApplication(sys.argv)
+    w = QTLSeqWindow()
+    w.show()
+    sys.exit(app.exec())

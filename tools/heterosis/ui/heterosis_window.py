@@ -20,6 +20,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from tools.heterosis.backend import heterosis_preview
 from tools.common.subprocess_utils import no_window_kwargs
 from ui.frontend import load_frontend
+from tools.common import json_safe
 from tools.common.paths import results_dir
 
 
@@ -214,7 +215,7 @@ class HeterosisBridge(QObject):
         )
 
         self.resultReady.emit(
-            json.dumps(result)
+            json_safe.dumps(result)
         )
 
     @Slot(str)
@@ -234,7 +235,7 @@ class HeterosisBridge(QObject):
         )
 
         self.resultReady.emit(
-            json.dumps(result)
+            json_safe.dumps(result)
         )
 
     # --------------------------------------------------------

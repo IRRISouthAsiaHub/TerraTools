@@ -23,6 +23,9 @@ gene_EXTRACTOR_DIR = Path(__file__).resolve().parent
 
 RESULT_DIR = results_dir("gene_extractor", gene_EXTRACTOR_DIR / "results")
 
+# where QTL Mapping writes its results (tools/qtl/ui/qtl_window.py)
+QTL_RESULT_DIR = results_dir("qtl", gene_EXTRACTOR_DIR.parent.parent / "qtl" / "ui" / "results")
+
 
 # ============================================================
 # BRIDGE
@@ -44,37 +47,102 @@ class geneExtractorBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(result=str)
-    def browse_extracted_markers(self):
+    def browse_gff(self):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select Extracted Markers Excel File",
+            "Select Gene Annotation (GFF3)",
             "",
-            "Excel Files (*.xlsx *.xls);;All Files (*)"
+            "GFF3 Files (*.gff *.gff3 *.gff.gz *.gff3.gz);;All Files (*)"
         )
 
         return path or ""
 
     @Slot(result=str)
-    def browse_gene_markers(self):
+    def browse_markers(self):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select gene Markers Excel File",
+            "Select QTL Results (QTL intervals or QTL table)",
             "",
-            "Excel Files (*.xlsx *.xls);;All Files (*)"
+            "Input tables (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
         )
 
         return path or ""
 
     @Slot(result=str)
-    def browse_rice_genes(self):
+    def latest_qtl_intervals(self):
+        """The QTL Intervals CSV of the most recent QTL Mapping run ('' when there is none)."""
+
+        found = sorted(
+            QTL_RESULT_DIR.glob("qtl_intervals_*.csv"),
+            key=lambda f: f.stat().st_mtime,
+            reverse=True
+        )
+
+        # the newest run that found a QTL (a header-only file means that run had no QTL to extract)
+        for f in found:
+            try:
+                with open(f, encoding="utf-8-sig") as fh:
+                    if sum(1 for line in fh if line.strip()) > 1:
+                        return str(f)
+            except OSError:
+                continue
+
+        return str(found[0]) if found else ""
+
+    @Slot(result=str)
+    def latest_qtl_table(self):
+        """The QTL table (positions in cM) of the most recent QTL Mapping run that found a QTL ('' when there is none)."""
+
+        found = sorted(
+            QTL_RESULT_DIR.glob("qtl_significant_*.csv"),
+            key=lambda f: f.stat().st_mtime,
+            reverse=True
+        )
+
+        for f in found:
+            try:
+                with open(f, encoding="utf-8-sig") as fh:
+                    if sum(1 for line in fh if line.strip()) > 1:
+                        return str(f)
+            except OSError:
+                continue
+
+        return str(found[0]) if found else ""
+
+    @Slot(result=str)
+    def browse_positions(self):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select Rice Gene List Excel File",
+            "Select the Genetic Map (Marker, Chromosome, bp)",
             "",
-            "Excel Files (*.xlsx *.xls);;All Files (*)"
+            "Genetic map (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
+        )
+
+        return path or ""
+
+    @Slot(result=str)
+    def browse_vcf(self):
+
+        path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select VCF (positions of the markers)",
+            "",
+            "VCF Files (*.vcf *.vcf.gz);;All Files (*)"
+        )
+
+        return path or ""
+
+    @Slot(result=str)
+    def browse_fasta(self):
+
+        path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select Reference Genome FASTA",
+            "",
+            "FASTA Files (*.fa *.fasta *.fna);;All Files (*)"
         )
 
         return path or ""
@@ -96,19 +164,16 @@ class geneExtractorBridge(QObject):
             print(config)
             print("================================================\n")
 
-            # Same validation the Shiny observeEvent(input$extract, ...) did
-            if (not config.get("extracted_markers_path")
-                    or not config.get("gene_markers_path")
-                    or not config.get("rice_gene_path")):
+            if not config.get("marker_path") or not config.get("gff_path"):
 
                 self._analysis_error(
-                    "Please upload all three required files."
+                    "Please upload the QTL results and the annotation (GFF3) file."
                 )
 
                 return
 
             self.statusUpdate.emit(
-                "Extracting markers and genes..."
+                "Extracting genes..."
             )
 
             thread = QThread()
@@ -216,20 +281,26 @@ class geneExtractorBridge(QObject):
 
         mapping = {
 
-            "markers":
-                self.last_result.get(
-                    "markers_file"
-                ),
-
             "genes":
                 self.last_result.get(
                     "genes_file"
+                ),
+
+            "fasta":
+                self.last_result.get(
+                    "fasta_file"
+                ),
+
+            "gene_list":
+                self.last_result.get(
+                    "gene_list_file"
                 )
         }
 
         default_names = {
-            "markers": "Markers_with_physical_position.xlsx",
-            "genes": "Genes_in_gene_regions.xlsx"
+            "genes": "Genes_in_gene_regions.xlsx",
+            "fasta": "Gene_sequences.fasta",
+            "gene_list": "Gene_ID_list.txt"
         }
 
         source = mapping.get(
@@ -248,7 +319,10 @@ class geneExtractorBridge(QObject):
             None,
             "Save Result",
             default_names.get(result_type, os.path.basename(source)),
-            "Excel Files (*.xlsx);;All Files (*)"
+            {
+                "fasta": "FASTA Files (*.fasta);;All Files (*)",
+                "gene_list": "Text Files (*.txt);;All Files (*)"
+            }.get(result_type, "Excel Files (*.xlsx);;All Files (*)")
         )
 
         if not destination:

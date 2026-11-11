@@ -45,51 +45,33 @@ class CrossBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(result=str)
-    def browse_criterion(self):
+    def browse_geno(self):
+        return self._browse("Select Allele Dosage Matrix", "CSV Files (*.csv *.txt *.tsv);;All Files (*)")
 
-        path, _ = QFileDialog.getOpenFileName(
-            None,
-            "Select Criterion CSV",
-            "",
-            "CSV Files (*.csv);;All Files (*)"
-        )
+    @Slot(result=str)
+    def browse_effects(self):
+        return self._browse("Select Marker Effects", "CSV Files (*.csv *.txt *.tsv);;All Files (*)")
 
+    @Slot(result=str)
+    def browse_map(self):
+        return self._browse("Select Genetic Map", "CSV Files (*.csv *.txt *.tsv);;All Files (*)")
+
+    @staticmethod
+    def _browse(title, flt):
+        path, _ = QFileDialog.getOpenFileName(None, title, "", flt)
         return path or ""
 
     @Slot(result=str)
-    def browse_kmat(self):
+    def browse_vcf(self):
+        return self._browse("Select VCF", "VCF Files (*.vcf *.vcf.gz);;All Files (*)")
 
-        path, _ = QFileDialog.getOpenFileName(
-            None,
-            "Select Kinship Matrix CSV",
-            "",
-            "CSV Files (*.csv);;All Files (*)"
-        )
-
-        return path or ""
-
-    # --------------------------------------------------------
-    # DATA PREVIEW (pandas, no R needed for this)
-    # --------------------------------------------------------
-
-    @Slot(str, str, result=str)
-    def preview_data(self, criterion_path, kmat_path):
-
+    @Slot(str, str, str, str, str, result=str)
+    def preview_markers(self, geno_path, effects_path, map_path, map_kind, cm_per_mb):
         try:
-
-            result = cross_runner.preview_data(
-                criterion_path or None,
-                kmat_path or None
-            )
-
-            return json.dumps(result)
-
+            return json.dumps(cross_runner.preview_markers(geno_path or None, effects_path or None, map_path or None,
+                                                           map_kind or None, cm_per_mb or None))
         except Exception as e:
-
-            return json.dumps({
-                "status": "error",
-                "message": str(e)
-            })
+            return json.dumps({"status": "error", "message": str(e)})
 
     # --------------------------------------------------------
     # RUN CROSS SELECTION
@@ -196,167 +178,6 @@ class CrossBridge(QObject):
         )
 
     # --------------------------------------------------------
-    # TABLE FILTERING (pandas, re-uses the last full CSV)
-    # --------------------------------------------------------
-
-    @Slot(str, result=str)
-    def filter_crosses(self, filter_json):
-
-        try:
-
-            filters = json.loads(filter_json)
-
-            if not self.last_result or self.last_result.get("status") != "success":
-
-                return json.dumps({
-                    "status": "error",
-                    "message": "Run an analysis first."
-                })
-
-            crosses_csv = self.last_result.get("crosses_csv")
-
-            result = cross_runner.filter_crosses(
-                crosses_csv,
-                relatedness=filters.get("relatedness", "All"),
-                performance=filters.get("performance", "All"),
-                kinship_max=filters.get("kinship_max", 1.0),
-                kinship_min=filters.get("kinship_min", 0.0)
-            )
-
-            return json.dumps(result)
-
-        except Exception as e:
-
-            return json.dumps({
-                "status": "error",
-                "message": str(e)
-            })
-
-    # --------------------------------------------------------
-    # TABLE EXPORT (writes straight to a user-chosen file — no
-    # need to round-trip through R again, the full crosses CSV
-    # written by the last analysis already has everything needed)
-    # --------------------------------------------------------
-
-    @Slot(str)
-    def export_filtered_crosses(self, filter_json):
-
-        print("[CROSS BRIDGE] export_filtered_crosses() called", flush=True)
-
-        try:
-
-            filters = json.loads(filter_json)
-
-            if not self.last_result or self.last_result.get("status") != "success":
-                self.statusUpdate.emit("Run an analysis first.")
-                return
-
-            crosses_csv = self.last_result.get("crosses_csv")
-
-            result = cross_runner.filter_crosses(
-                crosses_csv,
-                relatedness=filters.get("relatedness", "All"),
-                performance=filters.get("performance", "All"),
-                kinship_max=filters.get("kinship_max", 1.0),
-                kinship_min=filters.get("kinship_min", 0.0)
-            )
-
-            if result.get("status") != "success":
-                self.statusUpdate.emit(result.get("message", "Filter failed."))
-                return
-
-            self._save_rows_as_csv(
-                result.get("rows", []),
-                "filtered_crosses.csv"
-            )
-
-        except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
-            self.statusUpdate.emit(f"Export failed: {e}")
-
-    @Slot(str)
-    def export_top_crosses(self, band):
-
-        print("[CROSS BRIDGE] export_top_crosses() called for:", band, flush=True)
-
-        try:
-
-            if not self.last_result or self.last_result.get("status") != "success":
-                self.statusUpdate.emit("Run an analysis first.")
-                return
-
-            crosses_csv = self.last_result.get("crosses_csv")
-
-            # Same kinship bands already used to populate the on-screen
-            # Top Crosses tables — kept in sync with those, not
-            # re-derived, so an export always matches what's shown.
-            if band == "low":
-                kinship_min, kinship_max = 0.0, 0.125
-                suggested_name = "top_crosses_low_kinship.csv"
-            elif band == "medium":
-                kinship_min, kinship_max = 0.125, 0.25
-                suggested_name = "top_crosses_medium_kinship.csv"
-            else:
-                self.statusUpdate.emit(f"Unknown band: {band}")
-                return
-
-            result = cross_runner.filter_crosses(
-                crosses_csv,
-                relatedness="All",
-                performance="All",
-                kinship_max=kinship_max,
-                kinship_min=kinship_min
-            )
-
-            if result.get("status") != "success":
-                self.statusUpdate.emit(result.get("message", "Filter failed."))
-                return
-
-            self._save_rows_as_csv(
-                result.get("rows", []),
-                suggested_name
-            )
-
-        except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
-            self.statusUpdate.emit(f"Export failed: {e}")
-
-    def _save_rows_as_csv(self, rows, suggested_name):
-
-        destination, _ = QFileDialog.getSaveFileName(
-            None,
-            "Save Table",
-            suggested_name,
-            "CSV Files (*.csv);;All Files (*)"
-        )
-
-        if not destination:
-            return
-
-        try:
-
-            import pandas as pd
-
-            pd.DataFrame(rows).to_csv(destination, index=False)
-
-            print("[CROSS BRIDGE] saved table to", destination, flush=True)
-
-            self.statusUpdate.emit(f"Saved to {destination}")
-
-        except Exception as e:
-
-            import traceback
-            traceback.print_exc()
-
-            self.statusUpdate.emit(f"Save failed: {e}")
-
-    # --------------------------------------------------------
     # DOWNLOADS
     # --------------------------------------------------------
 
@@ -373,18 +194,15 @@ class CrossBridge(QObject):
 
             return
 
-        plots = self.last_result.get("plots", {})
+        ocs = self.last_result.get("ocs", {})
 
         mapping = {
-
-            "hist_pov": plots.get("hist_pov"),
-            "hist_kinship": plots.get("hist_kinship"),
-            "bar_relatedness": plots.get("bar_relatedness"),
-            "scatter_vk": plots.get("scatter_vk"),
-            "parent_bar": plots.get("parent_bar"),
-
-            "crosses_csv": self.last_result.get("crosses_csv"),
-            "parent_csv": self.last_result.get("parent_csv")
+            "ocs_crosses_csv": ocs.get("crosses_csv"),
+            "ocs_contributions_csv": ocs.get("contributions_csv"),
+            "ocs_frontier_csv": ocs.get("frontier_csv"),
+            "ocs_frontier_plot": ocs.get("frontier_plot"),
+            "ocs_usefulness_csv": ocs.get("usefulness_csv"),
+            "ocs_kinship_csv": ocs.get("kinship_csv")
         }
 
         source = mapping.get(

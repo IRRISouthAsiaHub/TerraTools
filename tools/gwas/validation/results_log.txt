@@ -1,0 +1,30 @@
+null_structured          maf>=0.01  no PCs    37.1s
+null_structured          maf>=0.01  3 PCs     48.2s
+null_structured          maf>=0.05  no PCs    32.6s
+null_structured          maf>=0.05  3 PCs     38.5s
+null_unstructured        maf>=0.01  no PCs    34.0s
+null_unstructured        maf>=0.01  3 PCs     47.9s
+null_unstructured        maf>=0.05  no PCs    31.0s
+null_unstructured        maf>=0.05  3 PCs     34.6s
+causal_1                 maf>=0.01  no PCs    30.1s
+causal_1                 maf>=0.01  3 PCs     52.1s
+causal_1                 maf>=0.05  no PCs   154.9s
+causal_1                 maf>=0.05  3 PCs    367.2s
+causal_3                 maf>=0.01  no PCs   206.1s
+causal_3                 maf>=0.01  3 PCs    168.3s
+causal_3                 maf>=0.05  no PCs    29.5s
+causal_3                 maf>=0.05  3 PCs     39.2s
+causal_skewed            maf>=0.01  no PCs    39.4s
+causal_skewed            maf>=0.01  3 PCs     46.8s
+causal_skewed            maf>=0.05  no PCs    29.0s
+causal_skewed            maf>=0.05  3 PCs     36.6s
+causal_heavy_tail        maf>=0.01  no PCs    32.3s
+causal_heavy_tail        maf>=0.01  3 PCs     41.8s
+causal_heavy_tail        maf>=0.05  no PCs    30.1s
+causal_heavy_tail        maf>=0.05  3 PCs    137.5s
+causal_weak_structure    maf>=0.01  no PCs   325.5s
+causal_weak_structure    maf>=0.01  3 PCs    223.0s
+causal_weak_structure    maf>=0.05  no PCs    28.0s
+causal_weak_structure    maf>=0.05  3 PCs     37.6s
+
+Wrote tools/gwas/validation/results/summary.csv

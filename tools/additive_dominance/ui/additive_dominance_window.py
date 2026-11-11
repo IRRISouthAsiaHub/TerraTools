@@ -32,7 +32,7 @@ RESULT_DIR = results_dir("additive_dominance", AD_DIR / "results")
 
 class AdditiveDominanceWorker(QObject):
 
-    finished = Signal(dict)
+    finished = Signal(str)      # JSON text, see the note in the bridge
     error = Signal(str)
 
     def __init__(self, config, results_dir):
@@ -195,7 +195,7 @@ class AdditiveDominanceWorker(QObject):
                 flush=True
             )
 
-            self.finished.emit(result)
+            self.finished.emit(json.dumps(result))
 
         except Exception as e:
 
@@ -278,6 +278,30 @@ class AdditiveDominanceBridge(QObject):
 
         return path or ""
 
+    @Slot(result=str)
+    def browse_train_file(self):
+
+        path, _ = QFileDialog.getOpenFileName(
+            self._parent_window,
+            "Select the Training file (from Clustering)",
+            "",
+            "Genotype Files (*.csv *.txt *.tsv);;All Files (*)"
+        )
+
+        return path or ""
+
+    @Slot(result=str)
+    def browse_test_file(self):
+
+        path, _ = QFileDialog.getOpenFileName(
+            self._parent_window,
+            "Select the Testing file (from Clustering)",
+            "",
+            "Genotype Files (*.csv *.txt *.tsv);;All Files (*)"
+        )
+
+        return path or ""
+
     # --------------------------------------------------------
     # RUN
     # --------------------------------------------------------
@@ -301,7 +325,18 @@ class AdditiveDominanceBridge(QObject):
 
             return
 
-        if not config.get("snp_file"):
+        if config.get("train_file") or config.get("test_file"):
+
+            if not (config.get("train_file") and config.get("test_file")):
+
+                self.resultReady.emit(json.dumps({
+                    "status": "error",
+                    "message": "Please select both the training and the testing file."
+                }))
+
+                return
+
+        elif not config.get("snp_file"):
 
             self.resultReady.emit(json.dumps({
                 "status": "error",
@@ -362,8 +397,10 @@ class AdditiveDominanceBridge(QObject):
 
         self._thread.start()
 
-    @Slot(dict)
-    def _on_finished(self, result: dict):
+    @Slot(str)
+    def _on_finished(self, result_json: str):
+
+        result = json.loads(result_json)
 
         print(
             "[ADDITIVE-DOMINANCE BRIDGE] _on_finished() "
@@ -382,7 +419,7 @@ class AdditiveDominanceBridge(QObject):
                 f"Error: {result.get('message', 'Unknown error')}"
             )
 
-        self.resultReady.emit(json.dumps(result))
+        self.resultReady.emit(result_json)
 
     @Slot(str)
     def _on_error(self, message: str):
@@ -484,6 +521,10 @@ class AdditiveDominanceBridge(QObject):
         key_map = {
             "additive": "additive_csv",
             "dominance": "dominance_csv",
+            "train_additive": "train_additive_csv",
+            "test_additive": "test_additive_csv",
+            "train_dominance": "train_dominance_csv",
+            "test_dominance": "test_dominance_csv",
         }
 
         key = key_map.get(result_type)

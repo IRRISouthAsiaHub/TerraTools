@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QMainWindow
 from tools.qtl.backend import qtl_runner
 from ui.frontend import load_frontend
 from tools.common.paths import results_dir
+from tools.common.save_dialog import save_dialog
 
 
 # ============================================================
@@ -53,6 +54,18 @@ class QTLBridge(QObject):
             "Select Genotype CSV",
             "",
             "CSV Files (*.csv);;All Files (*)"
+        )
+
+        return path or ""
+
+    @Slot(result=str)
+    def browse_linkage_map(self):
+
+        path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select Linkage Mapping Output",
+            "",
+            "Linkage map (*.xlsx *.xls *.csv);;All Files (*)"
         )
 
         return path or ""
@@ -291,17 +304,17 @@ class QTLBridge(QObject):
 
         self.last_compare_result = result
 
-        self.statusUpdate.emit(
-            "Model comparison completed."
-        )
+        failed = result.get("failed_models") or {}
+        msg = f"Model comparison completed ({', '.join(result.get('models', []))})."
+        if failed:
+            msg += " Failed: " + "; ".join(f"{m}: {e.splitlines()[0]}" for m, e in failed.items())
+        self.statusUpdate.emit(msg)
 
-        # Tell the HTML to render comparison results.
-        payload = json.dumps(result)
-
-        print("[QTL BRIDGE] pushing showCompareResult(...) via runJavaScript", flush=True)
-        self.parent().browser.page().runJavaScript(
-            f"showCompareResult({payload});"
-        )
+        # The page only needs the table and charts; each model's full result
+        # stays here for Common QTL.
+        page_result = {k: v for k, v in result.items() if k != "model_results"}
+        page_result["message"] = msg
+        self._push("showCompareResult", page_result)
 
     @Slot(str)
     def _compare_error(self, message):
@@ -312,18 +325,19 @@ class QTLBridge(QObject):
             "Model comparison failed."
         )
 
-        self.parent().browser.page().runJavaScript(
-            "showCompareResult(" +
-            json.dumps({
-                "status": "error",
-                "message": message
-            }) +
-            ");"
-        )
+        self._push("showCompareResult", {"status": "error", "message": message})
 
     def _send_compare_error(self, message):
 
         self._compare_error(message)
+
+    def _push(self, js_fn, result):
+        """Send a result to the page. default=str keeps an unexpected value
+        type from silently stopping the result ever reaching the page."""
+        payload = json.dumps(result, default=str)
+        self.parent().browser.page().runJavaScript(
+            f"window.{js_fn} && window.{js_fn}({payload});"
+        )
 
     # --------------------------------------------------------
     # COMMON QTL
@@ -335,57 +349,34 @@ class QTLBridge(QObject):
         print("[QTL BRIDGE] find_common() called", flush=True)
 
         try:
-
-            config = json.loads(
-                config_json
-            )
-
-            if not self.last_compare_result:
-
-                print("[QTL BRIDGE] find_common() called without a prior comparison result", flush=True)
-
-                self.parent().browser.page().runJavaScript(
-                    "showCommonResult(" +
-                    json.dumps({
-                        "status": "error",
-                        "message":
-                            "Run Compare Models first."
-                    }) +
-                    ");"
-                )
-
-                return
-
-            # Common-QTL calculation is handled by the
-            # shared backend, from the comparison result.
-            result = qtl_runner.find_common_qtl(
-                config,
-                self.last_compare_result,
-                results_dir=RESULT_DIR
-            )
-
-            print("[QTL BRIDGE] find_common_qtl() returned, status:", result.get("status"), flush=True)
-
-            self.last_common_result = result
-
-            self.parent().browser.page().runJavaScript(
-                "showCommonResult(" +
-                json.dumps(result) +
-                ");"
-            )
-
+            config = json.loads(config_json)
         except Exception as e:
+            self._push("showCommonResult", {"status": "error", "message": f"Invalid settings: {e}"})
+            return
 
-            print("[QTL BRIDGE] find_common() error:", e, flush=True)
+        if not self.last_compare_result:
+            self._push("showCommonResult", {"status": "error", "message": "Run Compare Models first."})
+            return
 
-            self.parent().browser.page().runJavaScript(
-                "showCommonResult(" +
-                json.dumps({
-                    "status": "error",
-                    "message": str(e)
-                }) +
-                ");"
-            )
+        # Reads every model's scan and draws two figures — off the GUI thread.
+        thread = QThread()
+        worker = _CommonQTLWorker(config, self.last_compare_result, RESULT_DIR)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run, Qt.QueuedConnection)
+        worker.finished.connect(self._common_finished, Qt.QueuedConnection)
+        worker.finished.connect(thread.quit, Qt.QueuedConnection)
+        worker.finished.connect(worker.deleteLater, Qt.QueuedConnection)
+        thread.finished.connect(thread.deleteLater, Qt.QueuedConnection)
+        self._common_thread, self._common_worker = thread, worker
+        thread.start()
+
+    @Slot(dict)
+    def _common_finished(self, result):
+        print("[QTL BRIDGE] common QTL finished, status:", result.get("status"), flush=True)
+        if result.get("status") == "success":
+            self.last_common_result = result
+            self.statusUpdate.emit(f"Found {len(result.get('table', []))} common QTL marker(s).")
+        self._push("showCommonResult", result)
 
     # --------------------------------------------------------
     # PLOT SETTINGS
@@ -421,40 +412,26 @@ class QTLBridge(QObject):
 
         print("[QTL BRIDGE] download_result() called for:", result_type, flush=True)
 
-        if not self.last_result:
+        # Single-run results, and the tables from Compare Models / Common QTL.
+        sources = {
+            "manhattan": (self.last_result, "manhattan", "Run QTL analysis first."),
+            "ideogram": (self.last_result, "ideogram", "Run QTL analysis first."),
+            "qtl_csv": (self.last_result, "qtl_csv", "Run QTL analysis first."),
+            "full_csv": (self.last_result, "full_csv", "Run QTL analysis first."),
+            "interval_csv": (self.last_result, "interval_csv", "Run QTL analysis first."),
+            "compare_csv": (self.last_compare_result, "csv", "Run Compare Models first."),
+            "common_csv": (self.last_common_result, "csv", "Run Find Common QTL first."),
+        }
 
-            self.statusUpdate.emit(
-                "Run QTL analysis first."
-            )
+        res, key, hint = sources.get(result_type, (None, None, "Unknown result."))
+
+        if not res:
+
+            self.statusUpdate.emit(hint)
 
             return
 
-        mapping = {
-
-            "manhattan":
-                self.last_result.get(
-                    "manhattan"
-                ),
-
-            "ideogram":
-                self.last_result.get(
-                    "ideogram"
-                ),
-
-            "qtl_csv":
-                self.last_result.get(
-                    "qtl_csv"
-                ),
-
-            "full_csv":
-                self.last_result.get(
-                    "full_csv"
-                )
-        }
-
-        source = mapping.get(
-            result_type
-        )
+        source = res.get(key)
 
         if not source or not os.path.exists(source):
 
@@ -464,12 +441,7 @@ class QTLBridge(QObject):
 
             return
 
-        destination, _ = QFileDialog.getSaveFileName(
-            None,
-            "Save Result",
-            os.path.basename(source),
-            "All Files (*)"
-        )
+        destination, _ = save_dialog(None, os.path.basename(source), "Save Result")
 
         if not destination:
             return
@@ -552,6 +524,29 @@ class QTLWorker(QObject):
 # ============================================================
 # COMPARISON WORKER
 # ============================================================
+
+class _CommonQTLWorker(QObject):
+
+    finished = Signal(dict)
+
+    def __init__(self, config, comparison_result, results_dir):
+        super().__init__()
+        self.config = config
+        self.comparison_result = comparison_result
+        self.results_dir = results_dir
+
+    @Slot()
+    def run(self):
+        try:
+            result = qtl_runner.find_common_qtl(
+                self.config, self.comparison_result, results_dir=self.results_dir
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            result = {"status": "error", "message": str(e)}
+        self.finished.emit(result)
+
 
 class QTLCompareWorker(QObject):
 

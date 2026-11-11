@@ -1,0 +1,1620 @@
+# -*- coding: utf-8 -*-
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from matplotlib.ticker import FuncFormatter
+import matplotlib.ticker as ticker
+from tqdm import tqdm
+import numpy as np
+import sys
+from .utilities import round_up_second_digit
+
+# TerraTools change: the texts of the legend. GenoSee writes REF / ALT / HET / MISSING; the Genotype Viewer can replace them
+# (for example REF = 'Parent 1') by setting these entries before it draws.
+LEGEND_LABELS = {'REF': 'REF', 'ALT': 'ALT', 'HET': 'HET', 'MISSING': 'MISSING'}
+
+# TerraTools change: False leaves out the dashed line that GenoSee draws from each marker name across the compare / zoomed figure.
+GUIDE_LINES = True
+
+# TerraTools change: GRAPHIC = True gives the figures a "graphic" look: rounded, softly shaded chromosomes with a thin
+# outline and a light shadow, no black lines inside the chromosomes, a pale grid and bold labels. False draws the figures
+# the way GenoSee does.
+GRAPHIC = True
+_INK = '#243b30'
+
+
+def _round_path(x0, y0, x1, y1, rx, ry, n=18):
+    from matplotlib.path import Path
+    pts = []
+    for cx, cy, a0, a1 in ((x0 + rx, y0 + ry, 180, 270), (x1 - rx, y0 + ry, 270, 360),
+                           (x1 - rx, y1 - ry, 0, 90), (x0 + rx, y1 - ry, 90, 180)):
+        for t in np.linspace(np.radians(a0), np.radians(a1), n):
+            pts.append((cx + rx * np.cos(t), cy + ry * np.sin(t)))
+    pts.append(pts[0])
+    return Path(pts, closed=True)
+
+
+def _beautify(fig, ax):
+    from matplotlib.collections import LineCollection
+    from matplotlib.patches import PathPatch, Polygon, Rectangle
+    fig.canvas.draw()
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+    ext = ax.get_window_extent()
+    ux = abs(xlim[1] - xlim[0]) / ext.width        # data units per pixel
+    uy = abs(ylim[1] - ylim[0]) / ext.height
+
+    def box(p):
+        x0, y0 = p.get_xy()
+        x1, y1 = x0 + p.get_width(), y0 + p.get_height()
+        return min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)
+
+    # the chromosome outlines GenoSee draws (large, unfilled, black); bars that touch (the two halves) become one shape
+    rects = []
+    for p in ax.patches:
+        if isinstance(p, Rectangle) and not p.get_fill() and tuple(p.get_edgecolor()[:3]) == (0, 0, 0):
+            x0, y0, x1, y1 = box(p)
+            if max((x1 - x0) / ux, (y1 - y0) / uy) > 150:
+                rects.append([x0, y0, x1, y1, p])
+    if not rects:
+        return
+    shapes = []
+    for r in sorted(rects, key=lambda r: (r[1], r[0])):
+        m = shapes[-1] if shapes else None
+        horizontal = (r[2] - r[0]) / ux > (r[3] - r[1]) / uy
+        if m and not horizontal and not m[4] and abs(m[3] - r[3]) < uy and abs(m[1] - r[1]) < uy and abs(m[2] - r[0]) < ux * 2:
+            m[2] = r[2]; m[5].append(r[4])
+        elif m and horizontal and m[4] and abs(m[0] - r[0]) < ux and abs(m[2] - r[2]) < ux and abs(m[3] - r[1]) < uy * 3:
+            m[3] = r[3]; m[5].append(r[4])
+        else:
+            shapes.append([r[0], r[1], r[2], r[3], horizontal, [r[4]]])
+
+    clips = []
+    for x0, y0, x1, y1, horizontal, olds in shapes:
+        r_px = 0.5 * min((x1 - x0) / ux, (y1 - y0) / uy) * 0.95
+        path = _round_path(x0, y0, x1, y1, r_px * ux, r_px * uy)
+        clips.append((x0, y0, x1, y1, PathPatch(path, transform=ax.transData)))
+        for o in olds:
+            o.set_visible(False)
+
+        # soft shadow
+        ax.add_patch(PathPatch(path, transform=ax.transData + __import__('matplotlib').transforms.ScaledTranslation(3 / fig.dpi, -3 / fig.dpi, fig.dpi_scale_trans),
+                               fc='#000000', ec='none', alpha=0.16, zorder=0.5))
+
+    def inside(cx, cy):
+        for c in clips:
+            if c[0] - ux <= cx <= c[2] + ux and c[1] - uy <= cy <= c[3] + uy:
+                return c
+        return None
+
+    for p in list(ax.patches):
+        if isinstance(p, Polygon):
+            xy = p.get_xy()
+            c = inside(float(np.mean(xy[:, 0])), float(np.mean(xy[:, 1])))
+            if c is None:
+                continue
+            p.set_edgecolor(p.get_facecolor())
+            p.set_linewidth(0.4)
+            p.set_clip_path(c[4])
+            p.set_zorder(2)
+    for col in ax.collections:
+        if isinstance(col, LineCollection):
+            segs = col.get_segments()
+            if not len(segs):
+                continue
+            s = np.asarray(segs[0])
+            c = inside(float(s[:, 0].mean()), float(s[:, 1].mean()))
+            if c is not None and s[:, 0].min() >= c[0] - ux and s[:, 0].max() <= c[2] + ux and s[:, 1].min() >= c[1] - uy and s[:, 1].max() <= c[3] + uy:
+                col.set_clip_path(c[4])
+
+    # cylinder shading + outline
+    for (x0, y0, x1, y1, clip), (_a, _b, _c, _d, horizontal, _o) in zip(clips, shapes):
+        t = np.linspace(0, 1, 96)
+        light = 0.55 * np.exp(-((t - 0.30) / 0.13) ** 2)
+        dark = 0.30 * (np.abs(t - 0.5) * 2) ** 3
+        for rgb, alpha in (((1, 1, 1), light), ((0, 0, 0), dark)):
+            img = np.zeros((96, 1, 4))
+            img[:, 0, :3] = rgb
+            img[:, 0, 3] = alpha
+            if not horizontal:
+                img = img.transpose(1, 0, 2)
+            im = ax.imshow(img, extent=(x0, x1, y1, y0), aspect='auto', zorder=3, interpolation='bilinear')
+            im.set_clip_path(clip)
+        ax.add_patch(PathPatch(clip.get_path(), transform=ax.transData, fc='none', ec=_INK, lw=1.6, zorder=12))
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    # swatches of the legend, labels, axis
+    for p in ax.patches:
+        if isinstance(p, Rectangle) and p.get_visible() and (p.get_fill() or p.get_edgecolor()[:3] == (0, 0, 0)) and max(p.get_width() / ux, p.get_height() / uy) < 120:
+            if p.get_fill():
+                p.set_edgecolor(_INK)
+                p.set_linewidth(0.9)
+    for t in ax.texts:
+        if t.get_fontsize() >= 20:
+            t.set_fontweight('bold')
+            t.set_color(_INK)
+    if not shapes[0][4]:
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(True, color='#e3ece6', lw=1.0)
+        ax.spines['left'].set_color(_INK)
+        ax.tick_params(colors=_INK)
+
+
+def legend_step():
+    # TerraTools change: the horizontal legend of the zoomed view put its entries 3 legend widths apart, enough for the
+    # words REF / ALT / HET / MISSING; longer names need more room.
+    return max(3, 1.5 + 0.185 * (max(len(v) for v in LEGEND_LABELS.values()) + 1))
+
+def raise_genotype_error():
+    print("""
+Your input file includes inappropriate genotype(s).
+The following genotypes can’t analyze in the current version of GenoSee.
+=======================================================
+1. Polyploid genotypes (e.g. 0/0/0/1, 1/1/1/1 …)
+2. Multi-allelic genotypes (e.g. 0/2, 1/3 …)
+=======================================================
+""")
+    sys.exit(1)
+
+def format_func(value, tick_number):
+    return f"{int(value/1000000)}"
+
+def add_legend(ax, fill, Color_mode, color_dict, chr_width, chr_interval, max_chr_length, left):
+    if fill == 'on':
+        if Color_mode == '2-color':
+            for i, geno in enumerate(['0', '1', '.']):   
+            
+                legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['MISSING']]
+
+                legend_width = chr_width*2
+                legend_height = max_chr_length*0.03 
+
+                x0 = left + chr_width*4 + chr_interval
+                x1 = x0 + legend_width
+                y0 = legend_height * (3 * i + 1)/2
+                y1 = y0 + legend_height
+
+                ax.add_patch(
+                            patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fc=color_dict[geno])
+                        )
+                ax.text(x1, (y0+y1)/2, legend_category[i], size=12, horizontalalignment='left', verticalalignment='center')
+
+        if Color_mode == '3-color':
+            for i, geno in enumerate(['0', '1', '0|1', '.']):   
+            
+                legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['HET'], ' ' + LEGEND_LABELS['MISSING']]
+
+                legend_width = chr_width*2
+                legend_height = max_chr_length*0.03 
+
+                x0 = left + chr_width*4 + chr_interval
+                x1 = x0 + legend_width
+                y0 = legend_height * (3 * i + 1)/2
+                y1 = y0 + legend_height
+
+                ax.add_patch(
+                            patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fc=color_dict[geno])
+                        )
+                ax.text(x1, (y0+y1)/2, legend_category[i], size=12, horizontalalignment='left', verticalalignment='center')
+
+    if fill == 'off':
+        if Color_mode == '2-color':
+            for i, geno in enumerate(['0', '1', '.']):   
+            
+                legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['MISSING']]
+
+                legend_width = chr_width*2
+                legend_height = max_chr_length*0.03 
+
+                x0 = left + chr_width*4 + chr_interval
+                x1 = x0 + legend_width
+                y0 = legend_height * (3 * i + 1)/2
+                y1 = y0 + legend_height
+
+                ax.add_patch(
+                            patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fill=False)
+                        )
+                ax.text(x1, (y0+y1)/2, legend_category[i], size=12, horizontalalignment='left', verticalalignment='center')
+                ax.hlines((y0+y1)/2, x0, x1, colors=color_dict[geno], lw=5)
+                
+        if Color_mode == '3-color':
+            for i, geno in enumerate(['0', '1', '0|1', '.']):   
+            
+                legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['HET'], ' ' + LEGEND_LABELS['MISSING']]
+
+                legend_width = chr_width*2
+                legend_height = max_chr_length*0.03 
+
+                x0 = left + chr_width*4 + chr_interval
+                x1 = x0 + legend_width
+                y0 = legend_height * (3 * i + 1)/2
+                y1 = y0 + legend_height
+
+                ax.add_patch(
+                            patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fill=False)
+                        )
+                ax.text(x1, (y0+y1)/2, legend_category[i], size=12, horizontalalignment='left', verticalalignment='center')
+                ax.hlines((y0+y1)/2, x0, x1, colors=color_dict[geno], lw=5)
+
+def add_legend2(ax, Color_mode, color_dict, chr_width, chr_interval, max_chr_length, left, start_pos):
+
+    if Color_mode == '2-color':
+        for i, geno in enumerate(['0', '1', '.']):   
+        
+            legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['MISSING']]
+
+            legend_height = chr_width*2
+            legend_width = max_chr_length*0.03
+
+            y0 = left + chr_width*4 + chr_interval
+            y1 = y0 + legend_height
+        
+            x0 = start_pos + legend_width * legend_step() * i
+            x1 = x0 + legend_width
+
+            ax.add_patch(
+                        patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fc=color_dict[geno])
+                    )
+            ax.text(x1, (y0+y1)/2, legend_category[i], size=20, horizontalalignment='left', verticalalignment='center')
+
+    if Color_mode == '3-color':
+        for i, geno in enumerate(['0', '1', '0|1', '.']):   
+        
+            legend_category = [' ' + LEGEND_LABELS['REF'], ' ' + LEGEND_LABELS['ALT'], ' ' + LEGEND_LABELS['HET'], ' ' + LEGEND_LABELS['MISSING']]
+
+            legend_height = chr_width*2
+            legend_width = max_chr_length*0.03 
+
+            y0 = left + chr_width*4 + chr_interval
+            y1 = y0 + legend_height
+
+            x0 = start_pos + legend_width * legend_step() * i
+            x1 = x0 + legend_width
+
+            ax.add_patch(
+                        patches.Rectangle(xy=(x0, y0), width=legend_width, height=legend_height, ec='black', fc=color_dict[geno])
+                    )
+            ax.text(x1, (y0+y1)/2, legend_category[i], size=20, horizontalalignment='left', verticalalignment='center')
+
+
+def create_normal_plot(data, chrs_dict, color_dict, Color_mode, fill, display_marker_names, sample_name, column_number, output_path, dpi, pdf):
+
+    #########################################
+    chr_width = 0.03
+    chr_interval = 0.26
+    pos_offset = 10 ** 5
+    fig_size_h = 18
+    fig_size_w = len(chrs_dict)*(chr_width + chr_interval)*10
+    chr_text_size = 24
+    sample_name_text_size = 24
+    Mb_text_size = 20
+    marker_name_text_size = 9
+    #########################################
+
+    fig, ax = plt.figure(facecolor='white', figsize=(fig_size_w, fig_size_h)), plt.axes()
+    plt.rcParams['font.family']='DejaVu Sans'
+    plt.subplots_adjust(left=0.2, right=0.8, top=0.8, bottom=0.2)
+    max_chr_length = max(chrs_dict.values())
+
+
+    ax.get_yaxis().set_major_formatter(FuncFormatter(format_func))
+    ax.tick_params(labelsize=20)
+    ax.set_ylim(0, round_up_second_digit(max_chr_length))
+    ax.invert_yaxis()
+    ax.spines['left'].set_position(('data', 0))
+    ax.spines["top"].set_visible(False)
+    ax.spines["left"].set_linewidth(2.5)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.tick_params(direction="out", length=8, width=2.5, bottom=False, labelbottom=False)
+    ax.text(0, 0, ' (Mb)', size=Mb_text_size, horizontalalignment='left')
+    ax.text(0, -max_chr_length*0.1, f'{sample_name}', size=sample_name_text_size)
+
+    left = 0
+
+    if fill == 'on':
+
+        mode = 'filled'
+
+        for chr_id, chr_length in chrs_dict.items():
+            marker_names = data.loc[data['chr']==chr_id, 'marker_name'].values
+            positions = data.loc[data['chr']==chr_id, 'pos'].values
+            genotypes = data[data['chr']==chr_id].iloc[:, column_number].values
+
+            left += chr_interval + chr_width * 2
+            right = left + chr_width * 2
+
+            if Color_mode == '3-color':
+                for i in tqdm(range(len(marker_names)), desc=chr_id, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', ncols=60):
+                    if i == range(len(marker_names))[-1]:pass
+                    else:
+                        current_marker_name = marker_names[i]
+                        next_marker_name = marker_names[i + 1]
+                        current_pos = positions[i]
+                        next_pos = positions[i + 1]
+
+                        genotypes[i] = genotypes[i].replace('A', '0|0')
+                        genotypes[i] = genotypes[i].replace('B', '1|1')
+                        genotypes[i] = genotypes[i].replace('H', '0|1')
+                        genotypes[i] = genotypes[i].replace('.|.', 'N')
+                        genotypes[i] = genotypes[i].replace('./.', 'N')
+                        genotypes[i] = genotypes[i].replace('.', 'N')
+                        genotypes[i] = genotypes[i].replace('N', '.|.')
+                        genotypes[i] = genotypes[i].replace('/', '|')
+
+                        genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                        genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                        genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                        genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                        genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                        current_geno = genotypes[i].replace('1|0', '0|1')
+                        next_geno = genotypes[i + 1].replace('1|0', '0|1')
+
+                        #check genotype 
+                        if current_geno not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                            raise_genotype_error()
+                            print(current_geno)
+
+
+                        if i == 0:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, 0),
+                                        (left, positions[i]),
+                                        (right, positions[i]),
+                                        (right, 0),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+
+                        if i == range(len(marker_names))[-2]:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, chr_length),
+                                        (left, positions[i]),
+                                        (right, positions[i]),
+                                        (right, chr_length),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno],
+                                    ec='black',
+                                )
+                            )
+
+                        if current_geno == next_geno:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, current_pos),
+                                        (left, next_pos),
+                                        (right, next_pos),
+                                        (right, current_pos),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, (current_pos + next_pos) / 2 + pos_offset),
+                                        (left, current_pos),
+                                        (right, current_pos),
+                                        (right, (current_pos + next_pos) / 2 - pos_offset),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, (current_pos + next_pos) / 2 + pos_offset),
+                                        (left, next_pos),
+                                        (right, next_pos),
+                                        (right, (current_pos + next_pos) / 2 - pos_offset),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno],
+                                    ec='black',
+                                )
+                            )
+
+            elif Color_mode == '2-color':
+                for i in tqdm(range(len(marker_names)), desc=chr_id, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', ncols=60):
+                    if i == range(len(marker_names))[-1]:pass
+                        
+                    else:
+                        current_marker_name = marker_names[i]
+                        next_marker_name = marker_names[i + 1]
+
+                        current_pos = positions[i]
+                        next_pos = positions[i + 1]
+
+                        genotypes[i] = genotypes[i].replace('A', '0|0')
+                        genotypes[i] = genotypes[i].replace('B', '1|1')
+                        genotypes[i] = genotypes[i].replace('H', '0|1')
+                        genotypes[i] = genotypes[i].replace('.|.', 'N')
+                        genotypes[i] = genotypes[i].replace('./.', 'N')
+                        genotypes[i] = genotypes[i].replace('.', 'N')
+                        genotypes[i] = genotypes[i].replace('N', '.|.')
+                        genotypes[i] = genotypes[i].replace('/', '|')
+
+                        genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                        genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                        genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                        genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                        genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                        genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                        current_geno = genotypes[i]
+                        next_geno = genotypes[i + 1]
+
+                        if current_geno not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                            print(current_geno)
+                            raise_genotype_error()
+
+                        current_geno_left = current_geno.split('|')[0]
+                        current_geno_right = current_geno.split('|')[1]
+
+                        next_geno_left = next_geno.split('|')[0]
+                        next_geno_right = next_geno.split('|')[1]
+
+                        if i == 0:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, 0),
+                                        (left, positions[0]),
+                                        ((left + right) / 2, positions[0]),
+                                        ((left + right) / 2, 0),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((left + right) / 2, 0),
+                                        ((left + right) / 2, positions[0]),
+                                        (right, positions[0]),
+                                        (right, 0),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                        if i == range(len(marker_names))[-2]:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, chr_length),
+                                        (left, positions[-1]),
+                                        ((left + right) / 2, positions[-1]),
+                                        ((left + right) / 2, chr_length),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((left + right) / 2, chr_length),
+                                        ((left + right) / 2, positions[-1]),
+                                        (right, positions[-1]),
+                                        (right, chr_length),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                        if current_geno_left == next_geno_left:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, current_pos),
+                                        (left, next_pos),
+                                        ((left + right) / 2, next_pos),
+                                        ((left + right) / 2, current_pos),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, (current_pos + next_pos) / 2 + pos_offset),
+                                        (left, current_pos),
+                                        ((left + right) / 2, current_pos),
+                                        ((left + right) / 2, (current_pos + next_pos) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (left, (current_pos + next_pos) / 2 + pos_offset),
+                                        (left, next_pos),
+                                        ((left + right) / 2, next_pos),
+                                        ((left + right) / 2, (current_pos + next_pos) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_left],
+                                    ec='black',
+                                )
+                            )
+                        
+                        if current_geno_right == next_geno_right:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((left + right) / 2, current_pos),
+                                        ((left + right) / 2, next_pos),
+                                        (right, next_pos),
+                                        (right, current_pos),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((left + right) / 2, (current_pos + next_pos) / 2),
+                                        ((left + right) / 2, current_pos),
+                                        (right, current_pos),
+                                        (right, (current_pos + next_pos) / 2 - pos_offset),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((left + right) / 2, (current_pos + next_pos) / 2),
+                                        ((left + right) / 2, next_pos),
+                                        (right, next_pos),
+                                        (right, (current_pos + next_pos) / 2 - pos_offset),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+            ax.add_patch(
+                patches.Rectangle(xy=(left, 0), width=chr_width, height=chr_length, ec='black', fill=False)
+            )
+            ax.add_patch(
+                patches.Rectangle(xy=((left + right) / 2, 0), width=chr_width, height=chr_length, ec='black', fill=False)
+            )
+            ax.text((left + right) / 2, -max_chr_length*0.03, chr_id,  horizontalalignment="center", size=chr_text_size)
+
+
+
+            if display_marker_names == 'on':
+                last_position = -10 ** 8 
+                offset = 10**6 * (max_chr_length/(60 * 10**6))
+                for pos, marker_name in zip(positions, marker_names):
+                    y_pos = pos
+                    if pos - last_position < offset:
+                        pos = last_position + offset
+                    ax.hlines(y_pos, left - 0.02, right, colors='black', lw=1.2)
+                    ax.plot([right, right+0.02], [y_pos, pos], color='black', linestyle='-')
+                    ax.text(right + 0.03, pos, marker_name, fontsize=marker_name_text_size, verticalalignment="center")
+                    last_position = pos
+
+    if fill == 'off':
+
+        mode = 'lined'
+
+        for chr_id, chr_length in chrs_dict.items():
+            marker_names = data.loc[data['chr']==chr_id, 'marker_name'].values
+            positions = data.loc[data['chr']==chr_id, 'pos'].values
+            genotypes = data[data['chr']==chr_id].iloc[:, column_number].values
+
+            left += chr_interval + chr_width * 2
+            right = left + chr_width * 2
+
+            if Color_mode == '3-color':
+
+                for i in tqdm(range(len(marker_names)), desc=chr_id.capitalize(), bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', ncols=60):
+                    
+                    genotypes[i] = genotypes[i].replace('A', '0|0')
+                    genotypes[i] = genotypes[i].replace('B', '1|1')
+                    genotypes[i] = genotypes[i].replace('H', '0|1')
+                    genotypes[i] = genotypes[i].replace('.|.', 'N')
+                    genotypes[i] = genotypes[i].replace('./.', 'N')
+                    genotypes[i] = genotypes[i].replace('.', 'N')
+                    genotypes[i] = genotypes[i].replace('N', '.|.')
+                    genotypes[i] = genotypes[i].replace('/', '|')
+
+                    if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                            raise_genotype_error()
+
+                    if genotypes[i] == "0|1":
+                        ax.hlines(positions[i], left, right, colors=color_dict["0|1"], lw=3)
+
+                    elif genotypes[i] == "1|0":
+                        ax.hlines(positions[i], left, right, colors=color_dict["0|1"], lw=3)
+
+                    elif genotypes[i] == "0|0":
+                        ax.hlines(positions[i], left, right, colors=color_dict["0|0"], lw=3)
+
+                    elif genotypes[i] == "1|1":
+                        ax.hlines(positions[i], left, right, colors=color_dict["1|1"], lw=3)
+
+                    elif genotypes[i] == ".|.":
+                        ax.hlines(positions[i], left, right, colors=color_dict[".|."], lw=3)
+                    else:
+                        pass
+
+            elif Color_mode == '2-color':
+
+                for i in tqdm(range(len(marker_names)), desc=chr_id.capitalize(), bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', ncols=60):
+
+                    genotypes[i] = genotypes[i].replace('A', '0|0')
+                    genotypes[i] = genotypes[i].replace('B', '1|1')
+                    genotypes[i] = genotypes[i].replace('H', '0|1')
+                    genotypes[i] = genotypes[i].replace('.|.', 'N')
+                    genotypes[i] = genotypes[i].replace('./.', 'N')
+                    genotypes[i] = genotypes[i].replace('.', 'N')
+                    genotypes[i] = genotypes[i].replace('N', '.|.')
+                    genotypes[i] = genotypes[i].replace('/', '|')
+
+                    if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                        raise_genotype_error()
+
+                    if genotypes[i] == "0|1":
+                        ax.hlines(positions[i], left, (left + right)/2, colors=color_dict["0|0"], lw=3)
+                        ax.hlines(positions[i], (left + right)/2, right, colors=color_dict["1|1"], lw=3)
+                    
+                    if genotypes[i] == "1|0":
+                        ax.hlines(positions[i], left, (left + right)/2, colors=color_dict["1|1"], lw=3)
+                        ax.hlines(positions[i], (left + right)/2, right, colors=color_dict["0|0"], lw=3)
+
+                    elif genotypes[i] == "0|0":
+                        ax.hlines(positions[i], left, right, colors=color_dict["0|0"], lw=3)
+
+                    elif genotypes[i] == "1|1":
+                        ax.hlines(positions[i], left, right, colors=color_dict["1|1"], lw=3)
+
+                    elif genotypes[i] == ".|.":
+                        ax.hlines(positions[i], left, right, colors=color_dict[".|."], lw=3)
+
+                    else:
+                        pass 
+                    
+            ax.add_patch(
+                patches.Rectangle(xy=(left, 0), width=chr_width, height=chr_length, ec='black', fill=False, zorder=10)
+            )
+            ax.add_patch(
+                patches.Rectangle(xy=((left + right) / 2, 0), width=chr_width, height=chr_length, ec='black', fill=False, zorder=10)
+            )
+            ax.text((left + right) / 2, -max_chr_length*0.03, chr_id,  horizontalalignment="center", size=chr_text_size)
+
+            last_position = -10 ** 8 
+            offset = 10**6 * (max_chr_length/(60 * 10**6))
+
+            if display_marker_names == 'on':
+                for pos, marker_name in zip(positions, marker_names):
+                    y_pos = pos
+                    if pos - last_position < offset:
+                        pos = last_position + offset
+                    ax.hlines(y_pos, left - 0.02, right, colors='black', lw=1.2)
+                    ax.plot([right, right+0.02], [y_pos, pos], color='black', linestyle='-')
+                    ax.text(right + 0.03, pos, marker_name, fontsize=marker_name_text_size, verticalalignment="center")
+                    last_position = pos
+
+    add_legend(ax, fill, Color_mode, color_dict, chr_width, chr_interval, max_chr_length, left)
+    ax.set_xlim(0, left+chr_interval*2)
+    print('Saving image...💌')
+
+    if GRAPHIC: _beautify(fig, ax)
+
+    if pdf:
+        plt.savefig(f'{output_path}/{sample_name}_{mode}_{Color_mode}.pdf', bbox_inches='tight')
+
+    plt.savefig(f'{output_path}/{sample_name}_{mode}_{Color_mode}.png', dpi=dpi, bbox_inches='tight')
+    plt.clf()
+    plt.close()
+    
+def create_comparison_plot(data, chrs_dict, color_dict, Color_mode, fill, display_marker_names, output_path, dpi, pdf):
+
+    for chr_id, chr_length in chrs_dict.items():
+
+        print(f'Now, processing {chr_id}...')
+
+        sample_number = len(data.columns)
+
+        #######################################
+        chr_width = 0.02
+        chr_interval = 0.05
+        pos_offset = 10 ** 5
+        fig_size_h = 15
+        fig_size_w = sample_number
+        chr_text_size = 24
+        sample_name_text_size = 12
+        Mb_text_size = 20
+        marker_name_text_size = 8
+        left = 0.2
+        #######################################
+
+        fig, ax = plt.figure(facecolor='white', figsize=(fig_size_w, fig_size_h)), plt.axes()
+        plt.rcParams['font.family']='DejaVu Sans'
+        plt.subplots_adjust(left=0.3, right=0.8, top=0.8, bottom=0.2)
+        max_chr_length = max(chrs_dict.values())
+
+        ax.get_yaxis().set_major_formatter(FuncFormatter(format_func))
+        ax.tick_params(labelsize=16)
+        ax.set_ylim(0,round_up_second_digit(max_chr_length))
+        ax.invert_yaxis()
+        ax.spines['left'].set_position(('data', 0))
+        ax.spines["top"].set_visible(False)
+        ax.spines["left"].set_linewidth(1.5)
+        ax.spines["bottom"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.tick_params(direction="out", length=8, width=1.5, bottom=False, labelbottom=False)
+        ax.text(0, 0, ' (Mb)', size=Mb_text_size, horizontalalignment='left')
+
+        for column_number in tqdm(range(3, len(data.columns)),desc="", bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} samples', ncols=60):
+
+            sample_name = data.columns[column_number]
+            marker_names = data.loc[data['chr']==chr_id, 'marker_name'].values
+            positions = data.loc[data['chr']==chr_id, 'pos'].values
+            genotypes = data[data['chr']==chr_id].iloc[:, column_number].values
+
+            left += chr_interval + chr_width * 2
+            right = left + chr_width * 2
+
+            if column_number == 3:
+
+                last_position = -10 ** 8 
+                offset = 10**6 * (max_chr_length/(60 * 10**6))
+
+                if display_marker_names == 'on':
+                    for pos, marker_name in zip(positions, marker_names):
+                        y_pos = pos
+                        if pos - last_position < offset:
+                            pos = last_position + offset
+                        if GUIDE_LINES:
+                            ax.hlines(y_pos, left, left + (chr_width*2 + chr_interval) * len(range(3, len(data.columns))) - chr_interval, colors='black', linestyle='dashed', lw=1.2) 
+                        ax.plot([left, left-0.01], [y_pos, pos], color='black', linestyle='-')
+                        ax.text(left-0.02, pos, marker_name, fontsize=marker_name_text_size, verticalalignment="center", horizontalalignment="right")
+                        last_position = pos
+
+            if fill == 'on':
+
+                if Color_mode == '3-color':
+                    for i in range(len(marker_names)):
+                        if i == range(len(marker_names))[-1]:pass
+                        else:
+                            current_marker_name = marker_names[i]
+                            next_marker_name = marker_names[i + 1]
+                            current_pos = positions[i]
+                            next_pos = positions[i + 1]
+
+                            genotypes[i] = genotypes[i].replace('A', '0|0')
+                            genotypes[i] = genotypes[i].replace('B', '1|1')
+                            genotypes[i] = genotypes[i].replace('H', '0|1')
+                            genotypes[i] = genotypes[i].replace('.|.', 'N')
+                            genotypes[i] = genotypes[i].replace('./.', 'N')
+                            genotypes[i] = genotypes[i].replace('.', 'N')
+                            genotypes[i] = genotypes[i].replace('N', '.|.')
+                            genotypes[i] = genotypes[i].replace('/', '|')
+
+                            genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                            genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                            genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                            genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                            genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                            current_geno = genotypes[i].replace('1|0', '0|1')
+                            next_geno = genotypes[i + 1].replace('1|0', '0|1')
+
+                            if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                                raise_genotype_error()
+
+                            if i == 0:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, 0),
+                                            (left, positions[i]),
+                                            (right, positions[i]),
+                                            (right, 0),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno],
+                                        ec='black',
+                                    )
+                                )
+
+                            if i == range(len(marker_names))[-2]:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, chr_length),
+                                            (left, positions[i]),
+                                            (right, positions[i]),
+                                            (right, chr_length),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno],
+                                        ec='black',
+                                    )
+                                )
+
+                            if current_geno == next_geno:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, current_pos),
+                                            (left, next_pos),
+                                            (right, next_pos),
+                                            (right, current_pos),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno],
+                                        ec='black',
+                                    )
+                                )
+                            else:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, (current_pos + next_pos) / 2 + pos_offset),
+                                            (left, current_pos),
+                                            (right, current_pos),
+                                            (right, (current_pos + next_pos) / 2 - pos_offset),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno],
+                                        ec='black',
+                                    )
+                                )
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, (current_pos + next_pos) / 2 + pos_offset),
+                                            (left, next_pos),
+                                            (right, next_pos),
+                                            (right, (current_pos + next_pos) / 2 - pos_offset),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno],
+                                        ec='black',
+                                    )
+                                )
+
+                elif Color_mode == '2-color':
+                    for i in range(len(marker_names)):
+                        if i == range(len(marker_names))[-1]:pass
+                            
+                        else:
+                            current_marker_name = marker_names[i]
+                            next_marker_name = marker_names[i + 1]
+
+                            current_pos = positions[i]
+                            next_pos = positions[i + 1]
+
+                            genotypes[i] = genotypes[i].replace('A', '0|0')
+                            genotypes[i] = genotypes[i].replace('B', '1|1')
+                            genotypes[i] = genotypes[i].replace('H', '0|1')
+                            genotypes[i] = genotypes[i].replace('.|.', 'N')
+                            genotypes[i] = genotypes[i].replace('./.', 'N')
+                            genotypes[i] = genotypes[i].replace('.', 'N')
+                            genotypes[i] = genotypes[i].replace('N', '.|.')
+                            genotypes[i] = genotypes[i].replace('/', '|')
+
+                            genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                            genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                            genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                            genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                            genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                            genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                            current_geno = genotypes[i]
+                            next_geno = genotypes[i + 1]
+
+                            if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                                raise_genotype_error()
+
+                            current_geno_left = current_geno.split('|')[0]
+                            current_geno_right = current_geno.split('|')[1]
+
+                            next_geno_left = next_geno.split('|')[0]
+                            next_geno_right = next_geno.split('|')[1]
+
+                            if i == 0:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, 0),
+                                            (left, positions[0]),
+                                            ((left + right) / 2, positions[0]),
+                                            ((left + right) / 2, 0),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_left],
+                                        ec='black',
+                                    )
+                                )
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            ((left + right) / 2, 0),
+                                            ((left + right) / 2, positions[0]),
+                                            (right, positions[0]),
+                                            (right, 0),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_right],
+                                        ec='black',
+                                    )
+                                )
+
+                            if i == range(len(marker_names))[-2]:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, chr_length),
+                                            (left, positions[-1]),
+                                            ((left + right) / 2, positions[-1]),
+                                            ((left + right) / 2, chr_length),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno_left],
+                                        ec='black',
+                                    )
+                                )
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            ((left + right) / 2, chr_length),
+                                            ((left + right) / 2, positions[-1]),
+                                            (right, positions[-1]),
+                                            (right, chr_length),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno_right],
+                                        ec='black',
+                                    )
+                                )
+
+                            if current_geno_left == next_geno_left:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, current_pos),
+                                            (left, next_pos),
+                                            ((left + right) / 2, next_pos),
+                                            ((left + right) / 2, current_pos),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_left],
+                                        ec='black',
+                                    )
+                                )
+
+                            else:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, (current_pos + next_pos) / 2 + pos_offset),
+                                            (left, current_pos),
+                                            ((left + right) / 2, current_pos),
+                                            ((left + right) / 2, (current_pos + next_pos) / 2),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_left],
+                                        ec='black',
+                                    )
+                                )
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            (left, (current_pos + next_pos) / 2 + pos_offset),
+                                            (left, next_pos),
+                                            ((left + right) / 2, next_pos),
+                                            ((left + right) / 2, (current_pos + next_pos) / 2),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno_left],
+                                        ec='black',
+                                    )
+                                )
+                            
+                            if current_geno_right == next_geno_right:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            ((left + right) / 2, current_pos),
+                                            ((left + right) / 2, next_pos),
+                                            (right, next_pos),
+                                            (right, current_pos),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_right],
+                                        ec='black',
+                                    )
+                                )
+
+                            else:
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            ((left + right) / 2, (current_pos + next_pos) / 2),
+                                            ((left + right) / 2, current_pos),
+                                            (right, current_pos),
+                                            (right, (current_pos + next_pos) / 2 - pos_offset),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[current_geno_right],
+                                        ec='black',
+                                    )
+                                )
+                                ax.add_patch(
+                                    patches.Polygon(
+                                        [
+                                            ((left + right) / 2, (current_pos + next_pos) / 2),
+                                            ((left + right) / 2, next_pos),
+                                            (right, next_pos),
+                                            (right, (current_pos + next_pos) / 2 - pos_offset),
+                                        ],
+                                        closed=True,
+                                        fc=color_dict[next_geno_right],
+                                        ec='black',
+                                    )
+                                )
+                            
+                ax.add_patch(
+                    patches.Rectangle(xy=(left, 0), width=chr_width, height=chr_length, ec='black', fill=False)
+                )
+                ax.add_patch(
+                    patches.Rectangle(xy=((left + right) / 2, 0), width=chr_width, height=chr_length, ec='black', fill=False)
+                )
+                ax.text((left + right) / 2,  -max_chr_length*0.03, sample_name,  horizontalalignment="center", size=sample_name_text_size, rotation=90)
+
+
+
+            if fill == 'off':
+                if Color_mode == '3-color':
+
+                    for i in range(len(marker_names)):
+                        
+                        genotypes[i] = genotypes[i].replace('A', '0|0')
+                        genotypes[i] = genotypes[i].replace('B', '1|1')
+                        genotypes[i] = genotypes[i].replace('H', '0|1')
+                        genotypes[i] = genotypes[i].replace('.|.', 'N')
+                        genotypes[i] = genotypes[i].replace('./.', 'N')
+                        genotypes[i] = genotypes[i].replace('.', 'N')
+                        genotypes[i] = genotypes[i].replace('N', '.|.')
+                        genotypes[i] = genotypes[i].replace('/', '|')
+
+                        if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                            raise_genotype_error()
+
+                        if genotypes[i] == "0|1":
+                            ax.hlines(positions[i], left, right, colors=color_dict["0|1"], lw=3)
+
+                        elif genotypes[i] == "1|0":
+                            ax.hlines(positions[i], left, right, colors=color_dict["0|1"], lw=3)
+
+                        elif genotypes[i] == "0|0":
+                            ax.hlines(positions[i], left, right, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "1|1":
+                            ax.hlines(positions[i], left, right, colors=color_dict["1"], lw=3)
+
+                        elif genotypes[i] == ".|.":
+                            ax.hlines(positions[i], left, right, colors=color_dict["."], lw=3)
+
+                        else:
+                            pass
+
+                elif Color_mode == '2-color':
+
+                    for i in range(len(marker_names)):
+
+                        genotypes[i] = genotypes[i].replace('A', '0|0')
+                        genotypes[i] = genotypes[i].replace('B', '1|1')
+                        genotypes[i] = genotypes[i].replace('H', '0|1')
+                        genotypes[i] = genotypes[i].replace('.|.', 'N')
+                        genotypes[i] = genotypes[i].replace('./.', 'N')
+                        genotypes[i] = genotypes[i].replace('.', 'N')
+                        genotypes[i] = genotypes[i].replace('N', '.|.')
+                        genotypes[i] = genotypes[i].replace('/', '|')
+
+                        if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                            raise_genotype_error()
+
+                        if genotypes[i] == "0|1":
+                            ax.hlines(positions[i], left, (left + right)/2, colors=color_dict["0"], lw=3)
+                            ax.hlines(positions[i], (left + right)/2, right, colors=color_dict["1"], lw=3)
+                        
+                        elif genotypes[i] == "1|0":
+                            ax.hlines(positions[i], left, (left + right)/2, colors=color_dict["1"], lw=3)
+                            ax.hlines(positions[i], (left + right)/2, right, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "0|0":
+                            ax.hlines(positions[i], left, right, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "1|1":
+                            ax.hlines(positions[i], left, right, colors=color_dict["1"], lw=3)
+
+                        elif genotypes[i] == ".|.":
+                            ax.hlines(positions[i], left, right, colors=color_dict["."], lw=3)
+
+                        else:
+                            pass 
+                        
+                ax.add_patch(
+                    patches.Rectangle(xy=(left, 0), width=chr_width, height=chr_length, ec='black', fill=False, zorder=10)
+                )
+                ax.add_patch(
+                    patches.Rectangle(xy=((left + right) / 2, 0), width=chr_width, height=chr_length, ec='black', fill=False, zorder=10)
+                )
+                ax.text((left + right) / 2, -max_chr_length*0.03, sample_name,  horizontalalignment="center", size=sample_name_text_size, rotation=90)
+        add_legend(ax, fill, Color_mode, color_dict, chr_width, chr_interval, max_chr_length, left)
+        print('Saving image...💌')
+        ax.set_xlim(0, left+chr_interval*4)
+
+        if GRAPHIC: _beautify(fig, ax)
+
+        if pdf:
+            plt.savefig(f'{output_path}/{chr_id}_comparison_plot_{Color_mode}.pdf', bbox_inches='tight')
+
+        plt.savefig(f'{output_path}/{chr_id}_comparison_plot_{Color_mode}.png', dpi=dpi, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+
+
+def create_zoomed_plot(data, chrs_dict, color_dict, Color_mode, fill, display_marker_names, chr_id, start_pos, end_pos, output_path, dpi, pdf):
+
+    ########################
+    width = 0.01
+    interval = 0.03
+    bottom = 0.08
+    pos_offset = 10 ** 4
+    ########################
+
+    chr_length = end_pos
+
+    data = data[(data['chr'] == chr_id) & (data['pos'] >= start_pos) & (data['pos'] <= end_pos)]
+    sample_numbers = len(data.columns) - 3
+    
+    fig, ax = plt.figure(facecolor='white', figsize=(40,sample_numbers*5)), plt.axes()
+    plt.rcParams['font.family']='DejaVu Sans'
+    ax.spines['left'].set_position(('data', 0))
+
+    def comma_formatter(x, pos):
+        return '{:,.0f}'.format(x)
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(comma_formatter))
+    ax.invert_yaxis()
+    ax.xaxis.tick_top()
+    ax.tick_params(labelsize=20)
+    ax.set_xlim(start_pos, end_pos)
+    ax.set_ylim(sample_numbers/5, 0)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["top"].set_linewidth(3)
+    ax.spines["right"].set_visible(False)
+    ax.tick_params(direction="out", length=8, width=3, left=False, labelleft=False)
+    ax.text(start_pos, 0, '(bp)  ', verticalalignment="top", horizontalalignment='right', size=24)
+
+    for column_number in tqdm(range(3, len(data.columns)), desc='', bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}', ncols=60):
+
+        sample_name = data.columns[column_number]
+        marker_names = data.loc[:,'marker_name'].values
+        positions = data.loc[:,'pos'].values
+        genotypes = data.iloc[:, column_number].values
+
+        bottom += interval + width * 2
+        top = bottom + width * 2
+
+        if column_number == 3:
+
+            last_position = -10 ** 8
+            offset = 10**6 * ((end_pos - start_pos)/(60 * 10**6))
+
+            if display_marker_names == 'on':
+
+                for pos, marker_name in zip(positions, marker_names):
+                    x_pos = pos
+                    if pos - last_position < offset:
+                        pos = last_position + offset
+
+                    if GUIDE_LINES:
+                        ax.vlines(x_pos, bottom, bottom + (width*2 + interval) * len(range(3, len(data.columns))) - interval, colors='black', linestyle='dashed', lw=1.2)
+                    ax.plot([pos, x_pos], [bottom-0.02, bottom], color='black', linestyle='-')
+                    ax.text(pos, bottom - 0.03, marker_name, fontsize=18, verticalalignment="bottom", horizontalalignment="left", rotation=45)
+
+                    last_position = pos
+
+        if Color_mode == '3-color':
+        
+            for i in range(len(marker_names)):
+                if i == range(len(marker_names))[-1]: pass
+                else:
+                    current_marker_name = marker_names[i]
+                    next_marker_name = marker_names[i + 1]
+                    current_pos = positions[i]
+                    next_pos = positions[i + 1]
+                    
+                    genotypes[i] = genotypes[i].replace('A', '0|0')
+                    genotypes[i] = genotypes[i].replace('B', '1|1')
+                    genotypes[i] = genotypes[i].replace('H', '0|1')
+                    genotypes[i] = genotypes[i].replace('.|.', 'N')
+                    genotypes[i] = genotypes[i].replace('./.', 'N')
+                    genotypes[i] = genotypes[i].replace('.', 'N')
+                    genotypes[i] = genotypes[i].replace('N', '.|.')
+                    genotypes[i] = genotypes[i].replace('/', '|')
+
+                    genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                    genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                    genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                    genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                    genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                    current_geno = genotypes[i].replace('1|0', '0|1')
+                    next_geno = genotypes[i + 1].replace('1|0', '0|1')
+
+                    if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                        raise_genotype_error()
+
+                    
+                    if fill == 'on':
+                        if i == 0:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (0, bottom),
+                                        (current_pos, bottom),
+                                        (current_pos, top),
+                                        (0, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+
+                        if i == range(len(marker_names))[-2]:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (chr_length, bottom),
+                                        (current_pos, bottom),
+                                        (current_pos, top),
+                                        (chr_length, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno],
+                                    ec='black',
+                                )
+                            )
+
+                        if current_geno == next_geno:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (current_pos, bottom),
+                                        (next_pos, bottom),
+                                        (next_pos, top),
+                                        (current_pos, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2 + pos_offset, bottom),
+                                        (current_pos, bottom),
+                                        (current_pos, top),
+                                        ((current_pos + next_pos) / 2 - pos_offset, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2 + pos_offset, bottom),
+                                        (next_pos, bottom),
+                                        (next_pos, top),
+                                        ((current_pos + next_pos) / 2 - pos_offset, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno],
+                                    ec='black',
+                                )
+                            )
+                    if fill == 'off':
+                        if genotypes[i] == "0|1":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["0|1"], lw=3)
+
+                        elif genotypes[i] == "1|0":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["0|1"], lw=3)
+
+                        elif genotypes[i] == "0|0":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "1|1":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["1"], lw=3)
+
+                        elif genotypes[i] == ".|.":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["."], lw=3)
+
+                        else:
+                            pass
+
+        elif Color_mode == '2-color':
+            for i in range(len(marker_names)):
+                if i == range(len(marker_names))[-1]: pass
+                else:
+                    current_marker_name = marker_names[i]
+                    next_marker_name = marker_names[i + 1]
+
+                    current_pos = positions[i]
+                    next_pos = positions[i + 1]
+
+                    genotypes[i] = genotypes[i].replace('A', '0|0')
+                    genotypes[i] = genotypes[i].replace('B', '1|1')
+                    genotypes[i] = genotypes[i].replace('H', '0|1')
+                    genotypes[i] = genotypes[i].replace('.|.', 'N')
+                    genotypes[i] = genotypes[i].replace('./.', 'N')
+                    genotypes[i] = genotypes[i].replace('.', 'N')
+                    genotypes[i] = genotypes[i].replace('N', '.|.')
+                    genotypes[i] = genotypes[i].replace('/', '|')
+
+                    genotypes[i+1] = genotypes[i+1].replace('A', '0|0')
+                    genotypes[i+1] = genotypes[i+1].replace('B', '1|1')
+                    genotypes[i+1] = genotypes[i+1].replace('H', '0|1')
+                    genotypes[i+1] = genotypes[i+1].replace('.|.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('./.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('.', 'N')
+                    genotypes[i+1] = genotypes[i+1].replace('N', '.|.')
+                    genotypes[i+1] = genotypes[i+1].replace('/', '|')
+
+                    current_geno = genotypes[i]
+                    next_geno = genotypes[i + 1]
+
+                    if genotypes[i] not in ['0|0', '1|1', '0|1', '1|0', '.|.']:
+                        raise_genotype_error()
+
+                    current_geno_left = current_geno.split('|')[0]
+                    current_geno_right = current_geno.split('|')[1]
+
+                    next_geno_left = next_geno.split('|')[0]
+                    next_geno_right = next_geno.split('|')[1]
+
+                    if fill == 'on':
+
+                        if i == 0:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (0, bottom),
+                                        (positions[0], bottom),
+                                        (positions[0], (bottom + top) / 2),
+                                        (0, (bottom + top) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (0, (bottom + top) / 2),
+                                        (positions[0], (bottom + top) / 2),
+                                        (positions[0], top),
+                                        (0, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                        if i == range(len(marker_names))[-2]:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (chr_length, bottom),
+                                        (positions[-1], bottom),
+                                        (positions[-1], (bottom + top) / 2),
+                                        (chr_length, (bottom + top) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (chr_length, (bottom + top) / 2),
+                                        (positions[-1], (bottom + top) / 2),
+                                        (positions[-1], top),
+                                        (chr_length, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                        if current_geno_left == next_geno_left:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (current_pos, bottom),
+                                        (next_pos, bottom),
+                                        (next_pos, (bottom + top) / 2),
+                                        (current_pos, (bottom + top) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2 + pos_offset, bottom),
+                                        (current_pos, bottom),
+                                        (current_pos, (bottom + top) / 2),
+                                        ((current_pos + next_pos) / 2, (bottom + top) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_left],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2 + pos_offset, bottom),
+                                        (next_pos, bottom),
+                                        (next_pos, (bottom + top) / 2),
+                                        ((current_pos + next_pos) / 2, (bottom + top) / 2),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_left],
+                                    ec='black',
+                                )
+                            )
+
+                        if current_geno_right == next_geno_right:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        (current_pos, (bottom + top) / 2),
+                                        (next_pos, (bottom + top) / 2),
+                                        (next_pos, top),
+                                        (current_pos, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+                        else:
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2, (bottom + top) / 2),
+                                        (current_pos, (bottom + top) / 2),
+                                        (current_pos, top),
+                                        ((current_pos + next_pos) / 2 - pos_offset, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[current_geno_right],
+                                    ec='black',
+                                )
+                            )
+                            ax.add_patch(
+                                patches.Polygon(
+                                    [
+                                        ((current_pos + next_pos) / 2, (bottom + top) / 2),
+                                        (next_pos, (bottom + top) / 2),
+                                        (next_pos, top),
+                                        ((current_pos + next_pos) / 2 - pos_offset, top),
+                                    ],
+                                    closed=True,
+                                    fc=color_dict[next_geno_right],
+                                    ec='black',
+                                )
+                            )
+
+                    if fill == 'off':
+
+                        if genotypes[i] == "0|1":
+                            ax.vlines(current_pos, (bottom+top)/2, top, colors=color_dict["1"], lw=3)
+                            ax.vlines(current_pos, bottom, (bottom+top)/2, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "1|0":
+                            ax.vlines(current_pos, (bottom+top)/2, top, colors=color_dict["0"], lw=3)
+                            ax.vlines(current_pos, bottom, (bottom+top)/2, colors=color_dict["1"], lw=3)
+
+                        elif genotypes[i] == "0|0":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["0"], lw=3)
+
+                        elif genotypes[i] == "1|1":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["1"], lw=3)
+
+                        elif genotypes[i] == ".|.":
+                            ax.vlines(current_pos, bottom, top, colors=color_dict["."], lw=3)
+
+                        else:
+                            pass
+
+        ax.add_patch(
+            patches.Rectangle(xy=(0, bottom), width=chr_length, height=width, ec='black', fill=False)
+        )
+        ax.add_patch(
+            patches.Rectangle(xy=(0, (bottom + top) / 2), width=chr_length, height=width, ec='black', fill=False)
+        )
+        ax.text(start_pos, (bottom + top) / 2, f'{sample_name}  ', verticalalignment="center", horizontalalignment='right', size=24)
+
+    add_legend2(ax, Color_mode, color_dict, width, interval, end_pos-start_pos, bottom, start_pos)
+    print('Saving image...💌')
+
+    if GRAPHIC: _beautify(fig, ax)
+
+    if pdf:
+        plt.savefig(f'{output_path}/{chr_id}_{start_pos}_{end_pos}_{Color_mode}.pdf', bbox_inches='tight')
+        
+    plt.savefig(f'{output_path}/{chr_id}_{start_pos}_{end_pos}_{Color_mode}.png', dpi=dpi, bbox_inches='tight')

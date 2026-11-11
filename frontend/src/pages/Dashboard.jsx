@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Sprout, Layers, CircleCheck, Network, Microscope, Search, X, ArrowUpRight, Leaf, LoaderCircle } from 'lucide-react'
+import { Layers, CircleCheck, Network, Microscope, Search, X, ArrowUpRight, Leaf, LoaderCircle } from 'lucide-react'
 import { Tabs, StatCard } from '../components/kit.jsx'
 import { TOOLS, CATEGORIES, ALL_TAB } from '../lib/tools.js'
 import { useRunStates } from '../lib/runState.js'
+import logo from '../assets/terratools-logo.png'
 
 const ease = [0.22, 1, 0.36, 1]
 
@@ -73,7 +74,7 @@ export default function Dashboard({ navigate }) {
         ))}
         <div className="banner-content">
           <div className="logo-row">
-            <div className="logo-icon"><Sprout size={26} /></div>
+            <img className="home-logo" src={logo} alt="TerraTools" />
             <h1>TerraTools</h1>
           </div>
           <p className="subtitle">

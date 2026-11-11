@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, animate } from 'framer-motion'
 import {
   FolderOpen, FileText, Play, LoaderCircle, CircleCheck, TriangleAlert,
   Search, X, Maximize2, Sprout, Download, Info,
 } from 'lucide-react'
 import { toFileUrl } from '../lib/bridge.js'
+import { RouteContext } from '../lib/runState.js'
+import { useFiles } from '../lib/files.js'
+import { useRegisterImages, useRouteImages } from '../lib/imageRegistry.js'
 
 /* ───────────── Ambient background ───────────── */
 
@@ -278,13 +282,25 @@ export function SubTabs({ tabs, value, onChange, id = 'sub' }) {
 }
 
 /** Embedded local HTML/plotly file. */
-export function Frame({ src, height = 560, title }) {
+export function Frame({ src, height = 560, title, downloadName }) {
   const [loaded, setLoaded] = useState(false)
+  const ref = useRef(null)
+  // Interactive plotly pages listen for this message and download their own PNG
+  // (the system Save dialog then opens).
+  const downloadPng = () => ref.current && ref.current.contentWindow &&
+    ref.current.contentWindow.postMessage({ type: 'tt-download-png', name: downloadName }, '*')
   return (
-    <div className="frame-wrap" style={{ height }}>
-      {!loaded && <div className="frame-loading"><span className="spinner" /></div>}
-      <iframe title={title || 'plot'} src={toFileUrl(src)} onLoad={() => setLoaded(true)} style={{ opacity: loaded ? 1 : 0 }} />
-    </div>
+    <>
+      <div className="frame-wrap" style={{ height }}>
+        {!loaded && <div className="frame-loading"><span className="spinner" /></div>}
+        <iframe ref={ref} title={title || 'plot'} src={toFileUrl(src)} onLoad={() => setLoaded(true)} style={{ opacity: loaded ? 1 : 0 }} />
+      </div>
+      {downloadName && (
+        <div className="frame-actions">
+          <button className="btn btn-secondary sm" onClick={downloadPng} disabled={!loaded}><Download size={14} /> Download PNG</button>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -341,21 +357,17 @@ export function FileList({ files, onSave }) {
   )
 }
 
-/** One plot from an {html, png} pair: interactive iframe, or static image, with PNG download. */
-export function PlotSlot({ plot, name, title, onSave, height = 520 }) {
+/** One plot from an {html, png} pair: the PNG is shown whole in a card that opens a pop-up when clicked; the interactive page is the fallback. */
+export function PlotSlot({ plot, name, title, height = 520 }) {
   const html = plot && plot.html
   const png = plot && plot.png
+  const label = title || name
+  if (png) return <div className="plot-block"><ImageGallery single images={[{ src: png, label, pdf: plot.pdf }]} /></div>
   return (
     <div className="plot-block">
       {title && <div className="plot-title">{title}</div>}
       {html ? <Frame src={html} height={height} title={title || name} />
-        : png ? <div className="frame-wrap static"><img src={toFileUrl(png)} alt={title || name} /></div>
         : <div className="frame-wrap"><div className="empty-state" style={{ padding: 24 }}><Info size={28} /><div>Not available for this dataset.</div></div></div>}
-      {png && onSave && (
-        <button className="btn btn-secondary sm" style={{ marginTop: -8, marginBottom: 14 }} onClick={() => onSave(png, `${name}.png`)}>
-          <Download size={14} /> Download PNG
-        </button>
-      )}
     </div>
   )
 }
@@ -371,11 +383,20 @@ export function TableSlot({ rows, title, maxHeight = 340 }) {
 
 /** Standard tool window: header + tabs + panes + run bar. */
 export function ToolPage({ icon, title, subtitle, tabs, tab, setTab, id, children, run }) {
+  const route = useContext(RouteContext)
+  const { galleries, images } = useRouteImages(route)
+  const { saveImages } = useFiles()
   return (
     <div className="view-inner">
       <ToolHeader icon={icon} title={title} subtitle={subtitle} />
       <div className="panel on-mint">
         <Tabs tabs={tabs} value={tab} onChange={setTab} idPrefix={id} />
+        {galleries > 1 && images.length > 1 && (
+          <div className="imgbar">
+            <span><Download size={14} /> {images.length} images on this tab</span>
+            <button className="btn btn-secondary sm" onClick={() => saveImages(images)}>Download all as PNG</button>
+          </div>
+        )}
         <div className="tab-content">
           {children}
         </div>
@@ -496,9 +517,13 @@ export function DownloadButtons({ items, onSave }) {
   )
 }
 
-/** Grid (or single) of result images; click opens a lightbox. */
+/** Grid (or single) of result images. Every image has a Download PNG button; click opens it full size. */
 export function ImageGallery({ images, single = false }) {
   const [open, setOpen] = useState(null)
+  const route = useContext(RouteContext)
+  const id = useId()
+  const { saveImage, saveImages } = useFiles()
+  useRegisterImages(route, id, images)
   // Result files are often rewritten under the same path on every run.
   const stamp = useMemo(() => Date.now(), [images])
   const url = (p) => { const u = toFileUrl(p); return /^file:/.test(u) ? `${u}?t=${stamp}` : u }
@@ -511,18 +536,34 @@ export function ImageGallery({ images, single = false }) {
 
   return (
     <>
+      {images.length > 1 && (
+        <div className="gallery-bar">
+          <span>{images.length} images</span>
+          <button className="btn btn-secondary sm" onClick={() => saveImages(images)}><Download size={14} /> Download all as PNG</button>
+        </div>
+      )}
       <div className={single ? 'plot-single' : 'results-grid'}>
         {images.map((im, i) => (
-          <motion.button
-            key={im.label + i} className="result-card" onClick={() => setOpen(im)}
+          <motion.div
+            key={im.label + i} className="result-card"
             initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="img-wrap"><img src={url(im.src)} alt={im.label} /></div>
-            <div className="label">{im.label}<Maximize2 size={15} /></div>
-          </motion.button>
+            <button className="img-wrap" onClick={() => setOpen(im)} aria-label={`View ${im.label} full size`}>
+              <img src={url(im.src)} alt={im.label} />
+            </button>
+            <div className="label">
+              <span className="lbl-text">{im.label}</span>
+              <span className="card-actions">
+                <button className="btn btn-secondary sm" onClick={() => saveImage(im.src, im.label)}><Download size={14} /> Download PNG</button>
+                {im.pdf && <button className="btn btn-secondary sm" onClick={() => saveImage(im.pdf, `${im.label}.pdf`)} title="Vector PDF"><Download size={14} /> PDF</button>}
+                <button className="icon-btn" onClick={() => setOpen(im)} title="View full size" aria-label="View full size"><Maximize2 size={15} /></button>
+              </span>
+            </div>
+          </motion.div>
         ))}
       </div>
+      {createPortal(
       <AnimatePresence>
         {open && (
           <motion.div
@@ -531,15 +572,22 @@ export function ImageGallery({ images, single = false }) {
           >
             <button className="close" aria-label="Close"><X size={20} /></button>
             <motion.figure
+              onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
             >
               <img src={url(open.src)} alt={open.label} />
-              <figcaption>{open.label}</figcaption>
+              <figcaption>
+                {open.label}
+                <button className="btn btn-primary sm" onClick={() => saveImage(open.src, open.label)}><Download size={14} /> Download PNG</button>
+                {open.pdf && <button className="btn btn-primary sm" onClick={() => saveImage(open.pdf, `${open.label}.pdf`)}><Download size={14} /> PDF</button>}
+              </figcaption>
             </motion.figure>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body,
+      )}
     </>
   )
 }

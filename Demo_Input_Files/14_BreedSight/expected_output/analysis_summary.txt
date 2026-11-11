@@ -1,0 +1,39 @@
+Genomic Prediction Analysis Summary
+===================================
+
+EVALUATION PROTOCOL:
+- Early stopping / LR reduction use an inner split (15%) of each training fold;
+  the outer hold-out fold is only used for prediction and metrics
+- Baselines compared with BreedSight:
+    Lasso = Lasso(alpha=0.1) on the BreedSight feature space (fixed penalty)
+    GBLUP_1 = linear-kernel GRM + REML; RRBLUP_1 = ridge on all QC-passed markers + REML lambda
+- BreedSight uses GRM-derived features ([GRM, GRM^2] -> 50 PCs). RFE is NOT applied
+  (50 PCs <= rfe_n_features), so none is described as part of the method
+- Final (test) BreedSight uses the same hyperparameters as the CV runs
+- Identical outer folds for all models
+
+IMPROVED MODEL PARAMETERS:
+- epochs: 300
+- batch_size: 32
+- learning_rate: 0.001
+- l2_reg: 0.01
+- dropout_rate: 0.3
+- rf_n_estimators: 500
+- rf_max_depth: None
+- alpha: 0.5
+- fixed_epochs_final: 150
+
+DATA SUMMARY:
+Training samples: 400
+Testing samples: 120
+Markers: 1337
+
+MODEL PERFORMANCE SUMMARY:
+        Model  Avg_Train_R2  Avg_Val_R2  Std_Train_R2  Std_Val_R2  Avg_Train_MSE    Avg_Val_MSE  Avg_Train_RMSE  Avg_Val_RMSE  Avg_Train_Pearson_r  Avg_Val_Pearson_r  Std_Train_Pearson_r  Std_Val_Pearson_r  N_Folds
+0  BreedSight      0.696201    0.573528      0.003031    0.002863  475526.093019  667237.493163      689.402617    816.727462             0.981071           0.866803             0.000324           0.000517      2.0
+1       Lasso      0.651730    0.484771      0.046999    0.054544  542968.229362  803907.419887      736.566116    896.462355             0.807054           0.715853             0.029120           0.015172      2.0
+2    RRBLUP_1      0.700096    0.397702      0.015789    0.003680  469978.924657  942340.445411      685.055094    970.597725             0.852541           0.636216             0.010096           0.001686      2.0
+3     GBLUP_1      0.700096    0.397702      0.015789    0.003680  469978.843537  942340.456713      685.055033    970.597731             0.852541           0.636216             0.010096           0.001686      2.0
+
+RECOMMENDATION:
+Best performing model: BreedSight (Validation R²: 0.5735)

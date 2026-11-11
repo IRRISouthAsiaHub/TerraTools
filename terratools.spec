@@ -95,6 +95,8 @@ hidden_imports = [
     "Bio.SeqIO",
     "tqdm",
     "vcf",
+    # Genofile Converter writes its Excel workbook through pandas, which loads openpyxl only at run time
+    "openpyxl",
     # PySide6 WebEngine
     "PySide6.QtWebEngineWidgets",
     "PySide6.QtWebEngineCore",

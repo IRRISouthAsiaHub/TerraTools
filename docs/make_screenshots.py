@@ -102,10 +102,19 @@ def sc_insilico(a):
     yield from a.shot("insilico_result", title="In silico BSA — loci, regions and figures", height=2600, callouts=[
         dict(sel=".summary-grid", note="Lines, lines per pool, markers, loci, regions of all window sizes and the Gw threshold of the primary window."),
         card("Loci across the window sizes", "Regions of the three window sizes that overlap are one locus; the table says how many sizes found it and how far apart their peaks lie."),
+        card("ΔSNP-index peak regions (as in QTL-seq)", "Where the ΔSNP-index (high pool − low pool) lies outside the 99 % interval of random pools: the SNP-index of each pool at the peak, the sign of the difference and which pool carries the allele of the chosen parent."),
         card("Significant regions of every window size", "One row per region and window size: left, peak and right marker with their positions, adjusted p-value, LOD and the allele-frequency difference."),
         card("Candidate genes (separate step)", "Lists the genes of a GFF3 / GTF annotation that lie in a region, widened by a flank."),
-        card("Figures", "Gw along the genome for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."),
+        card("Figures", "The SNP-index of the high pool, of the low pool and the ΔSNP-index along the genome (first figure), then Gw for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."),
     ])
+    # the first figure of the run, as the manual shows it (written by the tool itself; here from the demo's expected output)
+    from PIL import Image
+    png = HERE.parent / "Demo_Input_Files" / "21_InSilico_BSA" / "expected_output" / "snp_index_tracks.png"
+    if png.exists():
+        im = Image.open(png).convert("RGB")
+        im = im.resize((a.width, int(im.height * a.width / im.width)), Image.LANCZOS)
+        im.save(a.out / "insilico_snpindex.jpg", quality=88, optimize=True)
+        a.manifest["insilico_snpindex"] = {"title": "In silico BSA — SNP-index of the high pool (A) and the low pool (B), ΔSNP-index with its intervals (C) and the strongest region (D)", "notes": []}
 
 
 # ───────────────────────── 1. Mendelian ─────────────────────────

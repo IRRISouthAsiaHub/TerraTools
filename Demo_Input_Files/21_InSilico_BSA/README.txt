@@ -14,12 +14,18 @@ EXPECT  3 loci, each found by all three window sizes (250 kb, 500 kb and 1 Mb); 
         R1 chr3 peak 13.7 Mb (adjusted p 0.001, LOD 10.0), R2 chr1 peak 6.7 Mb (LOD 7.8) - allele-frequency shifts, also found by G1 and the delta allele frequency;
         R3 chr2 peak 11.1 Mb (LOD 5.6) - the over-dominant locus: heterozygotes are 71 % of the high pool against 22 % of the low pool, with almost the same allele
         frequency in both pools. Only Gw finds it ("Also_significant_by_G1 = False"; see methods_compared.png).
+        SNP-index view (snp_index_tracks.png, the first figure; the SNP-index is the frequency of the parent 2 allele, ΔSNP-index = high pool - low pool, positive: the parent 2 allele goes with
+        the taller plants): 3 peak regions outside the 99 % interval of the permutations (snp_index_regions.csv). D1 chr3 6.2-19.9 Mb, peak chr3_13807692: SNP-index high 0.70, low 0.27, delta +0.43
+        (99 % limit 0.15); D2 chr1 0.1-11.7 Mb, peak chr1_5397659: delta +0.37; D3 chr3 3.1-5.2 Mb, delta +0.17 (barely outside the interval, no Gw region). The over-dominant locus on chr2 has NO
+        peak: its ΔSNP-index stays inside the intervals and only the blue hatched Gw band marks it.
         expected_output/loci_comparison.csv         one row per locus: span, peak, how many window sizes found it, length and p-value at each size
         expected_output/significant_regions.csv     one row per region and window size: left / peak / right marker, genotype classes at the peak, pattern, adjusted p-value
         expected_output/window_comparison.csv       the three window sizes side by side (threshold, windows tested, regions)
-        expected_output/marker_statistics.csv       G1, G2, Gw and the window values of every marker
-        expected_output/InSilico_BSA.xlsx           Summary, Settings, Window comparison, Loci, Regions, Thresholds, Windows, Pools, Markers; InSilico_BSA_all_files.zip holds everything
-        expected_output/*.png                       gw_windows_compared, loci_compared, methods_compared, genotypes_at_peaks, pools, permutation_null
+        expected_output/marker_statistics.csv       G1, G2, Gw, SNP_index_high, SNP_index_low, Delta_SNP_index and the window values of every marker
+        expected_output/snp_index_regions.csv       the ΔSNP-index peak regions: bounding and peak markers, SNP-index of both pools, delta, interval limit, direction
+        expected_output/snp_index_track.csv         the sliding-window SNP-index of the high pool, of the low pool, the delta and its 95 % / 99 % intervals along the genome
+        expected_output/InSilico_BSA.xlsx           Summary, Settings, Window comparison, Loci, Regions, SNP-index regions, SNP-index track, Thresholds, Windows, Pools, Markers; InSilico_BSA_all_files.zip holds everything
+        expected_output/*.png                       snp_index_tracks, gw_windows_compared, loci_compared, methods_compared, genotypes_at_peaks, pools, permutation_null
 
 NOTE    The permutations use a fixed seed, so the thresholds repeat. Real data differ: a very polygenic trait gives many regions, and in a RIL population
         (no heterozygous lines) Gw equals G1. Method: Li et al. 2022, Plant Communications 3:100319 (dQTG-seq).

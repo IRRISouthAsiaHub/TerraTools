@@ -27,12 +27,20 @@ calls (three genotype classes, two for a backcross); RIL and DH carry one allele
 missing and Gw = G1. The observed heterozygosity is checked against what the chosen population should show.
 
 Markers that cannot be scored (too few called lines in a pool) get no statistic (empty, never zero) and do not enter a window mean.
+
+SNP-index view (as in QTL-seq): the SNP-index of a pool is the frequency of the allele of the chosen parent (parent 2 by default) in that pool,
+so every marker has a SNP-index in the high pool and in the low pool, and Delta SNP-index = SNP-index(high pool) - SNP-index(low pool): positive
+when that parent's allele is more frequent in the high pool. The three tracks are averaged in a sliding window (the primary window size, moved in
+steps of a fifth of it). The confidence intervals of the Delta SNP-index come from the same permutations as the Gw threshold: at every position
+the 2.5 / 97.5 % (95 % interval) and the 0.5 / 99.5 % (99 % interval) quantiles of the smoothed Delta of random pools. Positions outside the 99 %
+interval form the Delta SNP-index peak regions.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -44,6 +52,12 @@ MAX_ROWS = 400
 MAX_PERMUTATIONS = 20000
 WINDOW_SIZES_KB = (250, 500, 1000)
 STATS = ("Gw", "G1", "dAF")
+SLIDE_STEPS = 5                     # sliding window = primary window, moved in steps of window / SLIDE_STEPS
+MAX_NULL_PERMUTATIONS = 2000        # permutations kept for the pointwise Delta SNP-index intervals
+SLIDE_MIN_MARKERS = 5               # the SNP-index window is widened until at least SLIDE_FILL of the windows hold this many markers ...
+SLIDE_FILL = 0.75
+SLIDE_MAX_KB = 10000.0              # ... but never beyond 10 Mb
+SLIDE_STEPS_KB = (250.0, 500.0, 750.0, 1000.0, 1500.0, 2000.0, 3000.0, 4000.0, 5000.0, 6000.0, 8000.0, 10000.0)
 STAT_LABEL = {"Gw": "Gw (alleles + genotypes)", "G1": "G1 (alleles only)", "dAF": "|Δ allele frequency|"}
 
 
@@ -242,9 +256,10 @@ def pool_stats(Z0, Z1, Z2, hi, lo, diploid: bool, min_calls: int):
     with np.errstate(divide="ignore", invalid="ignore"):
         gw = np.where(s > 0, (g1 * g1 + g2 * g2) / s, 0.0)
         tot_h, tot_l = Q[0].sum(axis=0), Q[1].sum(axis=0)
-        daf = np.where((tot_h > 0) & (tot_l > 0), np.abs(Q[0][1] / np.where(tot_h > 0, tot_h, 1) - Q[1][1] / np.where(tot_l > 0, tot_l, 1)), 0.0)
-    gw, g1, g2, daf = (np.where(ok, x, 0.0) for x in (gw, g1, g2, daf))
-    return {"Gw": gw, "G1": g1, "G2": g2, "dAF": daf, "n": n, "ok": ok}
+        sdaf = np.where((tot_h > 0) & (tot_l > 0), Q[0][1] / np.where(tot_h > 0, tot_h, 1) - Q[1][1] / np.where(tot_l > 0, tot_l, 1), 0.0)
+    daf = np.abs(sdaf)
+    gw, g1, g2, daf, sdaf = (np.where(ok, x, 0.0) for x in (gw, g1, g2, daf, sdaf))
+    return {"Gw": gw, "G1": g1, "G2": g2, "dAF": daf, "sdAF": sdaf, "n": n, "ok": ok}
 
 
 # ───────────────────────────── analysis ─────────────────────────────
@@ -305,6 +320,10 @@ def analyse(config: dict, log=print) -> dict:
         if het > 0.0:
             notes.append(f"{het * 100:.1f} % of the calls are heterozygous; they are treated as missing because the population is {pop['short']} "
                          "(one allele per line). Choose F2 / IMF2 or BC1 to use them.")
+    parent = int(config.get("snp_index_parent", 2) or 2)
+    if parent not in (1, 2):
+        raise BsaError("The SNP-index can show the allele of parent 1 or of parent 2.")
+    sgn = 1.0 if parent == 2 else -1.0          # allele frequencies are kept for parent 2 (code 2); parent 1 is their complement
     # ----- markers -----
     min_calls = int(config.get("min_calls", 5))
     pf = float(config.get("pool_fraction", 0.2))
@@ -365,10 +384,27 @@ def analyse(config: dict, log=print) -> dict:
     min_wm = {lab: w["min_markers"] for lab, w in wins.items()}
     primary = window_label(primary_kb)
 
+    # ----- sliding SNP-index grid (the primary window size, moved in steps of a fifth of it) -----
+    # a sparse or clustered map (a few markers per Mb) would give a jagged, broken line: widen the window until it holds enough markers
+    snp_kb = primary_kb
+    for cand in [primary_kb] + [k for k in SLIDE_STEPS_KB if k > primary_kb]:
+        snp_kb = cand
+        cnt = np.asarray(build_sliding(chrom, pos, cand * 1000.0, cand * 1000.0 / SLIDE_STEPS)[0].sum(axis=1)).reshape(-1)
+        if cnt.size == 0 or (cnt >= SLIDE_MIN_MARKERS).mean() >= SLIDE_FILL or cand >= SLIDE_MAX_KB:
+            break
+    snp_auto = snp_kb != primary_kb
+    slide_S, slide_tab = build_sliding(chrom, pos, snp_kb * 1000.0, snp_kb * 1000.0 / SLIDE_STEPS)
+    slide_min = max(wins[primary]["min_markers"], SLIDE_MIN_MARKERS if snp_auto else 1)
+    if snp_auto:
+        notes.append(f"The map is sparse ({len(chrom) / max(1.0, (pos.max() - pos.min()) / 1e6):.1f} markers per Mb on average), so the SNP-index tracks use a sliding window of "
+                     f"{window_label(snp_kb)} instead of {window_label(primary_kb)} to hold enough markers per window (at least {slide_min}). The Gw windows are not affected.")
+
     # ----- permutations: random low / high pools of the same size, the largest window statistic of the genome per window size -----
     n_perm = int(config.get("permutations", 1000))
     if n_perm < 0 or n_perm > MAX_PERMUTATIONS:
         raise BsaError(f"The number of permutations must be between 0 and {MAX_PERMUTATIONS:,}.")
+    n_null = min(n_perm, MAX_NULL_PERMUTATIONS)
+    null_delta = np.full((len(slide_tab), n_null), np.nan, dtype=np.float32) if n_null >= 20 else None
     seed = int(config.get("seed", 2022))
     rng = np.random.default_rng(seed)
     for w in wins.values():
@@ -384,6 +420,9 @@ def analyse(config: dict, log=print) -> dict:
             L[perm[:k], j] = 1
             H[perm[-k:], j] = 1
         st = pool_stats(Z[0], Z[1], Z[2], H, L, diploid, min_calls)
+        if null_delta is not None and done < n_null:
+            nb = min(b, n_null - done)
+            null_delta[:, done:done + nb] = (sgn * sliding_mean(slide_S, st["sdAF"][:, :nb], st["ok"][:, :nb], slide_min)).astype(np.float32)
         for w in wins.values():
             means, valid = window_means(w["A"], st, w["min_markers"])
             for s in STATS:
@@ -410,6 +449,7 @@ def analyse(config: dict, log=print) -> dict:
         "Low_0": n_o["l0"].astype(int), "Low_1": n_o["l1"].astype(int), "Low_2": n_o["l2"].astype(int),
         "High_0": n_o["h0"].astype(int), "High_1": n_o["h1"].astype(int), "High_2": n_o["h2"].astype(int),
         "AF2_low": af_l, "AF2_high": af_h, "dAF": af_h - af_l, "Het_low": het_l, "Het_high": het_h,
+        "SNP_index_high": af_h if parent == 2 else 1 - af_h, "SNP_index_low": af_l if parent == 2 else 1 - af_l, "Delta_SNP_index": sgn * (af_h - af_l),
         "Scored": scored, "G1": raw["G1"], "G2": np.where(scored, obs["G2"].reshape(-1), np.nan), "Gw": raw["Gw"], "abs_dAF": raw["dAF"],
     })
     merge_kb = float(config.get("merge_gap_kb", 0))
@@ -453,6 +493,23 @@ def analyse(config: dict, log=print) -> dict:
         all_regions.append(w["regions"])
     mk["P_adj_Gw"] = mk[f"P_adj_win_{primary}"]
     regions = pd.concat(all_regions, ignore_index=True) if all_regions else pd.DataFrame()
+    # ----- SNP-index tracks: high pool, low pool and the difference, smoothed; permutation intervals of the difference -----
+    track = slide_tab.copy()
+    af_hi = np.where(scored, mk["SNP_index_high"].to_numpy(), np.nan)
+    af_lo = np.where(scored, mk["SNP_index_low"].to_numpy(), np.nan)
+    track["Markers"] = np.asarray(slide_S @ scored.astype(float)).reshape(-1).astype(int)
+    track["SNP_index_high"] = sliding_mean(slide_S, af_hi, scored, slide_min).reshape(-1)
+    track["SNP_index_low"] = sliding_mean(slide_S, af_lo, scored, slide_min).reshape(-1)
+    track["Delta_SNP_index"] = track["SNP_index_high"] - track["SNP_index_low"]
+    for lab_, q in (("CI95", 2.5), ("CI99", 0.5)):
+        if null_delta is not None:
+            with np.errstate(all="ignore"), warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                lo_q, hi_q = np.nanpercentile(null_delta, [q, 100 - q], axis=1)
+            track[f"{lab_}_lower"], track[f"{lab_}_upper"] = lo_q.astype(float), hi_q.astype(float)
+        else:
+            track[f"{lab_}_lower"] = track[f"{lab_}_upper"] = np.nan
+    snp_regs = snp_index_regions(track, mk, snp_kb * 1000.0, merge_kb * 1000.0, parent, wins[primary]["regions"])
     near_all = [w["near"] for w in wins.values() if len(w["near"])]
     near = pd.concat(near_all, ignore_index=True) if near_all else pd.DataFrame()
     comparison, loci = compare_windows(wins, sizes)
@@ -473,7 +530,90 @@ def analyse(config: dict, log=print) -> dict:
         "n_markers_in": int(len(geno["markers"])), "n_markers_used": m, "het_pct": het * 100, "min_calls": min_calls, "pool_fraction": pf,
         "min_maf": min_maf, "max_missing": miss_max, "seed": seed, "chroms": sorted(set(chrom.tolist())),
         "pool_cuts": (float(y[lo_i].max()), float(y[hi_i].min())),
+        "snp_track": track, "snp_regions": snp_regs, "snp_parent": parent, "snp_window_kb": snp_kb, "snp_window_auto": snp_auto, "snp_null_perms": n_null if null_delta is not None else 0,
     }
+
+
+# ───────────────────────────── sliding SNP-index tracks ─────────────────────────────
+
+def build_sliding(chrom: np.ndarray, pos: np.ndarray, size_bp: float, step_bp: float):
+    """Sliding windows of `size_bp` centred every `step_bp` along every chromosome.
+    -> (sparse grid x markers 0/1 membership, DataFrame[Chromosome, Position] of the window centres)."""
+    rows, cols, cc, xx = [], [], [], []
+    g = 0
+    for c in np.unique(chrom):
+        idx = np.flatnonzero(chrom == c)
+        order = idx[np.argsort(pos[idx], kind="stable")]
+        ps = pos[order].astype(float)
+        centres = np.arange(ps.min(), ps.max() + step_bp, step_bp)
+        lo = np.searchsorted(ps, centres - size_bp / 2.0, side="left")
+        hi = np.searchsorted(ps, centres + size_bp / 2.0, side="right")
+        for i in range(len(centres)):
+            if hi[i] > lo[i]:
+                members = order[lo[i]:hi[i]]
+                rows.append(np.full(len(members), g + i))
+                cols.append(members)
+        cc.append(np.full(len(centres), int(c)))
+        xx.append(centres)
+        g += len(centres)
+    r = np.concatenate(rows) if rows else np.zeros(0, dtype=int)
+    k = np.concatenate(cols) if cols else np.zeros(0, dtype=int)
+    S = sparse.csr_matrix((np.ones(len(r)), (r, k)), shape=(g, len(chrom)))
+    return S, pd.DataFrame({"Chromosome": np.concatenate(cc).astype(int), "Position": np.concatenate(xx).astype(np.int64)})
+
+
+def sliding_mean(S: sparse.csr_matrix, values: np.ndarray, ok: np.ndarray, min_markers: int) -> np.ndarray:
+    """Mean of `values` over the scored markers of every sliding window (NaN when fewer than `min_markers`); values: markers x P."""
+    okf = ok.astype(float)
+    if okf.ndim == 1:
+        okf = okf[:, None]
+    cnt = np.asarray(S @ okf)
+    v = np.nan_to_num(np.asarray(values, dtype=float).reshape(len(okf), -1))
+    return np.where(cnt >= min_markers, np.asarray(S @ (v * okf)) / np.where(cnt > 0, cnt, 1.0), np.nan)
+
+
+def snp_index_regions(track: pd.DataFrame, mk: pd.DataFrame, size_bp: float, merge_gap_bp: float, parent: int, gw_regions: pd.DataFrame) -> pd.DataFrame:
+    """Delta SNP-index peak regions: runs of sliding windows whose smoothed Delta lies outside the 99 % interval of the permutations.
+    A region ends where the run is broken by more than `merge_gap_bp`; its peak is the window with the largest |Delta|."""
+    cols = ["Region", "Chromosome", "Left_marker", "Peak_marker", "Right_marker", "Start_bp", "End_bp", "Left_bp", "Right_bp", "Length_kb", "Peak_bp",
+            "Delta_SNP_index_peak", "SNP_index_high_peak", "SNP_index_low_peak", "CI99_at_peak", "Windows_outside_CI99", "Markers", "Direction", "Also_Gw_region"]
+    out = []
+    if not {"CI99_lower", "CI99_upper"} <= set(track.columns) or not track["CI99_upper"].notna().any():
+        return pd.DataFrame(columns=cols)
+    d = track["Delta_SNP_index"].to_numpy()
+    sig = np.isfinite(d) & ((d > track["CI99_upper"].to_numpy()) | (d < track["CI99_lower"].to_numpy()))
+    mk_sc = mk[mk["Scored"]]
+    for c, g in track.groupby("Chromosome", sort=True):
+        ii = np.flatnonzero(sig[g.index.to_numpy()])
+        if not len(ii):
+            continue
+        x = g["Position"].to_numpy()[ii]
+        cut = np.flatnonzero(np.diff(x) > max(merge_gap_bp, size_bp)) + 1      # runs closer than one window (or the merge distance) are one region
+        for grp in np.split(np.arange(len(ii)), cut):
+            sel = g.iloc[ii[grp]]
+            pk = sel.iloc[int(np.argmax(np.abs(sel["Delta_SNP_index"].to_numpy())))]
+            lo_b, hi_b = float(sel["Position"].min()) - size_bp / 2.0, float(sel["Position"].max()) + size_bp / 2.0
+            inreg = mk_sc[(mk_sc["Chromosome"] == c) & (mk_sc["Position"] >= lo_b) & (mk_sc["Position"] <= hi_b)]
+            if not len(inreg):
+                continue
+            pkm = inreg.iloc[int(np.argmin(np.abs(inreg["Position"].to_numpy() - float(pk["Position"]))))]
+            left, right = inreg.loc[inreg["Position"].idxmin()], inreg.loc[inreg["Position"].idxmax()]
+            gws = gw_regions[(gw_regions["Chromosome"] == c) & (gw_regions["Start_bp"] <= right.Position) & (gw_regions["End_bp"] >= left.Position)] if len(gw_regions) else gw_regions
+            out.append({"Chromosome": int(c), "Left_marker": left.Marker, "Peak_marker": pkm.Marker, "Right_marker": right.Marker,
+                        "Start_bp": int(max(lo_b, 0)), "End_bp": int(hi_b), "Left_bp": int(left.Position), "Right_bp": int(right.Position),
+                        "Length_kb": round((right.Position - left.Position) / 1000.0, 1), "Peak_bp": int(pkm.Position),
+                        "Delta_SNP_index_peak": round(float(pk["Delta_SNP_index"]), 4), "SNP_index_high_peak": round(float(pk["SNP_index_high"]), 4),
+                        "SNP_index_low_peak": round(float(pk["SNP_index_low"]), 4),
+                        "CI99_at_peak": round(float(pk["CI99_upper"] if pk["Delta_SNP_index"] > 0 else pk["CI99_lower"]), 4),
+                        "Windows_outside_CI99": int(len(grp)), "Markers": int(len(inreg)),
+                        "Direction": (f"high pool carries more of the parent {parent} allele" if pk["Delta_SNP_index"] > 0
+                                      else f"low pool carries more of the parent {parent} allele"),
+                        "Also_Gw_region": bool(len(gws))})
+    df = pd.DataFrame(out, columns=[x for x in cols if x != "Region"])
+    if len(df):
+        df = df.reindex(df["Delta_SNP_index_peak"].abs().sort_values(ascending=False).index).reset_index(drop=True)
+    df.insert(0, "Region", [f"D{i + 1}" for i in range(len(df))])
+    return df
 
 
 # ───────────────────────────── windows ─────────────────────────────
@@ -554,7 +694,7 @@ def window_regions(mk: pd.DataFrame, tab: pd.DataFrame, label: str, size_kb: flo
                         "Peak_window_start": int(pkw.Window_start), "Peak_marker": pk.Marker, "Peak_bp": int(pk.Position),
                         "Left_marker": left.Marker, "Left_bp": int(left.Position), "Right_marker": right.Marker, "Right_bp": int(right.Position),
                         "Peak_value": float(pkw.Gw), "LOD": round(float(pkw.Gw) / np.log(10.0), 3), "Markers": int(span["Markers"].sum()), "AF2_low_at_peak": float(pk.AF2_low),
-                        "AF2_high_at_peak": float(pk.AF2_high), "Delta_SNP_index": round(float(pk.dAF), 4), "Delta_SNP_index_window": round(float(pkw.abs_dAF), 4), "Het_low_at_peak": float(pk.Het_low),
+                        "AF2_high_at_peak": float(pk.AF2_high), "Delta_SNP_index": round(float(getattr(pk, "Delta_SNP_index", pk.dAF)), 4), "Delta_SNP_index_window": round(float(pkw.abs_dAF), 4), "Het_low_at_peak": float(pk.Het_low),
                         "Het_high_at_peak": float(pk.Het_high), "Pattern": _pattern(pk), "P_adj_Gw_at_peak": float(pkw.P_adj_Gw),
                         "Also_significant_by_G1": bool(sub["Sig_G1"].any()), "Also_significant_by_dAF": bool(sub["Sig_dAF"].any())})
     df = pd.DataFrame(out, columns=[x for x in cols if x != "Region"])
@@ -681,6 +821,7 @@ def summary_table(a: dict) -> pd.DataFrame:
     rows += [("Loci (regions of the different window sizes that overlap)", int(len(loci))), ("Loci found by every window size", n_all),
              ("Gw threshold", _thr(a["thr_use"]["Gw"])), ("G1 threshold", _thr(a["thr_use"]["G1"])), ("|dAF| threshold", _thr(a["thr_use"]["dAF"])),
              ("Permutations", a["n_perm"])]
+    rows.append((f"Delta SNP-index peak regions (outside the 99 % interval, {window_label(a['snp_window_kb'])} sliding window)", int(len(a["snp_regions"]))))
     if len(pr):
         rows.append((f"Regions that G1 alone also finds ({prim})", int(pr["Also_significant_by_G1"].sum())))
         rows.append((f"Regions found only through genotype counts ({prim})", int((~pr["Also_significant_by_G1"]).sum())))
@@ -695,7 +836,12 @@ def settings_table(a: dict, config: dict) -> pd.DataFrame:
             ("Window sizes", ", ".join(window_label(k) for k in a["sizes"]) + " (non-overlapping; window statistic = mean over scored markers)"),
             ("Minimum scored markers per window", ", ".join(f"{lab}: {v}" for lab, v in a["min_window_markers"].items()) + (" (automatic)" if a["min_auto"] else "")), ("Primary window", a["primary"]),
             ("Permutations", a["n_perm"]), ("Significance level", a["alpha"]),
-            ("Delta SNP-index", "allele-frequency difference at the peak marker: high pool minus low pool, for the allele of parent 2 (code 2); Delta_SNP_index_window is the mean |difference| of the peak window"),
+            ("SNP-index", f"frequency of the allele of parent {a['snp_parent']} (code {a['snp_parent']}) in a pool; every marker has one value for the high pool and one for the low pool"),
+            ("Delta SNP-index", f"SNP-index of the high pool minus SNP-index of the low pool (positive: the allele of parent {a['snp_parent']} is more frequent in the high pool); "
+                                "Delta_SNP_index of a region is the value at its peak marker, Delta_SNP_index_window the mean |difference| of the peak window"),
+            ("SNP-index tracks", f"sliding window of {window_label(a['snp_window_kb'])}{' (widened automatically because the map is sparse)' if a.get('snp_window_auto') else ''} moved in steps of {window_label(a['snp_window_kb'] / SLIDE_STEPS)}; the 95 % and 99 % intervals are the "
+                                 f"2.5 / 97.5 % and 0.5 / 99.5 % quantiles of the smoothed Delta of {a['snp_null_perms']:,} random low / high pools at every position (pointwise)"
+                                 if a["snp_null_perms"] else "no permutations: no intervals"),
             ("LOD of a region", "Gw of the peak window / ln(10): G here is the log likelihood ratio (no factor 2), so G / ln(10) is a LOD score"),
             ("Population model", a["population_label"]), ("Merge significant windows closer than", f"{a['merge_gap_kb']:g} kb"),
             ("Median distance between neighbouring markers", f"{a['median_spacing_kb']:g} kb"),
@@ -739,6 +885,8 @@ def run(config: dict, log=print) -> dict:
         wst.to_csv(out / "window_statistics.csv", index=False)
         if len(near):
             near.to_csv(out / "closest_to_significant.csv", index=False)
+        a["snp_track"].to_csv(out / "snp_index_track.csv", index=False)
+        a["snp_regions"].to_csv(out / "snp_index_regions.csv", index=False)
         pools.to_csv(out / "pool_members.csv", index=False)
         thr.to_csv(out / "thresholds.csv", index=False)
         xlsx = out / "InSilico_BSA.xlsx"
@@ -748,6 +896,8 @@ def run(config: dict, log=print) -> dict:
             comp.to_excel(xw, sheet_name="Window comparison", index=False)
             loci.to_excel(xw, sheet_name="Loci", index=False)
             reg.to_excel(xw, sheet_name="Regions", index=False)
+            a["snp_regions"].to_excel(xw, sheet_name="SNP-index regions", index=False)
+            a["snp_track"].to_excel(xw, sheet_name="SNP-index track", index=False)
             thr.to_excel(xw, sheet_name="Thresholds", index=False)
             wst.to_excel(xw, sheet_name="Windows", index=False)
             if len(near):
@@ -766,13 +916,13 @@ def run(config: dict, log=print) -> dict:
             "status": "success",
             "message": (f"{len(a['loci'])} {'locus' if len(a['loci']) == 1 else 'loci'} for {a['trait']} ("
                         + ", ".join(f"{lab}: {len(w['regions'])}" for lab, w in a["windows"].items()) + f" regions; {a['pool_size']} lines per pool)"),
-            "summary": s, "summary_rows": _records(summ), "settings": _records(sett), "regions": _records(reg), "regions_total": int(len(reg)),
+            "summary": s, "summary_rows": _records(summ), "settings": _records(sett), "regions": _records(reg), "regions_total": int(len(reg)), "snp_regions": _records(a["snp_regions"], 100), "snp_parent": a["snp_parent"],
             "comparison": _records(comp), "loci": _records(loci, 200), "near_regions": _records(near, 60),
             "windows_top": _records(wst.sort_values("Gw", ascending=False), 60), "thresholds": _records(thr), "top_markers": _records(top, 40), "pools": _records(pools, 400), "pools_total": int(len(pools)),
             "notes": a["notes"], "plots": pl,
             "files": {"workbook": str(xlsx), "zip": str(zpath), "markers": str(out / "marker_statistics.csv"), "regions": str(out / "significant_regions.csv"), "comparison": str(out / "window_comparison.csv"),
                       "loci": str(out / "loci_comparison.csv"), "near": str(out / "closest_to_significant.csv") if len(near) else "", "windows": str(out / "window_statistics.csv"),
-                      "pools": str(out / "pool_members.csv")},
+                      "pools": str(out / "pool_members.csv"), "snp_track": str(out / "snp_index_track.csv"), "snp_regions": str(out / "snp_index_regions.csv")},
             "counts": {"lines": a["n_lines"], "markers": a["n_markers_used"], "pool": a["pool_size"], "regions": int(len(reg)), "permutations": a["n_perm"]},
         }
     except BsaError as e:

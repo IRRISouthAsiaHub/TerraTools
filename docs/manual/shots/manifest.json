@@ -493,9 +493,10 @@
   "notes": [
    "Lines, lines per pool, markers, loci, regions of all window sizes and the Gw threshold of the primary window.",
    "Regions of the three window sizes that overlap are one locus; the table says how many sizes found it and how far apart their peaks lie.",
+   "Where the \u0394SNP-index (high pool \u2212 low pool) lies outside the 99 % interval of random pools: the SNP-index of each pool at the peak, the sign of the difference and which pool carries the allele of the chosen parent.",
    "One row per region and window size: left, peak and right marker with their positions, adjusted p-value, LOD and the allele-frequency difference.",
    "Lists the genes of a GFF3 / GTF annotation that lie in a region, widened by a flank.",
-   "Gw along the genome for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."
+   "The SNP-index of the high pool, of the low pool and the \u0394SNP-index along the genome (first figure), then Gw for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."
   ]
  },
  "qtl_compare": {
@@ -522,5 +523,9 @@
    "Heterozygosity: low (about 1 %) along all chromosomes, as in an advanced RIL.",
    "Distortion summary: concentrated on chromosomes 3, 6 and 9."
   ]
+ },
+ "insilico_snpindex": {
+  "title": "In silico BSA \u2014 SNP-index of the high pool (A) and the low pool (B), \u0394SNP-index with its intervals (C) and the strongest region (D)",
+  "notes": []
  }
 }

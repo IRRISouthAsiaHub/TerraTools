@@ -34,6 +34,8 @@ const ALPHAS = [
   { value: '0.01', label: '0.01 (stringent)' },
 ]
 const PRIMARY = [{ value: '250', label: '250 kb' }, { value: '500', label: '500 kb' }, { value: '1000', label: '1 Mb' }]
+const PARENTS = [{ value: '2', label: 'Parent 2 (genotype 2)' }, { value: '1', label: 'Parent 1 (genotype 0)' }]
+const SNP_COLS = ['Region', 'Chromosome', 'Left_marker', 'Left_bp', 'Peak_marker', 'Peak_bp', 'Right_marker', 'Right_bp', 'SNP_index_high_peak', 'SNP_index_low_peak', 'Delta_SNP_index_peak', 'CI99_at_peak', 'Direction', 'Also_Gw_region']
 const REGION_COLS = ['Region', 'Window', 'Chromosome', 'Left_marker', 'Left_bp', 'Peak_marker', 'Peak_bp', 'Right_marker', 'Right_bp', 'P_adj_Gw_at_peak', 'LOD', 'Delta_SNP_index']
 const WINDOW_COLS = ['Window', 'Chromosome', 'Window_start', 'Window_end', 'Scored_markers', 'Gw', 'G1', 'abs_dAF', 'P_adj_Gw', 'Sig_Gw']
 const lociCols = (comp) => ['Locus', 'Chromosome', 'Start_bp', 'End_bp', 'Span_kb', 'Peak_marker', 'Windows_that_found_it', 'Peak_spread_kb',
@@ -64,6 +66,7 @@ export default function InSilicoBsaTool() {
   const [maf, setMaf] = useState(0.05)
   const [perms, setPerms] = useState('1000')
   const [alpha, setAlpha] = useState('0.05')
+  const [snpParent, setSnpParent] = useState('2')
   tool.onResult(() => { setGenes(null); setAnnErr(''); setAnnWin(''); setTab('results') })
 
   const inspect = async (g, p) => {
@@ -114,7 +117,7 @@ export default function InSilicoBsaTool() {
     if (problem) return tool.fail(problem)
     tool.run({
       input_file: geno, pheno_file: pheno, trait, population, merge_gap_kb: Number(mergeKb) >= 0 ? Number(mergeKb) : 0, primary_window_kb: Number(primary), min_window_markers: Number(minWin) || 0, pool_fraction: frac / 100, min_calls: Number(minCalls) || 5,
-      min_maf: Number(maf), permutations: Number(perms), alpha: Number(alpha),
+      min_maf: Number(maf), permutations: Number(perms), alpha: Number(alpha), snp_index_parent: Number(snpParent),
     })
     tool.setStatus(`Pooling the ${k} lowest and ${k} highest lines and running ${Number(perms).toLocaleString()} permutations for the 250 kb, 500 kb and 1 Mb windows…`)
   }
@@ -203,6 +206,8 @@ export default function InSilicoBsaTool() {
                   <SelectField label="Permutations" value={perms} onChange={setPerms} options={PERMS}
                     hint="Two pools of the same size are drawn at random from all lines each time; the same draws serve the three window sizes." />
                   <SelectField label="Significance level" value={alpha} onChange={setAlpha} options={ALPHAS} />
+                  <SelectField label="SNP-index shows the allele of" value={snpParent} onChange={setSnpParent} options={PARENTS}
+                    hint="The SNP-index of a pool is the frequency of this parent's allele in it (as in QTL-seq, where it is the allele of the mutant or donor parent). The ΔSNP-index is high pool minus low pool: positive means this allele goes with the higher trait value. Choosing the other parent flips every sign." />
                   <TextField label="Minimum minor allele frequency" type="number" min={0} max={0.5} step={0.01} value={maf} onChange={setMaf}
                     hint="Rare markers are left out before the pools are compared." />
                 </div>
@@ -251,6 +256,19 @@ export default function InSilicoBsaTool() {
                   )}
               </Card>
 
+              <Card title="ΔSNP-index peak regions (as in QTL-seq)" icon={Dna} delay={0.027}>
+                <p className="geno-lead">
+                  The <b>SNP-index</b> of a pool is the frequency of the allele of <b>parent {r.snp_parent}</b> in it, so every marker has one value for the <b>high pool</b> and one for the <b>low pool</b>;
+                  the <b>ΔSNP-index = high pool − low pool</b>. Positive: the parent {r.snp_parent} allele goes with the higher trait value; negative: the other parent's allele does.
+                  The first figure draws the high pool (A), the low pool (B) and the ΔSNP-index (C) along the genome, smoothed in a sliding window, with the 95 % (blue) and 99 % (red) intervals of random pools; a <b>peak region</b> is where
+                  the ΔSNP-index lies outside the 99 % interval (D enlarges the strongest one). The intervals are pointwise, so a few small regions can appear by chance; the genome-wide test is the Gw table below.
+                  An over-dominant locus has no ΔSNP-index peak: it shows only as a Gw region.
+                </p>
+                {r.snp_regions && r.snp_regions.length > 0
+                  ? <DataTable rows={r.snp_regions} columns={SNP_COLS} maxHeight={300} />
+                  : <p className="geno-lead">No position of the ΔSNP-index lies outside the 99 % interval of the permutations.</p>}
+              </Card>
+
               <Card title="Significant regions of every window size" icon={Dna} delay={0.03}>
                 {r.regions.length === 0
                   ? <p className="geno-lead">No region reached the threshold at any window size. The regions closest to significance are listed below.</p>
@@ -258,7 +276,7 @@ export default function InSilicoBsaTool() {
                     <>
                       <p className="geno-lead">
                         One row per region and window size (the <i>Window</i> column says which size the region comes from). The left and right marker are the first and last scored marker of the region, the peak marker is the strongest one; each is followed by its position in bp.
-                        <i>P_adj_Gw_at_peak</i> is the permutation-adjusted p-value of the peak window and <i>LOD</i> is its Gw / ln(10) (G here is the log likelihood ratio, so this is a LOD score). <i>Delta_SNP_index</i> is the allele-frequency difference at the peak marker, high pool minus low pool, for the allele of parent 2 (positive: that allele is more frequent in the high pool).
+                        <i>P_adj_Gw_at_peak</i> is the permutation-adjusted p-value of the peak window and <i>LOD</i> is its Gw / ln(10) (G here is the log likelihood ratio, so this is a LOD score). <i>Delta_SNP_index</i> is the allele-frequency difference at the peak marker, high pool minus low pool, for the allele of parent {r.snp_parent} (positive: that allele is more frequent in the high pool).
                         Positions, lengths, the genotype pattern, allele frequencies and the G1 / ΔAF check are in the Excel report.
                       </p>
                       <DataTable rows={r.regions} columns={REGION_COLS} maxHeight={320} />
@@ -315,7 +333,7 @@ export default function InSilicoBsaTool() {
 
               <Card title="Downloads" icon={FileText} delay={0.06}>
                 <p className="geno-lead">
-                  The Excel workbook holds <i>Summary, Settings, Window comparison, Loci, Regions, Thresholds, Windows, Pools</i> and <i>Markers</i> (every statistic of every marker); the ZIP has the same tables as CSV files and all figures (PNG).
+                  The Excel workbook holds <i>Summary, Settings, Window comparison, Loci, Regions, SNP-index regions, SNP-index track, Thresholds, Windows, Pools</i> and <i>Markers</i> (every statistic of every marker); the ZIP has the same tables as CSV files and all figures (PNG).
                 </p>
                 <DownloadButtons onSave={tool.save} items={[
                   { icon: FileSpreadsheet, label: 'All tables (Excel)', path: r.files.workbook, name: `${stem}_insilico_bsa.xlsx` },
@@ -324,6 +342,8 @@ export default function InSilicoBsaTool() {
                   { icon: FileText, label: 'Loci (CSV)', path: r.files.loci, name: `${stem}_loci.csv` },
                   ...(r.files.near ? [{ icon: FileText, label: 'Closest to significant (CSV)', path: r.files.near, name: `${stem}_closest_to_significant.csv` }] : []),
                   { icon: FileText, label: 'Regions (CSV)', path: r.files.regions, name: `${stem}_regions.csv` },
+                  ...(r.files.snp_regions ? [{ icon: FileText, label: 'ΔSNP-index peak regions (CSV)', path: r.files.snp_regions, name: `${stem}_snp_index_regions.csv` }] : []),
+                  ...(r.files.snp_track ? [{ icon: FileText, label: 'SNP-index tracks (CSV)', path: r.files.snp_track, name: `${stem}_snp_index_track.csv` }] : []),
                   { icon: FileText, label: 'Window statistics (CSV)', path: r.files.windows, name: `${stem}_window_statistics.csv` },
                   { icon: FileText, label: 'Marker statistics (CSV)', path: r.files.markers, name: `${stem}_marker_statistics.csv` },
                   { icon: FileText, label: 'Pool members (CSV)', path: r.files.pools, name: `${stem}_pool_members.csv` },
@@ -437,5 +457,6 @@ const MOCK_RESULT = {
   top_markers: [{ Marker: 'chr3_9100000', Chromosome: 3, Position: 9100000, Gw: 26.2, G1: 24.8, G2: 1.4, dAF: 0.43, Het_low: 0.4, Het_high: 0.5 }],
   thresholds: [{ Statistic: 'Gw (alleles + genotypes), 500kb windows', Alpha: 0.05, Threshold: 5.4437 }],
   summary_rows: [{ Metric: 'Loci', Value: 2 }], settings: [{ Setting: 'Window sizes', Value: '250kb, 500kb, 1Mb' }],
+  snp_parent: 2, snp_regions: [{ Region: 'D1', Chromosome: 3, Left_marker: 'chr3_7100000', Left_bp: 7100000, Peak_marker: 'chr3_9100000', Peak_bp: 9100000, Right_marker: 'chr3_11900000', Right_bp: 11900000, SNP_index_high_peak: 0.7, SNP_index_low_peak: 0.27, Delta_SNP_index_peak: 0.43, CI99_at_peak: 0.17, Direction: 'high pool carries more of the parent 2 allele', Also_Gw_region: true }],
   pools: [{ Sample: 'F2-001', Trait: 80.1, Pool: 'Low' }], pools_total: 120, plots: [], files: { regions: 'C:\tmp\r.csv', workbook: '', zip: '', markers: '', pools: '', comparison: '', loci: '', windows: '' },
 }

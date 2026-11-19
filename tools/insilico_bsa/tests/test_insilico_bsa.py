@@ -113,7 +113,7 @@ def test_problems_are_reported_in_words(tmp_path):
 def test_run_writes_the_files_and_figures(tmp_path):
     g, p, truth, *_ = _files(tmp_path)
     r = B.run(_cfg(g, p, tmp_path / "out"), log=lambda m: None)
-    assert r["status"] == "success" and r["counts"]["regions"] >= 3 and len(r["plots"]) == 6
+    assert r["status"] == "success" and r["counts"]["regions"] >= 3 and len(r["plots"]) == 7
     loci = pd.DataFrame(r["loci"])
     for t in truth:                                                  # every planted locus lies in a locus that all three window sizes found
         hit = loci[(loci["Chromosome"] == t["chromosome"]) & (loci["Start_bp"] <= t["position_bp"]) & (loci["End_bp"] >= t["position_bp"])]
@@ -123,7 +123,8 @@ def test_run_writes_the_files_and_figures(tmp_path):
         assert Path(r["files"][k]).is_file()
     assert all(Path(p_["path"]).is_file() for p_ in r["plots"])
     sheets = pd.ExcelFile(r["files"]["workbook"]).sheet_names
-    assert sheets == ["Summary", "Settings", "Window comparison", "Loci", "Regions", "Thresholds", "Windows", "Pools", "Markers"]
+    assert sheets == ["Summary", "Settings", "Window comparison", "Loci", "Regions", "SNP-index regions", "SNP-index track", "Thresholds", "Windows", "Pools", "Markers"]
+    assert r["plots"][0]["key"] == "snpindex" and Path(r["files"]["snp_track"]).is_file() and Path(r["files"]["snp_regions"]).is_file()
 
 
 # ───────────── explicit population, valid-marker smoothing, distance merging, GFF annotation ─────────────
@@ -297,3 +298,57 @@ def test_a_window_size_without_significant_regions_lists_the_closest_candidates(
     r = B.run(_cfg(g, p0, tmp_path / "o2", trait="Null", permutations=300), log=lambda m: None)
     assert r["status"] == "success" and len(r["near_regions"]) > 0 and Path(r["files"]["near"]).is_file()
     assert "Closest to significant" in pd.ExcelFile(r["files"]["workbook"]).sheet_names
+
+
+# ───────────── SNP-index view: signed Delta, the bulk each value comes from, the allele of the chosen parent, permutation intervals ─────────────
+
+def test_snp_index_of_each_pool_and_the_signed_delta_follow_the_chosen_parent(tmp_path):
+    g, p, truth, *_ = _files(tmp_path)
+    a2 = B.analyse(_cfg(g, p, tmp_path / "o2", permutations=60), log=lambda m: None)
+    a1 = B.analyse(_cfg(g, p, tmp_path / "o1", permutations=60, snp_index_parent=1), log=lambda m: None)
+    m2, m1 = a2["markers"], a1["markers"]
+    assert np.allclose(m2["Delta_SNP_index"], m2["SNP_index_high"] - m2["SNP_index_low"], equal_nan=True)     # the difference is high pool minus low pool
+    assert np.allclose(m2["Delta_SNP_index"], m2["AF2_high"] - m2["AF2_low"], equal_nan=True)                # parent 2: the allele frequency of code 2
+    assert np.allclose(m1["SNP_index_high"], 1 - m2["SNP_index_high"], equal_nan=True)                        # parent 1 is the complement
+    assert np.allclose(m1["Delta_SNP_index"], -m2["Delta_SNP_index"], equal_nan=True)
+    r2, r1 = a2["snp_regions"], a1["snp_regions"]
+    assert len(r2) >= 1 and len(r1) == len(r2)
+    assert (np.sign(r1["Delta_SNP_index_peak"].to_numpy()) == -np.sign(r2["Delta_SNP_index_peak"].to_numpy())).all()
+    with pytest.raises(B.BsaError):
+        B.analyse(_cfg(g, p, tmp_path / "o3", snp_index_parent=3), log=lambda m: None)
+
+
+def test_delta_snp_index_intervals_come_from_the_permutations_and_regions_lie_outside_them(tmp_path):
+    g, p, truth, *_ = _files(tmp_path)
+    a = B.analyse(_cfg(g, p, tmp_path / "o", permutations=300), log=lambda m: None)
+    tr, regs = a["snp_track"], a["snp_regions"]
+    ok = tr["CI99_upper"].notna()
+    assert ok.any() and a["snp_null_perms"] == 300
+    assert (tr.loc[ok, "CI99_upper"] >= tr.loc[ok, "CI95_upper"]).all() and (tr.loc[ok, "CI99_lower"] <= tr.loc[ok, "CI95_lower"]).all()
+    assert (tr.loc[ok, "CI95_upper"] > 0).all() and (tr.loc[ok, "CI95_lower"] < 0).all()                       # the null is centred on zero
+    assert len(regs) >= 2
+    for t in truth:                                                                                           # the additive and dominant loci are peak regions
+        if t["chromosome"] in (1, 3):
+            assert ((regs["Chromosome"] == t["chromosome"]) & (regs["Left_bp"] <= t["position_bp"]) & (regs["Right_bp"] >= t["position_bp"])).any()
+    for r in regs.itertuples():                                                                              # a peak region lies outside the 99 % interval at its peak
+        assert abs(r.Delta_SNP_index_peak) > abs(r.CI99_at_peak) - 1e-9
+    od = [t for t in truth if t["chromosome"] == 2][0]                                                       # the over-dominant locus has no allele-frequency peak
+    assert not ((regs["Chromosome"] == 2) & (regs["Left_bp"] <= od["position_bp"]) & (regs["Right_bp"] >= od["position_bp"])).any()
+
+
+def test_without_permutations_there_are_no_intervals_and_no_peak_regions(tmp_path):
+    g, p, *_ = _files(tmp_path)
+    a = B.analyse(_cfg(g, p, tmp_path / "o", permutations=0), log=lambda m: None)
+    assert a["snp_track"]["CI99_upper"].isna().all() and len(a["snp_regions"]) == 0
+
+
+def test_a_sparse_map_gets_a_wider_snp_index_window_and_a_dense_map_keeps_the_primary_one(tmp_path):
+    g, p, truth, names, y, markers, G = _files(tmp_path)
+    dense = B.analyse(_cfg(g, p, tmp_path / "o1", permutations=40, primary_window_kb=500), log=lambda m: None)
+    assert dense["snp_window_auto"] is False and dense["snp_window_kb"] == 500
+    keep = np.arange(0, len(markers), 6)                      # a thin, gene-like map
+    g2 = tmp_path / "sparse.csv"
+    pd.concat([markers.iloc[keep].reset_index(drop=True), pd.DataFrame(G[keep], columns=names)], axis=1).to_csv(g2, index=False)
+    sparse = B.analyse(_cfg(g2, p, tmp_path / "o2", permutations=40, primary_window_kb=500, min_maf=0.0), log=lambda m: None)
+    assert sparse["snp_window_auto"] is True and sparse["snp_window_kb"] > 500
+    assert any("sparse" in n for n in sparse["notes"])

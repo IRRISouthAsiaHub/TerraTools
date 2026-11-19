@@ -1,0 +1,4 @@
+Region,Chromosome,Left_marker,Peak_marker,Right_marker,Start_bp,End_bp,Left_bp,Right_bp,Length_kb,Peak_bp,Delta_SNP_index_peak,SNP_index_high_peak,SNP_index_low_peak,CI99_at_peak,Windows_outside_CI99,Markers,Direction,Also_Gw_region
+D1,3,chr3_6192308,chr3_13807692,chr3_19900000,6150000,20150000,6192308,19900000,13707.7,13807692,0.4297,0.6958,0.2661,0.1481,136,208,high pool carries more of the parent 2 allele,True
+D2,1,chr1_100000,chr1_5397659,chr1_11688629,0,11750000,100000,11688629,11588.6,5397659,0.3683,0.755,0.3867,0.1639,115,176,high pool carries more of the parent 2 allele,True
+D3,3,chr3_3079933,chr3_4007023,chr3_5198997,3050000,5250000,3079933,5198997,2119.1,4007023,0.1711,0.5614,0.3903,0.1424,18,33,high pool carries more of the parent 2 allele,False

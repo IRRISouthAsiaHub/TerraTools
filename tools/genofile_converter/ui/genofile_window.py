@@ -3,6 +3,7 @@ import shutil
 import tempfile
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 
 from tools.common.save_dialog import save_dialog
@@ -64,6 +65,7 @@ class GenofileBridge(QObject):
             return json.dumps({"status": "error", "message": f"Could not read the file: {e}"})
 
     @Slot(str)
+    @single_run
     def convert_genotypes(self, config_json):
         try:
             config = json.loads(config_json)

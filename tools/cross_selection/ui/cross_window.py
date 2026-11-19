@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot, QThread, QUrl
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
@@ -78,6 +79,7 @@ class CrossBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(str)
+    @single_run
     def run_cross_selection(self, config_json):
 
         print("[CROSS BRIDGE] run_cross_selection() called", flush=True)

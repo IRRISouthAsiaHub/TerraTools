@@ -416,7 +416,7 @@ check_genotypes <- function(td) {
 # high (in a simulation with known Vg = 16 this gave 21.9, against 16.3 with fixed checks).
 # Entry-mean heritability uses the harmonic mean number of environments (ne) and plots (np) per ENTRY:
 #   pooled  H2 = Vg / (Vg + Vge/ne + Ve/np)        single  H2 = Vg / (Vg + Ve/np)
-herit_one <- function(td, design, scope) {
+herit_model <- function(td, design, scope) {
   td <- droplevels(td)
   chk <- if (design == "augmented") check_genotypes(td) else character(0)
   td$Check <- factor(ifelse(as.character(td$Genotype) %in% chk, as.character(td$Genotype), "entry"))
@@ -425,6 +425,12 @@ herit_one <- function(td, design, scope) {
   kind <- if (scope == "pooled") "lmer_var" else "lmer_var_single"
   fml <- design_formula(design, kind, across_env = (scope == "pooled"), df = td, fixed = fixed)
   m <- suppressMessages(lmer(as.formula(fml), data = td))
+  list(m = m, td = td, chk = chk, has_chk = has_chk)
+}
+
+herit_one <- function(td, design, scope) {
+  hm <- herit_model(td, design, scope)
+  m <- hm$m; td <- hm$td; chk <- hm$chk; has_chk <- hm$has_chk
   vc <- as.data.frame(VarCorr(m))
   get_vc <- function(g) { v <- vc$vcov[vc$grp == g]; if (length(v)) v[1] else 0 }
   vg <- get_vc("Genotype"); vge <- get_vc("Genotype:Environment"); ve <- get_vc("Residual")
@@ -469,6 +475,126 @@ heritability_all <- function(wd, traits, design) {
   h2[num] <- lapply(h2[num], signif, 4)
   h2[c("H2_Plot", "H2_Mean")] <- lapply(h2[c("H2_Plot", "H2_Mean")], round, 3)
   h2
+}
+
+# ── BLUPs: best linear unbiased predictions of the accessions ────────────────────────────────
+# The model is the one of the heritability analysis (herit_model): the checks of an augmented design are fixed effects
+# (they get BLUEs, not BLUPs), accessions, Genotype x Environment and blocks are random, REML. The BLUPs are the
+# accession effects of Henderson's mixed model equations, which are solved here directly with the variances at their
+# REML estimates, because the same equations give the prediction error variance (PEV) of every BLUP INCLUDING the
+# uncertainty of the fixed effects; the condVar of lme4 leaves that part out and so reports a PEV that is too small.
+#   PEV_i        = Ve * [C^-1]_ii            SE_i = sqrt(PEV_i)          Reliability_i = 1 - PEV_i / Vg
+#   H2 Cullis    = 1 - vbar / (2 Vg)         vbar = mean variance of a DIFFERENCE between two BLUPs (Cullis et al. 2006)
+#                = 1 - (n tr(P) - 1'P1) / (n (n - 1) Vg),   P = prediction error (co)variance matrix of the n BLUPs
+# 1 - mean(PEV)/Vg is the mean reliability, a different (slightly higher) number; both are reported.
+blup_mme <- function(m, group = "Genotype", exclude = character(0), chunk = 300) {
+  X <- getME(m, "X"); y <- getME(m, "y"); s2 <- sigma(m)^2
+  vc <- as.data.frame(VarCorr(m)); vc <- vc[!is.na(vc$grp) & vc$grp != "Residual" & is.na(vc$var2), , drop = FALSE]
+  Zl <- getME(m, "Ztlist")
+  blocks <- list(); lam <- numeric(0); is_g <- logical(0); gnames <- character(0)
+  for (nm in names(Zl)) {
+    g <- sub("\\.\\(Intercept\\)$", "", nm)
+    v <- vc$vcov[vc$grp == g][1]
+    if (is.na(v) || v < 1e-8 * s2) next                      # a term without variance: all its effects are 0
+    zt <- Zl[[nm]]
+    if (g == group) zt <- zt[!(rownames(zt) %in% exclude), , drop = FALSE]
+    if (!nrow(zt)) next
+    blocks[[length(blocks) + 1]] <- zt
+    lam <- c(lam, rep(s2 / v, nrow(zt)))
+    is_g <- c(is_g, rep(g == group, nrow(zt)))
+    if (g == group) gnames <- rownames(zt)
+  }
+  if (!any(is_g)) return(NULL)
+  Zt <- methods::as(do.call(rbind, blocks), "CsparseMatrix")            # random-effect design, effects x plots
+  p <- ncol(X); gi <- p + which(is_g)
+  ZtX <- as.matrix(Zt %*% X)
+  C <- Matrix::forceSymmetric(Matrix::rbind2(
+    Matrix::cbind2(Matrix::Matrix(crossprod(X), sparse = TRUE), Matrix::Matrix(t(ZtX), sparse = TRUE)),
+    Matrix::cbind2(Matrix::Matrix(ZtX, sparse = TRUE), Matrix::tcrossprod(Zt) + Matrix::Diagonal(x = lam))))
+  ch <- Matrix::Cholesky(C, LDL = FALSE, perm = TRUE)
+  sol <- as.numeric(Matrix::solve(ch, c(as.numeric(crossprod(X, y)), as.numeric(Zt %*% y)), system = "A"))
+  u <- setNames(sol[gi], gnames)
+  # prediction error variances: the diagonal of the genotype block of C^-1 and the sum of all its entries, in chunks
+  n <- length(gi); pev <- numeric(n); tot <- 0
+  for (s in seq(1, n, by = chunk)) {
+    j <- s:min(n, s + chunk - 1)
+    B <- Matrix::sparseMatrix(i = gi[j], j = seq_along(j), x = 1, dims = c(nrow(C), length(j)))
+    S <- as.matrix(Matrix::solve(ch, B, system = "A"))
+    pev[j] <- s2 * S[cbind(gi[j], seq_along(j))]
+    tot <- tot + sum(S[gi, , drop = FALSE])
+  }
+  names(pev) <- gnames
+  list(u = u, pev = pev, trace = sum(pev), total = s2 * tot, n = n, fixed = as.numeric(X %*% lme4::fixef(m)))
+}
+
+# BLUPs of one trait in one scope: "pooled" (all environments: the across-environment value of an accession) or "single"
+# (one environment). Returns list(table, summary).
+blup_one <- function(td, design, scope) {
+  hm <- herit_model(td, design, scope)
+  m <- hm$m; chk <- hm$chk
+  vc <- as.data.frame(VarCorr(m))
+  get_vc <- function(g) { v <- vc$vcov[vc$grp == g]; if (length(v)) v[1] else 0 }
+  vg <- get_vc("Genotype"); vge <- get_vc("Genotype:Environment"); ve <- get_vc("Residual")
+  used <- hm$td[match(rownames(m@frame), rownames(hm$td)), , drop = FALSE]
+  isent <- !(as.character(used$Genotype) %in% chk)
+  ent <- used[isent, , drop = FALSE]
+  per_g <- ent %>% group_by(Genotype) %>% summarise(np = n(), ne = n_distinct(Environment), .groups = "drop")
+  np <- harmonic_mean(per_g$np); ne <- harmonic_mean(per_g$ne)
+  h2_mean <- if (scope == "pooled") vg / (vg + vge / ne + ve / np) else vg / (vg + ve / np)
+
+  note <- character(0)
+  zero_vc <- vc$grp[vc$grp != "Residual" & vc$vcov < 1e-6 * max(ve, 1e-12)]
+  if (length(zero_vc))
+    note <- c(note, paste0("Variance estimated as 0 (singular fit): ", paste(sub("Genotype:Environment", GXE, zero_vc, fixed = TRUE), collapse = ", ")))
+  if (design == "augmented" && length(chk)) note <- c(note, sprintf("%d checks are fixed effects and have no BLUP", length(chk)))
+  r <- if (vg > 1e-8 * (vg + ve)) blup_mme(m, "Genotype", exclude = chk) else NULL
+  tab <- NULL
+  if (is.null(r)) {
+    note <- c(note, "No genotypic variance detected: every BLUP is 0, heritability is 0")
+    h2c <- 0; rel <- 0
+  } else {
+    n <- r$n
+    vbar <- 2 * (n * r$trace - r$total) / (n * (n - 1))             # mean variance of a difference between two BLUPs
+    h2c <- if (n > 1) max(0, 1 - vbar / (2 * vg)) else NA_real_
+    rel <- 1 - mean(r$pev) / vg
+    base <- mean(r$fixed[isent])            # the fixed part (environments, blocks) averaged over the plots of the accessions
+    acc <- names(r$u)
+    cnt <- table(as.character(ent$Genotype))[acc]
+    nenv <- tapply(as.character(ent$Environment), as.character(ent$Genotype), function(z) length(unique(z)))[acc]
+    rawm <- tapply(ent$Value, as.character(ent$Genotype), mean)[acc]
+    tab <- data.frame(Accession = acc, Plots = as.integer(cnt), Environments = as.integer(nenv), Raw_Mean = as.numeric(rawm),
+                      BLUP = as.numeric(r$u), SE = sqrt(pmax(r$pev, 0)), Reliability = 1 - r$pev / vg,
+                      Predicted = base + as.numeric(r$u), stringsAsFactors = FALSE)
+    tab$Rank <- rank(-tab$BLUP, ties.method = "min")
+    tab <- tab[order(tab$Rank), ]
+  }
+  sm <- data.frame(Accessions = nlevels(droplevels(ent$Genotype)), Vg = vg, Vge = if (scope == "pooled") vge else NA_real_,
+                   Ve = ve, H2_Cullis = h2c, Mean_Reliability = rel, H2_Mean = h2_mean,
+                   Note = paste(note, collapse = "; "), stringsAsFactors = FALSE)
+  list(table = tab, summary = sm)
+}
+
+# Every trait: pooled over environments (needs >= 2) and, when by_env, in each environment.
+# Returns list(table, summary, errors): one table row per Trait x Environment x Accession, one summary row per Trait x Environment
+# (table and summary are NULL when no model could be fitted).
+blups_all <- function(wd, traits, design, by_env = TRUE) {
+  tabs <- list(); sums <- list(); errs <- character(0)
+  for (tr in traits) {
+    d_tr <- wd[!is.na(wd[[tr]]), , drop = FALSE]
+    envs <- unique(as.character(d_tr$Environment))
+    jobs <- c(if (length(envs) > 1) list(list(env = "Pooled", d = d_tr, scope = "pooled")),
+              if (by_env || length(envs) == 1) lapply(envs, function(e)
+                list(env = e, d = d_tr[as.character(d_tr$Environment) == e, , drop = FALSE], scope = "single")))
+    for (j in jobs) {
+      td <- model_df(j$d, tr, design)
+      if (nrow(td) < 10 || nlevels(td$Genotype) < 5) next
+      r <- tryCatch(blup_one(td, design, j$scope), error = function(e) { errs <<- c(errs, sprintf("%s, %s: %s", tr, j$env, conditionMessage(e))); NULL })
+      if (is.null(r)) next
+      if (!is.null(r$table)) tabs[[length(tabs) + 1]] <- cbind(Trait = tr, Environment = j$env, r$table, stringsAsFactors = FALSE)
+      sums[[length(sums) + 1]] <- cbind(Trait = tr, Environment = j$env, r$summary, stringsAsFactors = FALSE)
+    }
+  }
+  list(table = if (length(tabs)) dplyr::bind_rows(tabs) else NULL, summary = if (length(sums)) dplyr::bind_rows(sums) else NULL, errors = errs)
 }
 
 # ── Multivariate analyses: one row per genotype ──────────────────────────────

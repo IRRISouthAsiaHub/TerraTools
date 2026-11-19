@@ -1,11 +1,10 @@
 """
 gff_genes.py — genes of a GFF3 annotation that lie in the regions of an input table.
 
-The input is a QTL result:
-  * the QTL intervals of QTL Mapping (QTL_ID, QTL_Start, QTL_End) or any Chromosome + Start + End table, or
-  * the QTL table of QTL Mapping (positions in cM): the base-pair position of its left / peak / right markers is read from
-    the marker names (chr11_22044151) or from a marker position file (Marker, Chromosome, bp table, or a VCF), and the
-    confidence interval is placed on the genome between them.
+The input is the QTL table of QTL Mapping (qtl_significant_*.csv, positions in cM) together with a marker position file
+(a Marker, Chromosome, bp table, or a VCF), which is REQUIRED: the base-pair position of the left / peak / right marker of every QTL
+is read from it, and the confidence interval is placed on the genome between them. A table of intervals that is already in base
+pairs (Chromosome, Start, End) is not an input of this tool.
 Columns are found by their NAME, in any order. Excel workbooks are read sheet by sheet.
 
 Every gene line of the annotation inside a region is reported with ALL of its GFF details (name, biotype,
@@ -189,6 +188,15 @@ _MARK_ID = {"marker", "markername", "markerid", "snp", "snpid", "id", "name", "v
 _BP_NAMES = ("physicalbp", "bp", "bppos", "positionbp", "bpposition", "physicalposition", "basepair", "bpposition")
 
 
+def _canon(name):
+    """Marker name as a lookup key: lower case, without a leading 'chr' and without zeros in front of the chromosome number,
+    so that chr01_18102213, Chr1_18102213 and 01_18102213 are the same marker."""
+    k = str(name).strip().lower()
+    k = re.sub(r"^chr(?:omosome)?[_\-]?", "", k)
+    m = re.match(r"^0*(\d+)(?=[_:@])", k)
+    return (m.group(1) + k[m.end():]) if m else k
+
+
 def _positions_from_vcf(path, wanted):
     """{marker: (chromosome, bp)} from the CHROM / POS / ID columns of a VCF. A variant is known by its ID and also as
     CHROM_POS and CHROM:POS (the names a position-carrying marker name has). With `wanted`, only those names are kept."""
@@ -206,7 +214,7 @@ def _positions_from_vcf(path, wanted):
                 continue
             names = [n for n in f[2].split(";") if n and n != "."] + [f"{f[0]}_{f[1]}", f"{f[0]}:{f[1]}"]
             for n in names:
-                k = n.strip().lower()
+                k = _canon(n)
                 if wanted is None or k in wanted:
                     out.setdefault(k, (f[0], bp))
     return out
@@ -215,6 +223,7 @@ def _positions_from_vcf(path, wanted):
 def _positions_from_table(path, wanted):
     tables = _read_tables(path)
     tables.sort(key=lambda t: 0 if "physical" in t[0].lower() else 1)    # the 'Physical Map' sheet of Linkage Mapping first
+    first_problem = None
     for _sheet, df in tables:
         if df.shape[0] < 2:
             continue
@@ -233,6 +242,9 @@ def _positions_from_table(path, wanted):
                 if not vals or max(vals) * _unit(raw[i_b]) < 1000:
                     i_b = None
         if None in (i_m, i_c, i_b) or len({i_m, i_c, i_b}) < 3:
+            if first_problem is None:
+                missing = [n for n, i in (("Marker", i_m), ("Chromosome", i_c), ("bp (Position_bp, bp, Physical_bp)", i_b)) if i is None]
+                first_problem = (missing, raw)
             continue
         i_src = next((i for i, h in enumerate(heads) if h == "physicalsource"), None)
         k = _unit(raw[i_b])
@@ -243,13 +255,17 @@ def _positions_from_table(path, wanted):
                 continue
             if i_src is not None and _cell(row, i_src).lower().startswith("cm x"):
                 continue                                   # extrapolated from a bp-per-cM factor: not a real position
-            key = name.lower()
+            key = _canon(name)
             if wanted is None or key in wanted:
                 out.setdefault(key, (chrom, float(row.iloc[i_b]) * k))
         return out
+    found = ""
+    if first_problem:
+        found = (f" No column was recognised for: {', '.join(first_problem[0])}. The header row of the file reads: "
+                 f"{', '.join(first_problem[1][:8])}{' …' if len(first_problem[1]) > 8 else ''}. Check the spelling of these headers.")
     raise GeneExtractionError(
         "The marker position file needs a header row with a Marker column, a Chromosome column and a bp column "
-        "(Position_bp, bp, Physical_bp …), or it must be a VCF.")
+        "(Position_bp, bp, Physical_bp …), or it must be a VCF." + found)
 
 
 def read_marker_positions(path, wanted=None):
@@ -260,14 +276,23 @@ def read_marker_positions(path, wanted=None):
     return _positions_from_table(path, wanted)
 
 
+from tools.qtl.backend.qtl_regions import physical_position  # noqa: E402
+
+
 def _anchor(name, lg, positions, state):
     """(chromosome, bp) of a marker: from the marker position file, else from the position its name carries."""
-    hit = positions.get(str(name).strip().lower()) if positions else None
+    hit = positions.get(_canon(name)) if positions else None
     if hit:
         state["used"] = True
         return hit
     bp = _marker_bp(name, lg)
-    return (lg, bp) if bp is not None else None
+    if bp is not None:
+        return lg, bp
+    own = physical_position(name)                    # the name names another chromosome than the QTL table does
+    if own:
+        state["name_chr"] = True
+        return str(own[0]), float(own[1])
+    return None
 
 
 def _qtl_bp_interval(row, cols, positions, mode, state):
@@ -275,7 +300,7 @@ def _qtl_bp_interval(row, cols, positions, mode, state):
     -> (chromosome, start, stop, basis), or (None, None, None, reason).
 
     mode 'ci'    : the confidence interval (CI_Start_cM, CI_End_cM) is placed between the markers of the QTL (left, peak,
-                   right) whose cM and bp are both known, by linear interpolation: the same rule as the QTL Intervals file.
+                   right) whose cM and bp are both known, by linear interpolation.
           'flank': the span of the left and right flanking markers (wider)."""
     import numpy as np
 
@@ -322,16 +347,8 @@ def _parse_table(df, notes, positions=None, mode="ci", state=None):
         h in _KNOWN or any(k in h for k in ("start", "pos", "chrom", "marker", "snp")) for h in heads)
 
     if not has_header:
-        # no header: ID (or chromosome), start, end — the QTL intervals file of QTL Mapping, or a BED-style table
         if df.shape[1] >= 3 and _numeric_share(df, 1) >= 0.8 and _numeric_share(df, 2) >= 0.8:
-            out = []
-            for _, row in df.iterrows():
-                if not (_is_number(row.iloc[1]) and _is_number(row.iloc[2])):
-                    continue
-                a, b = float(row.iloc[1]), float(row.iloc[2])
-                rid = _cell(row, 0)
-                out.append({"Region_ID": rid, "Chromosome": chromosome_of(rid), "Start": min(a, b), "Stop": max(a, b)})
-            return (out, "interval") if out else None
+            state["interval_table"] = True                     # ID, start, end without a header: an interval file, not a QTL table
         return None
 
     body = df.iloc[1:]
@@ -366,6 +383,10 @@ def _parse_table(df, notes, positions=None, mode="ci", state=None):
                 continue
             out.append({"Region_ID": rid or f"{chrom}:{int(start)}-{int(stop)}", "Chromosome": chrom, "Start": start,
                         "Stop": stop, "Left_Marker": _cell(row, i_lm), "Right_Marker": _cell(row, i_rm), "Interval_Basis": why})
+        if out and state.get("name_chr"):
+            notes.append("For some QTL the chromosome of the QTL table differs from the chromosome written in the names of their markers "
+                         "(for example a QTL listed on chromosome 4 with markers named chr01_...). The chromosome and position of the "
+                         "marker names were used: check that the QTL table and the marker file come from the same data.")
         if out:
             notes.append("The positions of this table are in cM, so the base-pair interval was worked out from the "
                          + ("base-pair positions of its markers in the marker position file (and in the marker names where "
@@ -380,39 +401,26 @@ def _parse_table(df, notes, positions=None, mode="ci", state=None):
                 + "; ".join(skipped[:3]) + f"). {len(positions)} of the markers named in the QTL table were found in the file. "
                 "The marker names of the file (the ID column of a VCF) must be the same as the Left_Marker / Right_Marker "
                 "names of the QTL table.")
-        raise GeneExtractionError(
-            "The positions of this QTL table are in cM and the marker names carry no physical position, so no "
-            "base-pair interval can be read. Add a marker position file (Marker, Chromosome, bp, or a VCF), use the "
-            "QTL Intervals CSV of QTL Mapping, or give a table with Start / End in bp.")
+        raise GeneExtractionError("None of the QTL of this table could be converted to base pairs.")
     if i_s is not None and i_e is not None and (i_chr is not None or i_id is not None):
-        ks, ke = _unit(raw[i_s]), _unit(raw[i_e])
-        for _, row in body.iterrows():
-            if not (_is_number(row.iloc[i_s]) and _is_number(row.iloc[i_e])):
-                continue
-            a, b = float(row.iloc[i_s]) * ks, float(row.iloc[i_e]) * ke
-            chrom = chrom_of_row(row)
-            rid = _cell(row, i_id) if i_id is not None else ""
-            out.append({"Region_ID": rid or f"{chrom}:{int(min(a, b))}-{int(max(a, b))}", "Chromosome": chrom,
-                        "Start": min(a, b), "Stop": max(a, b)})
-        return (out, "interval") if out else None
-
+        state["interval_table"] = True                         # Chromosome + Start + End: an interval file, not a QTL table
     return None
 
 
-def read_regions(path, positions_path=None, interval="ci"):
-    """Regions of QTL results: the QTL Intervals file of QTL Mapping (QTL_ID / QTL_Start / QTL_End), any table with
-    Chromosome + Start + End columns (bp, or Mb / kb when the column name says so), or the QTL table of QTL Mapping
-    (positions in cM), whose markers get their base-pair position from the marker names or from `positions_path`
-    (a Marker / Chromosome / bp table, or a VCF). interval: 'ci' or 'flank' (see _qtl_bp_interval).
+def read_regions(path, positions_path, interval="ci"):
+    """Regions of the QTL table of QTL Mapping (positions in cM). The base-pair position of its left / peak / right markers comes from
+    `positions_path`, which is REQUIRED (a Marker / Chromosome / bp table, or a VCF). interval: 'ci' or 'flank' (see _qtl_bp_interval).
     Returns (regions, notes)."""
+    if not positions_path:
+        raise GeneExtractionError("Please select the marker position file (Marker, Chromosome, bp) or, if there is none, a VCF file: "
+                                  "it gives the base-pair position of the markers of the QTL table.")
     notes, found, sheet = [], None, ""
     tables = _read_tables(path)
     # a workbook of a QTL run: look first at the sheet that holds the intervals
     tables.sort(key=lambda t: 0 if re.search(r"qtl|interval|region|peak|sig", t[0].lower()) else 1)
-    positions, state = None, {"used": False}
-    if positions_path:
-        wanted = {v.strip().lower() for _n, d in tables for v in d.to_numpy().ravel() if isinstance(v, str)}
-        positions = read_marker_positions(positions_path, wanted)
+    state = {"used": False}
+    wanted = {_canon(v) for _n, d in tables for v in d.to_numpy().ravel() if isinstance(v, str)}
+    positions = read_marker_positions(positions_path, wanted)
     for name, df in tables:
         found = _parse_table(df, notes, positions, interval, state)
         if found:
@@ -420,17 +428,17 @@ def read_regions(path, positions_path=None, interval="ci"):
             break
     if found is None and all(df.shape[0] < 2 for _, df in tables):
         raise GeneExtractionError(
-            "The input file has no rows, only a header. If it is the QTL Intervals file of QTL Mapping, that run found "
-            "no QTL (or none could be converted to base pairs), so there is nothing to extract. Use the QTL table of a "
-            "run that found QTL (with a marker position file when the marker names carry no position).")
+            "The input file has no rows, only a header: that QTL Mapping run found no QTL, so there is nothing to extract. "
+            "Use the QTL table (qtl_significant_*.csv) of a run that found QTL.")
+    if found is None and state.get("interval_table"):
+        raise GeneExtractionError(
+            "This file is a table of intervals (Chromosome, Start, End), which Genes Extraction does not take. Use the QTL table of "
+            "QTL Mapping (qtl_significant_*.csv, positions in cM) together with the marker position file or a VCF.")
     if found is None:
         raise GeneExtractionError(
-            "No QTL regions could be read from the input file. Genes Extraction takes QTL results only: the QTL "
-            "Intervals file or the QTL table of QTL Mapping, or a table with Chromosome + Start + End columns "
-            "(QTL_ID + QTL_Start + QTL_End also works). A table of single SNP positions, such as a GWAS result, is not a QTL result.")
+            "No QTL could be read from the input file. Genes Extraction takes the QTL table of QTL Mapping (qtl_significant_*.csv) "
+            "with its Left_Marker / Right_Marker columns. A table of single SNP positions, such as a GWAS result, is not a QTL result.")
     regions, _kind = found
-    if positions_path and not state["used"]:
-        notes.append("The input file already has base-pair positions, so the genetic map was not used (it is needed for a QTL table in cM).")
     if max(r["Stop"] for r in regions) < 1000:
         raise GeneExtractionError(
             "The positions in the input file are all below 1,000, so they cannot be base pairs (they look like cM "
@@ -462,14 +470,14 @@ def _number(config, key, default=None):
 
 
 def run_gff_extraction(config, results_dir):
-    """config: marker_path (QTL results: QTL intervals, or the QTL table in cM), gff_path, optional fasta_path,
-    positions_path (optional marker position file), interval ('ci' or 'flank'),
+    """config: marker_path (the QTL table of QTL Mapping, positions in cM), positions_path (REQUIRED marker position file or VCF),
+    gff_path, optional fasta_path, interval ('ci' or 'flank'),
     match ('inside' = gene completely inside the region, default; 'overlap' = any overlap)."""
     results_dir = Path(results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
 
     interval = "flank" if config.get("interval") == "flank" else "ci"
-    regions, notes = read_regions(config["marker_path"], config.get("positions_path") or None, interval)
+    regions, notes = read_regions(config["marker_path"], config.get("positions_path"), interval)
     overlap = config.get("match") == "overlap"
 
     genes = read_gff_genes(config["gff_path"])

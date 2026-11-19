@@ -1,0 +1,4 @@
+Window,Window_kb,Windows_with_markers,Windows_tested,Median_markers_per_window,Gw_threshold,Significant_windows,Regions,Total_region_length_Mb,Median_region_length_kb,Smallest_P_adj_Gw
+250kb,250.0,240,240,4.0,6.304472497811606,103,3,27.25,8000.0,0.000999000999000999
+500kb,500.0,120,120,7.5,5.920023255011189,54,3,27.5,8000.0,0.000999000999000999
+1Mb,1000.0,60,60,15.0,5.455071717275707,28,3,28.0,9000.0,0.000999000999000999

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-MODULES = ("descriptive", "environments", "blues", "anova", "herit", "correlation", "pca", "cluster", "stability")
+MODULES = ("descriptive", "environments", "blues", "anova", "herit", "blups", "correlation", "pca", "cluster", "stability")
 DESIGNS = ("augmented", "rcbd", "alpha")
 SCHEMES = ("default", "blue", "viridis", "plasma", "magma")
 

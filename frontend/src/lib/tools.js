@@ -1,6 +1,6 @@
 import {
   Dna, Link2, Waypoints, ScanSearch, Activity, Network, Globe, Group, Scale,
-  Eye, Crosshair, StarHalf, ChartColumn, MapPinned, LayoutGrid, Layers, ListOrdered, Rows3, Fingerprint, FileCog,
+  Eye, Crosshair, StarHalf, ChartColumn, MapPinned, LayoutGrid, Layers, ListOrdered, Rows3, Fingerprint, FileCog, Shuffle, FlaskConical,
 } from 'lucide-react'
 
 export const CATEGORIES = [
@@ -19,6 +19,8 @@ export const TOOLS = [
 
   { id: 'mendelian', n: 2, cat: 'trait', name: 'Mendelian Segregation', icon: Dna,
     desc: 'Analyze genetic inheritance patterns and test for Mendelian segregation ratios in plant populations.' },
+  { id: 'recombination', n: 20, cat: 'trait', name: 'Recombination Analysis', icon: Shuffle,
+    desc: 'Locate the crossovers of RILs or backcross-derived lines, measure the donor genome of every line, and map recombination hot and cold regions, including intragenic crossovers.' },
   { id: 'linkage', n: 3, cat: 'trait', name: 'Linkage Mapping', icon: Link2,
     desc: 'Construct genetic linkage maps using molecular marker data and recombination frequencies.' },
   { id: 'genotype_viewer', n: 17, cat: 'trait', name: 'Genotype Viewer', icon: Rows3,
@@ -27,6 +29,8 @@ export const TOOLS = [
     desc: 'Identify quantitative trait loci (QTL) that affect complex traits using genetic marker data.' },
   { id: 'qtl_seq', n: 5, cat: 'trait', name: 'QTL-Seq', icon: Dna,
     desc: 'Map QTLs from bulked sequencing data (BAM or VCF) with the Δ SNP-index, simulated confidence limits and candidate genes.' },
+  { id: 'insilico_bsa', n: 21, cat: 'trait', name: 'In silico BSA', icon: FlaskConical,
+    desc: 'Bulked segregant analysis without sequencing pools: pick the extreme lines of an F2 or mapping population by trait value and compare their genotypes, with the Gw statistic that also finds over-dominant loci.' },
   { id: 'diversity', n: 6, cat: 'trait', name: 'Diversity Analysis', icon: Network,
     desc: 'Assess genetic diversity and population structure across germplasm collections using marker data.' },
   { id: 'gwas', n: 7, cat: 'trait', name: 'GWAS', icon: Globe,

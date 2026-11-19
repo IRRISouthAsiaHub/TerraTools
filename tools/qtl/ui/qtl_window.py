@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot, QThread, QUrl
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -59,18 +60,6 @@ class QTLBridge(QObject):
         return path or ""
 
     @Slot(result=str)
-    def browse_linkage_map(self):
-
-        path, _ = QFileDialog.getOpenFileName(
-            None,
-            "Select Linkage Mapping Output",
-            "",
-            "Linkage map (*.xlsx *.xls *.csv);;All Files (*)"
-        )
-
-        return path or ""
-
-    @Slot(result=str)
     def browse_phenotype(self):
 
         path, _ = QFileDialog.getOpenFileName(
@@ -118,6 +107,7 @@ class QTLBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(str)
+    @single_run
     def run_qtl(self, config_json):
 
         print("[QTL BRIDGE] run_qtl() called", flush=True)
@@ -418,7 +408,6 @@ class QTLBridge(QObject):
             "ideogram": (self.last_result, "ideogram", "Run QTL analysis first."),
             "qtl_csv": (self.last_result, "qtl_csv", "Run QTL analysis first."),
             "full_csv": (self.last_result, "full_csv", "Run QTL analysis first."),
-            "interval_csv": (self.last_result, "interval_csv", "Run QTL analysis first."),
             "compare_csv": (self.last_compare_result, "csv", "Run Compare Models first."),
             "common_csv": (self.last_common_result, "csv", "Run Find Common QTL first."),
         }

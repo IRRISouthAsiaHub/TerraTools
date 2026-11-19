@@ -1,0 +1,28 @@
+Statistic,Alpha,Threshold
+"Gw (alleles + genotypes), 250kb windows",0.1,5.662639311189312
+"Gw (alleles + genotypes), 250kb windows",0.05,6.304472497811606
+"Gw (alleles + genotypes), 250kb windows",0.01,7.7869811199591785
+"G1 (alleles only), 250kb windows",0.1,4.540569651919289
+"G1 (alleles only), 250kb windows",0.05,5.122458683587383
+"G1 (alleles only), 250kb windows",0.01,6.6533441682545105
+"|Δ allele frequency|, 250kb windows",0.1,0.19595701520018635
+"|Δ allele frequency|, 250kb windows",0.05,0.20817798349614539
+"|Δ allele frequency|, 250kb windows",0.01,0.23710735104125008
+"Gw (alleles + genotypes), 500kb windows",0.1,5.255936109754936
+"Gw (alleles + genotypes), 500kb windows",0.05,5.920023255011189
+"Gw (alleles + genotypes), 500kb windows",0.01,7.311041776886634
+"G1 (alleles only), 500kb windows",0.1,4.150071509569646
+"G1 (alleles only), 500kb windows",0.05,4.7799239835381755
+"G1 (alleles only), 500kb windows",0.01,6.365291522445842
+"|Δ allele frequency|, 500kb windows",0.1,0.18752164219192577
+"|Δ allele frequency|, 500kb windows",0.05,0.20045030668080718
+"|Δ allele frequency|, 500kb windows",0.01,0.23290983506817473
+"Gw (alleles + genotypes), 1Mb windows",0.1,4.859379581059463
+"Gw (alleles + genotypes), 1Mb windows",0.05,5.455071717275707
+"Gw (alleles + genotypes), 1Mb windows",0.01,7.09971910405541
+"G1 (alleles only), 1Mb windows",0.1,3.867513797506143
+"G1 (alleles only), 1Mb windows",0.05,4.389412452642584
+"G1 (alleles only), 1Mb windows",0.01,5.740951164416868
+"|Δ allele frequency|, 1Mb windows",0.1,0.18033716677796302
+"|Δ allele frequency|, 1Mb windows",0.05,0.1922573618807392
+"|Δ allele frequency|, 1Mb windows",0.01,0.22073598093610072

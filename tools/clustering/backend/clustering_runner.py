@@ -27,6 +27,7 @@ class ClusteringEngine:
                 outdir=outdir,
                 pheno_file=self.config.pheno_file,
                 keep_test_pheno=self.config.keep_test_pheno,
+                n_pcs=self.config.n_pcs,
             )
         except Exception as e:
             return {

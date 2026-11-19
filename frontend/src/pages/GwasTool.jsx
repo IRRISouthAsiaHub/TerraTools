@@ -114,7 +114,10 @@ export default function GwasTool() {
           </Card>
           <Card title="Input Data" icon={FileText} delay={0.03}>
             {mode === 'file' ? (
-              <FilePicker value={file} onBrowse={browse} placeholder="Select genotype/phenotype CSV, TSV or TXT file" />
+              <>
+                <FilePicker value={file} onBrowse={browse} placeholder="Select genotype/phenotype CSV, TSV or TXT file" />
+                <div className="field-hint">Columns: ID, phenotype, then one column per marker. Marker positions come from the marker names (Chr3_123456) or from a position row and a chromosome row under the header.</div>
+              </>
             ) : (
               <>
                 {mode === 'vcf' && (

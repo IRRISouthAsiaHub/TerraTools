@@ -17,8 +17,8 @@ const INTERVAL = [
 ]
 
 const POS_KINDS = [
-  { value: 'map', label: 'Genetic map (Marker, Chromosome, bp)' },
-  { value: 'vcf', label: 'No map: use a VCF' },
+  { value: 'map', label: 'Marker table (Marker, Chromosome, bp)' },
+  { value: 'vcf', label: 'Use a VCF' },
 ]
 
 const MATCH = [
@@ -30,7 +30,6 @@ const dash = (_c, v) => (v === null || v === undefined || v === '' ? '—' : und
 
 const pre = { margin: '8px 0', padding: '10px 14px', borderRadius: 8, background: 'rgba(0,0,0,0.06)', fontSize: 13, overflowX: 'auto' }
 const POS_EXAMPLE = ['Marker,Chromosome,bp', 'M001,chr01,19308987', 'M005,chr01,21011077'].join('\n')
-const QTL_EXAMPLE = ['QTL_ID,QTL_Start,QTL_End', 'QTL_3.1,4000000,4300000', 'QTL_5.1,22500000,23100000'].join('\n')
 
 export default function GeneExtractorTool() {
   const { bridge } = useBridge('geneExtractorBridge', () => mockGeneric())
@@ -42,19 +41,14 @@ export default function GeneExtractorTool() {
 
   const pick = (key, slot) => async () => { const p = await tool.browse(slot); if (p) setF((x) => ({ ...x, [key]: p })) }
   const set = (key) => (v) => setF((x) => ({ ...x, [key]: v }))
-  const useQtlMapping = async () => {
-    const p = await tool.browse('latest_qtl_intervals')
-    if (p) setF((x) => ({ ...x, marker_path: p }))
-    else tool.fail('No QTL Mapping output found. Run QTL Mapping first, or browse to the QTL results.')
-  }
   const useQtlTable = async () => {
     const p = await tool.browse('latest_qtl_table')
     if (p) setF((x) => ({ ...x, marker_path: p }))
     else tool.fail('No QTL table found. Run QTL Mapping first, or browse to the QTL table (qtl_significant_*.csv).')
   }
   const run = () => {
-    if (!f.marker_path) return tool.fail('Please upload the QTL results.')
-    if (!f.positions_path) return tool.fail(posKind === 'vcf' ? 'Please select the VCF file.' : 'Please select the genetic map (Marker, Chromosome, bp), or choose “No map: use a VCF”.')
+    if (!f.marker_path) return tool.fail('Please upload the QTL table of QTL Mapping.')
+    if (!f.positions_path) return tool.fail(posKind === 'vcf' ? 'Please select the VCF file.' : 'Please select the marker position file (Marker, Chromosome, bp), or choose “Use a VCF”.')
     if (!f.gff_path) return tool.fail('Please upload the annotation (GFF3) file.')
     tool.run({
       marker_path: f.marker_path, gff_path: f.gff_path, match: f.match, positions_path: f.positions_path, interval: f.interval,
@@ -73,16 +67,12 @@ export default function GeneExtractorTool() {
     >
       {tab === 'extraction' && (
         <TabPane id="extraction" key="extraction">
-          <SectionHeader title="Instructions">Provide the QTL results, the genetic map (or a VCF) and the annotation, then extract.</SectionHeader>
+          <SectionHeader title="Instructions">Provide the QTL table, the marker position file (or a VCF) and the annotation, then extract.</SectionHeader>
           <div className="note" style={{ marginTop: 0, marginBottom: 20 }}>
-            <p>1. Upload the QTL results (CSV, TSV or Excel) — the tool finds the columns by their <b>name</b>, in any order:</p>
-            <p><b>QTL intervals</b> — the QTL intervals of QTL Mapping (click “Use QTL Mapping output”), or any table with <b>Chromosome</b>, <b>Start</b> and <b>End</b> columns
-              in base pairs (QTL_ID / QTL_Start / QTL_End, Left / Right, Left_Mb / Right_Mb are all understood). When there is no Chromosome column it is read from the QTL_ID (QTL_3.1 is chromosome 3).</p>
-            <pre style={pre}>{QTL_EXAMPLE}</pre>
-            <p>The <b>QTL table</b> of QTL Mapping (qtl_significant_*.csv, click “Use QTL table”) also works: its positions are in cM, so the tool needs the base-pair position of its markers,
-              and that is what the genetic map below gives it.</p>
-            <p style={{ marginTop: 12 }}>2. Upload the <b>genetic map</b> with the base-pair position of the markers — a table with <b>Marker</b>, <b>Chromosome</b> and <b>bp</b> columns
-              (the names must be the same as in the QTL table; the “Physical Map” sheet of a Linkage Mapping workbook works too). <b>If you have no genetic map, choose “No map: use a VCF”</b>{' '}
+            <p>1. Upload the <b>QTL table</b> of QTL Mapping (<code>qtl_significant_*.csv</code>, click “Use QTL table”, or browse to it). Its positions are in cM; the tool finds the
+              columns by their <b>name</b> and needs the left, peak and right marker of every QTL.</p>
+            <p style={{ marginTop: 12 }}>2. Upload the <b>marker position file</b>, which is <b>required</b>: it gives the base-pair position of the QTL markers. It is a table with <b>Marker</b>, <b>Chromosome</b> and <b>bp</b> columns
+              (the names must be the same as in the QTL table; the “Physical Map” sheet of a Linkage Mapping workbook works too). <b>If you have no such table, choose “Use a VCF”</b>{' '}
               and select the VCF: its CHROM and POS give the position and its ID the marker name (a VCF without IDs cannot be matched). The positions of the QTL’s left, peak and right markers place
               the confidence interval (cM) on the genome; the file only needs the markers of the QTL.</p>
             <pre style={pre}>{POS_EXAMPLE}</pre>
@@ -93,22 +83,21 @@ export default function GeneExtractorTool() {
             <p>6. Download the gene table, the <b>gene ID list</b> or the sequences from the “Genes in Gene Regions” tab</p>
           </div>
           <div className="row">
-            <Card title="QTL Results (input)" icon={FileSpreadsheet}>
+            <Card title="QTL Table (input)" icon={FileSpreadsheet}>
               <FilePicker value={f.marker_path} placeholder="No file selected" onBrowse={pick('marker_path', 'browse_markers')} />
               <div style={{ marginTop: 10 }}>
-                <button className="btn btn-secondary" onClick={useQtlMapping}><Waypoints size={15} /> Use QTL Mapping output</button>{' '}
-                <button className="btn btn-secondary" onClick={useQtlTable}><Waypoints size={15} /> Use QTL table (cM)</button>
+                <button className="btn btn-secondary" onClick={useQtlTable}><Waypoints size={15} /> Use QTL table</button>
               </div>
             </Card>
-            <Card title="Genetic Map (required)" icon={MapPin} delay={0.03}>
+            <Card title="Marker Position File (required)" icon={MapPin} delay={0.03}>
               <RadioChips options={POS_KINDS} value={posKind} onChange={(v) => { setPosKind(v); setF((x) => ({ ...x, positions_path: '' })) }} />
               <div style={{ marginTop: 10 }}>
-                <FilePicker value={f.positions_path} placeholder={posKind === 'vcf' ? 'Select the VCF (.vcf or .vcf.gz)' : 'Select the genetic map'}
+                <FilePicker value={f.positions_path} placeholder={posKind === 'vcf' ? 'Select the VCF (.vcf or .vcf.gz)' : 'Select the marker position file'}
                   onBrowse={pick('positions_path', posKind === 'vcf' ? 'browse_vcf' : 'browse_positions')} />
               </div>
               <div className="field-hint" style={{ marginTop: 8 }}>
                 {posKind === 'vcf' ? 'CHROM and POS give the position of each marker; the ID (or CHROM_POS) must be the marker name of the QTL table.'
-                  : 'Marker, Chromosome and bp: places the QTL (in cM) on the genome.'}
+                  : 'Marker, Chromosome and bp: places the QTL (in cM) on the genome. Required.'}
               </div>
             </Card>
             <Card title="Annotation File (GFF3)" icon={FileSpreadsheet} delay={0.06}>
@@ -120,8 +109,8 @@ export default function GeneExtractorTool() {
           </div>
           <div className="row">
             <Card title="Options" icon={Settings2} delay={0.18}>
-              <SelectField label="QTL interval (QTL table in cM)" value={f.interval} onChange={set('interval')} options={INTERVAL}
-                hint="Only for a QTL table in cM. The confidence interval is placed on the genome from the positions of the QTL's markers, as in the QTL Intervals file." />
+              <SelectField label="QTL interval" value={f.interval} onChange={set('interval')} options={INTERVAL}
+                hint="The confidence interval of the QTL is placed on the genome from the base-pair positions of its markers." />
               <SelectField label="A gene is taken when it lies" value={f.match} onChange={set('match')} options={MATCH}
                 hint="Completely inside keeps only genes that fit in the region; overlapping also takes genes cut by its border." />
             </Card>
@@ -135,7 +124,7 @@ export default function GeneExtractorTool() {
             <>
               {(r.warnings || []).map((w) => <div className="note" key={w} style={{ marginBottom: 12 }}><p>{w}</p></div>)}
               <div className="info-line">
-                QTL intervals · {(r.region_summary || []).length} region(s) · {r.gene_ids} gene(s)
+                QTL regions · {(r.region_summary || []).length} region(s) · {r.gene_ids} gene(s)
               </div>
               <DataTable rows={r.region_summary} columns={r.region_columns || []} renderCell={dash} maxHeight={480} />
             </>

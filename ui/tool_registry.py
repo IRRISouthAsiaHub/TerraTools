@@ -19,6 +19,11 @@ def _genofile_converter():
     return GenofileBridge
 
 
+def _recombination():
+    from tools.recombination.ui.recombination_window import RecombinationBridge
+    return RecombinationBridge
+
+
 def _linkage():
     from tools.linkage.ui.linkage_window import LinkageBridge
     return LinkageBridge
@@ -57,6 +62,11 @@ def _pybsaseq():
 def _qtl_seq():
     from tools.qtl_seq.ui.qtl_seq_window import QTLSeqBridge
     return QTLSeqBridge
+
+
+def _insilico_bsa():
+    from tools.insilico_bsa.ui.insilico_bsa_window import InSilicoBsaBridge
+    return InSilicoBsaBridge
 
 
 def _diversity():
@@ -110,6 +120,7 @@ TOOL_BRIDGES = [
     (_genofile_converter, "genofileBridge"),
     (_mendelian, "mendelianBridge"),
     (_linkage, "linkageBridge"),
+    (_recombination, "recombinationBridge"),
     (_genotype_viewer, "genotypeViewerBridge"),
     (_favourable_allele, "favourableAlleleBridge"),
     (_qtl, "qtlBridge"),
@@ -117,6 +128,7 @@ TOOL_BRIDGES = [
     (_gene_prioritization, "genePrioritizationBridge"),
     (_pybsaseq, "pybsaseqBridge"),
     (_qtl_seq, "qtlSeqBridge"),
+    (_insilico_bsa, "inSilicoBsaBridge"),
     (_diversity, "diversityBridge"),
     (_gwas, "gwasBridge"),
     (_et_gwas, "etGwasBridge"),

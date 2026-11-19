@@ -18,6 +18,10 @@ const rnd = (i, k) => {
   return x - Math.floor(x)
 }
 
+// Fireflies are plain CSS animations (transform + opacity only), so Chromium runs them on the compositor thread and
+// they cost the page's main thread nothing. They used to be framer-motion animations: JavaScript updating the style
+// of every firefly on every frame, forever, which kept the renderer busy (a style recalculation per frame) even when
+// the window was idle.
 export function Background({ variant = 'photo', count = 16 }) {
   const flies = useMemo(
     () => Array.from({ length: count }, (_, i) => ({
@@ -30,12 +34,10 @@ export function Background({ variant = 'photo', count = 16 }) {
   return (
     <div className={`bg ${variant === 'photo' ? '' : 'bg-mint'}`} aria-hidden>
       {flies.map((f, i) => (
-        <motion.span
+        <span
           key={i}
-          className="firefly"
-          style={{ left: `${f.x}%`, top: `${f.y}%`, scale: f.s }}
-          animate={{ x: [0, f.dx, f.dx * 0.4, 0], y: [0, f.dy * 0.5, f.dy, 0], opacity: [0, 0.9, 0.5, 0] }}
-          transition={{ duration: f.d, delay: f.delay, repeat: Infinity, ease: 'easeInOut' }}
+          className="firefly drift"
+          style={{ left: `${f.x}%`, top: `${f.y}%`, '--dx': `${f.dx}px`, '--dy': `${f.dy}px`, '--s': f.s, animationDuration: `${f.d}s`, animationDelay: `${f.delay}s` }}
         />
       ))}
     </div>
@@ -550,7 +552,7 @@ export function ImageGallery({ images, single = false }) {
             transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <button className="img-wrap" onClick={() => setOpen(im)} aria-label={`View ${im.label} full size`}>
-              <img src={url(im.src)} alt={im.label} />
+              <img src={url(im.src)} alt={im.label} decoding="async" loading="lazy" />
             </button>
             <div className="label">
               <span className="lbl-text">{im.label}</span>
@@ -576,7 +578,7 @@ export function ImageGallery({ images, single = false }) {
               initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
             >
-              <img src={url(open.src)} alt={open.label} />
+              <img src={url(open.src)} alt={open.label} decoding="async" />
               <figcaption>
                 {open.label}
                 <button className="btn btn-primary sm" onClick={() => saveImage(open.src, open.label)}><Download size={14} /> Download PNG</button>

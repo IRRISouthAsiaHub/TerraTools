@@ -38,17 +38,28 @@ RANDOM_STATE = 90
 np.random.seed(RANDOM_STATE)
 tf.random.set_seed(RANDOM_STATE)
 
-# IMPROVED PARAMETER SETTINGS
+# BreedSight settings, tuned by inner cross-validation on the training data (they raised the 5-fold validation R2
+# of the test data set from about 0.41 to about 0.51). Compared with the earlier settings:
+#   - the phenotype is standardised for the DNN, (y - mean) / SD of the training rows, and the predictions are
+#     converted back to the raw scale
+#   - a smaller DNN (64-32 instead of 256-128-64), dropout 0.2 (was 0.3), L2 0.001 (was 0.01)
+#   - BreedSight uses the first 20 principal components (was all 50); the comparison models still get all of them
+#   - Random Forest with max_features 0.33, min_samples_leaf 3 (was 2) and 300 trees (was 500)
+#   - ensemble weight alpha 0.4 for the DNN, 0.6 for the Random Forest (was 0.5 / 0.5)
 IMPROVED_PARAMS = {
-    'epochs': 300,           # Increased for better convergence
+    'epochs': 300,           # Early stopping ends training well before this
     'batch_size': 32,        # Smaller batches for genomic data
-    'learning_rate': 0.001,  # More appropriate learning rate
-    'l2_reg': 0.01,          # Reduced regularization
-    'dropout_rate': 0.3,     # More reasonable dropout
-    'rf_n_estimators': 500,  # Increased for stability
+    'learning_rate': 0.001,
+    'l2_reg': 0.001,
+    'dropout_rate': 0.2,
+    'hidden_units': (64, 32),
+    'rf_n_estimators': 300,
     'rf_max_depth': None,    # Let trees grow fully
-    'alpha': 0.5,            # More balanced ensemble weighting
-    'fixed_epochs_final': 150,  # Fixed epochs for final training (no early stopping)
+    'rf_max_features': 0.33,
+    'rf_min_samples_leaf': 3,
+    'alpha': 0.4,            # weight of the DNN in the ensemble
+    'bs_n_components': 20,   # principal components given to BreedSight (not to the comparison models)
+    'fixed_epochs_final': 150,
 }
 
 TRULY_FIXED_PARAMETERS={
@@ -648,7 +659,9 @@ def compute_grm_efficient(X_train, X_val=None, ref_features=None, is_train=True,
             
             
             if use_pca:
-                pca = PCA(n_components=min(n_components, X_train_final.shape[1]))
+                # PCA cannot return more components than min(lines, features): with few lines in a training fold
+                # (features = 2 x lines here) the requested number has to be capped by the lines as well.
+                pca = PCA(n_components=max(1, min(n_components, X_train_final.shape[0], X_train_final.shape[1])))
                 X_train_final = pca.fit_transform(X_train_final)
                 if X_val_final is not None:
                     X_val_final = pca.transform(X_val_final)
@@ -705,10 +718,11 @@ def safe_feature_selection(X_train, y_train, X_val, n_features=100):
 
 def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
                epochs=300, batch_size=32, learning_rate=0.001,
-               l2_reg=0.01, dropout_rate=0.3,
-               rf_n_estimators=500, rf_max_depth=None,
-               alpha=0.5, verbose=1, use_early_stopping=True,
-               es_val_fraction=0.15):
+               l2_reg=0.001, dropout_rate=0.2, hidden_units=(64, 32),
+               rf_n_estimators=300, rf_max_depth=None,
+               rf_max_features=0.33, rf_min_samples_leaf=3,
+               alpha=0.4, verbose=1, use_early_stopping=True,
+               es_val_fraction=0.15, standardize_y=True, n_features=None):
     
     # Input validation - check for missing values
     if np.isnan(trainX).any() or np.isnan(trainy).any():
@@ -723,6 +737,13 @@ def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
     if trainX.shape[0] != trainy.shape[0]:
         raise ValueError("trainX and trainy must have the same number of samples")
     
+    # BreedSight alone uses the first n_features principal components (the tuned setting is 20); the comparison
+    # models keep every column. PCA columns are ordered by variance, so this equals a PCA with n_features components.
+    if n_features is not None and trainX.shape[1] > n_features:
+        trainX = trainX[:, :n_features]
+        valX = valX[:, :n_features] if valX is not None else None
+        testX = testX[:, :n_features] if testX is not None else None
+
     # ---- Inner split of the TRAINING data for early stopping ----
     n_train = trainX.shape[0]
     if use_early_stopping:
@@ -738,8 +759,18 @@ def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
     feature_scaler.fit(trainX[es_fit_idx])
     trainX_scaled = feature_scaler.transform(trainX)
 
-    # Use raw phenotypes for consistency and interpretability
-    trainy_final = trainy
+    # The DNN is trained on the standardised phenotype (mean/SD of the inner-training rows only) and its
+    # predictions are converted back to the raw scale; the Random Forest uses the raw phenotype.
+    if standardize_y:
+        y_mean, y_sd = trainy[es_fit_idx].mean(), trainy[es_fit_idx].std()
+        if not y_sd > 0:
+            y_mean, y_sd = 0.0, 1.0
+    else:
+        y_mean, y_sd = 0.0, 1.0
+    trainy_final = (trainy - y_mean) / y_sd
+
+    def to_raw_scale(pred):
+        return pred * y_sd + y_mean
 
     # Outer hold-out fold: scaled for PREDICTION ONLY (never given to model.fit)
     valX_scaled = feature_scaler.transform(valX) if valX is not None else None
@@ -754,32 +785,20 @@ def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
         """Build improved Deep Neural Network architecture"""
         inputs = tf.keras.Input(shape=(input_shape,))
         
-        # Enhanced architecture with better capacity
-        x = Dense(256, kernel_initializer='he_normal',
-                  kernel_regularizer=regularizers.l2(l2_reg))(inputs)
-        x = BatchNormalization()(x)
-        x = Dropout(dropout_rate)(x)
-        x = LeakyReLU(alpha=0.1)(x)
-        
-        # Layer 2
-        x = Dense(128, kernel_initializer='he_normal',
-                  kernel_regularizer=regularizers.l2(l2_reg))(x)
-        x = BatchNormalization()(x)
-        x = Dropout(dropout_rate)(x)
-        x = LeakyReLU(alpha=0.1)(x)
-        
-        # Layer 3
-        x = Dense(64, kernel_initializer='he_normal',
-                  kernel_regularizer=regularizers.l2(l2_reg))(x)
-        x = BatchNormalization()(x)
-        x = Dropout(dropout_rate)(x)
-        x = LeakyReLU(alpha=0.1)(x)
-        
+        # Hidden layers: Dense -> BatchNorm -> Dropout -> LeakyReLU
+        x = inputs
+        for units in hidden_units:
+            x = Dense(units, kernel_initializer='he_normal',
+                      kernel_regularizer=regularizers.l2(l2_reg))(x)
+            x = BatchNormalization()(x)
+            x = Dropout(dropout_rate)(x)
+            x = LeakyReLU(alpha=0.1)(x)
+
         # Output layer
         outputs = Dense(1, activation="linear")(x)
         model = tf.keras.Model(inputs, outputs)
         
-        # Huber loss works directly with raw phenotypes
+        # Huber loss on the standardised phenotype (delta=1 is one SD)
         model.compile(loss=tf.keras.losses.Huber(delta=1.0),
                      optimizer=Adam(learning_rate=learning_rate, clipvalue=0.5),
                      metrics=['mse'])
@@ -820,27 +839,28 @@ def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
         max_depth=rf_max_depth,
         random_state=RANDOM_STATE,
         n_jobs=-1,
+        max_features=rf_max_features,
         min_samples_split=5,
-        min_samples_leaf=2
+        min_samples_leaf=rf_min_samples_leaf
     )
     rf_model.fit(trainX, trainy.ravel())
     
     # Generate predictions
-    predicted_train_dnn = dnn_model.predict(trainX_scaled).flatten()
+    predicted_train_dnn = to_raw_scale(dnn_model.predict(trainX_scaled).flatten())
     predicted_train_rf = rf_model.predict(trainX)
     
     # Validation predictions
     predicted_val_dnn = None
     predicted_val_rf = None
     if valX is not None:
-        predicted_val_dnn = dnn_model.predict(valX_scaled).flatten()
+        predicted_val_dnn = to_raw_scale(dnn_model.predict(valX_scaled).flatten())
         predicted_val_rf = rf_model.predict(valX)
     
     # Test predictions
     predicted_test_dnn = None
     predicted_test_rf = None
     if testX is not None:
-        predicted_test_dnn = dnn_model.predict(testX_scaled).flatten()
+        predicted_test_dnn = to_raw_scale(dnn_model.predict(testX_scaled).flatten())
         predicted_test_rf = rf_model.predict(testX)
     
     # Ensemble predictions (weighted combination)
@@ -854,7 +874,9 @@ def BreedSight(trainX, trainy, valX=None, valy=None, testX=None, testy=None,
     model_artifacts = {
         'feature_scaler': feature_scaler,
         'dnn_model': dnn_model,
-        'rf_model': rf_model
+        'rf_model': rf_model,
+        'y_mean': y_mean,
+        'y_sd': y_sd
     }
     
     # Performance reporting
@@ -971,17 +993,22 @@ def generate_regression_plot(true_vals, pred_vals, dataset_name, fold, model_nam
 
 def KFoldCrossValidation(training_data, training_additive, testing_data, testing_additive,
                          epochs=300, batch_size=32, learning_rate=0.001,
-                         l2_reg=0.01, dropout_rate=0.3, rf_n_estimators=500,
-                         rf_max_depth=None, alpha=0.5, outer_n_splits=10,
+                         l2_reg=0.001, dropout_rate=0.2, rf_n_estimators=300,
+                         rf_max_depth=None, alpha=0.4, outer_n_splits=10,
                          feature_selection=True, heritability=0.82,
                          use_raw_genotypes=False, use_pca=False, n_components=100,
                          fixed_epochs_final=None,rfe_n_features=200, generate_plots=True,
-                         baselines=()):
+                         baselines=(), hidden_units=(64, 32), rf_max_features=0.33,
+                         rf_min_samples_leaf=3, bs_n_components=20):
     """
     Perform K-fold cross-validation with COMPLETE data leakage prevention.
     baselines: optional comparison models ('Lasso', 'RRBLUP_1', 'GBLUP_1'); none by default (BreedSight only).
     """
     baselines = select_baselines(baselines)
+
+    def bs_features(selector):
+        # BreedSight takes the first bs_n_components PCA columns; not when the columns were chosen by RFE or are raw
+        return bs_n_components if (use_pca and not use_raw_genotypes and selector is None) else None
     # Input validation
     assert isinstance(training_data, pd.DataFrame), "Training data must be DataFrame"
     assert isinstance(testing_data, pd.DataFrame), "Testing data must be DataFrame"
@@ -1048,6 +1075,9 @@ def KFoldCrossValidation(training_data, training_additive, testing_data, testing
                 'rf_n_estimators': rf_n_estimators,
                 'rf_max_depth': rf_max_depth,
                 'alpha': alpha,
+                'hidden_units': tuple(hidden_units),
+                'rf_max_features': rf_max_features,
+                'rf_min_samples_leaf': rf_min_samples_leaf,
                 'verbose': 1,
                 'use_early_stopping': True   # inner split; outer fold untouched
             },
@@ -1112,7 +1142,7 @@ def KFoldCrossValidation(training_data, training_additive, testing_data, testing
                     valy=fold_val_phenotypes,
                     testX=None,
                     testy=None,
-                    **config['params']
+                    **dict(config['params'], n_features=bs_features(selector))
                 )
             else:
                 # Baselines: same outer folds for every model.
@@ -1233,6 +1263,7 @@ def KFoldCrossValidation(training_data, training_additive, testing_data, testing
     
     # Final BreedSight uses EXACTLY the same hyperparameters as the CV runs
     final_breedsight_params = dict(model_configs['BreedSight']['params'])
+    final_breedsight_params['n_features'] = bs_features(selector_final)
     
     # Train final models COMPLETELY INDEPENDENTLY
     final_test_predictions, final_models = train_final_models_truly_independent(
@@ -1522,7 +1553,7 @@ def evaluate_on_splits(Z, y, splits, bs_params, scheme, output_dir,
         _, p_ens, _, _, rf_bs, art = BreedSight(
             trainX=Xtr, trainy=ytr, valX=Xva, valy=yva, **params)
         p_dnn = art['dnn_model'].predict(art['feature_scaler'].transform(Xva),
-                                         verbose=0).ravel()
+                                         verbose=0).ravel() * art['y_sd'] + art['y_mean']
         p_rf = rf_bs.predict(Xva)
 
         preds = {
@@ -1723,9 +1754,11 @@ def run_complete_analysis(training_file, training_additive_file, testing_file, t
         Z_all = v_train.iloc[:, 1:].values
         y_all = training_data['phenotypes'].values
         bs_keys = ('epochs', 'batch_size', 'learning_rate', 'l2_reg', 'dropout_rate',
-                   'rf_n_estimators', 'rf_max_depth', 'alpha')
+                   'rf_n_estimators', 'rf_max_depth', 'alpha', 'hidden_units',
+                   'rf_max_features', 'rf_min_samples_leaf')
         bs_params = {k: improved_kwargs[k] for k in bs_keys}
         bs_params['use_early_stopping'] = True
+        bs_params['n_features'] = improved_kwargs.get('bs_n_components')
         run_robustness_analysis(Z_all, y_all, bs_params, output_dir, n_repeats=n_repeats,
                                 n_splits=improved_kwargs.get('outer_n_splits', 5),
                                 n_clusters=n_clusters, include_tuned=include_tuned)

@@ -19,10 +19,14 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 from sklearn.model_selection import StratifiedShuffleSplit
 
 # Sample IDs are written on the plot only when there are few enough to read.
 MAX_LABELLED = 150
+# K-selection aid: K = 2 ... MAX_K_TRIED; the silhouette is computed on at most this many lines
+MAX_K_TRIED = 10
+SILHOUETTE_SAMPLE = 2000
 
 
 def read_table(path) -> pd.DataFrame:
@@ -52,8 +56,45 @@ def load_phenotypes(path):
     return out, str(col), {"rows": n_rows, "blank": n_blank, "duplicates": n_dup}
 
 
+def k_selection(Z: np.ndarray, outdir: Path, chosen_k: int):
+    """Silhouette width (higher = better separated clusters) and within-cluster sum of squares (elbow) for K = 2 ... 10,
+    on the space the clustering is done in. Returns (table, suggested K by silhouette, png path) or (None, None, None)."""
+    n = Z.shape[0]
+    ks = list(range(2, min(MAX_K_TRIED, n - 1) + 1))
+    if len(ks) < 2:
+        return None, None, None
+    rng = np.random.default_rng(1)
+    idx = rng.choice(n, SILHOUETTE_SAMPLE, replace=False) if n > SILHOUETTE_SAMPLE else np.arange(n)
+    rows = []
+    for k in ks:
+        km = KMeans(n_clusters=k, random_state=60, n_init=10).fit(Z)
+        lab = km.labels_
+        sil = float(silhouette_score(Z[idx], lab[idx])) if len(set(lab[idx])) > 1 else float("nan")
+        rows.append({"K": k, "Silhouette": round(sil, 4), "Within_SS": round(float(km.inertia_), 2)})
+    tab = pd.DataFrame(rows)
+    ok = tab.dropna(subset=["Silhouette"])
+    best = int(ok.loc[ok["Silhouette"].idxmax(), "K"]) if len(ok) else None
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10, 3.8))
+    a1.plot(tab["K"], tab["Silhouette"], "o-", color="#2E6B35")
+    a1.set_xlabel("Number of clusters K"); a1.set_ylabel("Mean silhouette width"); a1.set_title("Separation (higher is better)")
+    a2.plot(tab["K"], tab["Within_SS"], "o-", color="#6c63ff")
+    a2.set_xlabel("Number of clusters K"); a2.set_ylabel("Within-cluster sum of squares"); a2.set_title("Elbow")
+    for a in (a1, a2):
+        if chosen_k in ks:
+            a.axvline(chosen_k, color="#CC0000", ls="--", lw=1)
+        if best:
+            a.axvline(best, color="#d9a52b", ls=":", lw=1.5)
+        a.grid(alpha=0.25)
+    fig.suptitle(f"Choice of K: used {chosen_k} (red), highest silhouette {best} (gold)", fontsize=10)
+    plt.tight_layout()
+    path = outdir / "k_selection.png"
+    fig.savefig(path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return tab, best, path
+
+
 def cluster_split_data(geno_file: str, n_clusters: int, test_size: float, outdir: Path,
-                       pheno_file: str = "", keep_test_pheno: bool = False) -> dict:
+                       pheno_file: str = "", keep_test_pheno: bool = False, n_pcs: int = 0) -> dict:
     outdir.mkdir(parents=True, exist_ok=True)
     notes = []
 
@@ -118,8 +159,18 @@ def cluster_split_data(geno_file: str, n_clusters: int, test_size: float, outdir
     n_clusters = int(n_clusters)
     n_clusters = max(2, min(n_clusters, n_samples - 1))
 
+    # K-means on the first n_pcs principal components (0 = all of them, which is clustering in the full genotype space)
+    n_use = geno_reduced.shape[1] if not n_pcs else max(2, min(int(n_pcs), geno_reduced.shape[1]))
+    space = geno_reduced[:, :n_use]
     kmeans = KMeans(n_clusters=n_clusters, random_state=60, n_init=20)
-    clusters = kmeans.fit_predict(geno_reduced)
+    clusters = kmeans.fit_predict(space)
+    try:
+        k_tab, k_best, k_png = k_selection(space, outdir, n_clusters)
+    except Exception as e:                      # an aid only: never stops the run
+        k_tab, k_best, k_png = None, None, None
+        notes.append(f"The K-selection plot could not be made: {e}")
+    if n_use < geno_reduced.shape[1]:
+        notes.append(f"K-means used the first {n_use} of {geno_reduced.shape[1]} principal components.")
 
     geno["Cluster"] = clusters
 
@@ -222,6 +273,11 @@ def cluster_split_data(geno_file: str, n_clusters: int, test_size: float, outdir
         **pheno_counts,
         "notes": notes,
         "plot_png": str(plot_path),
+        "n_pcs_used": int(n_use),
+        "n_pcs_available": int(geno_reduced.shape[1]),
+        "k_selection_png": str(k_png) if k_png else "",
+        "k_selection": [] if k_tab is None else k_tab.to_dict("records"),
+        "k_suggested": k_best,
         "train_csv": str(train_path),
         "test_csv": str(test_path),
         "cluster_table_csv": str(cluster_table_path),

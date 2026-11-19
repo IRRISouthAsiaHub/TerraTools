@@ -101,6 +101,10 @@ hidden_imports = [
     "PySide6.QtWebEngineWidgets",
     "PySide6.QtWebEngineCore",
     "PySide6.QtWebChannel",
+    # diagnostics (tools/common/diagnostics.py): psutil is imported inside a try-block (CPU/memory samples with
+    # TERRATOOLS_DIAG=verbose), shiboken6 by tools/common/single_run.py
+    "psutil",
+    "shiboken6",
     # numpy submodules referenced only via pickle's dynamic find_class()
     # lookup (e.g. joblib.load() on a pickled DataFrame/array) — these
     # are invisible to PyInstaller's static import scanning since

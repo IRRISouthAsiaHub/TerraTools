@@ -1,0 +1,20 @@
+Metric,Value
+Lines analysed,80.0
+Markers in file,900.0
+Polymorphic markers used,900.0
+Markers removed (monomorphic / parent not homozygous),0.0
+Total crossovers,405.0
+Mean crossovers per line,5.06
+Min crossovers per line,0.0
+Max crossovers per line,12.0
+Lines with no crossover,2.0
+Mean donor % (mean of the chromosomes),15.3
+Mean donor % (all markers pooled),15.29
+Min donor %,0.0
+Max donor %,43.58
+Heterozygous calls %,1.38
+Missing calls %,3.97
+Calls changed by smoothing,1525.0
+Intragenic crossovers,37.0
+Intergenic crossovers,368.0
+Intragenic %,9.1

@@ -2,6 +2,8 @@ import json
 
 from PySide6.QtCore import QObject, Slot
 
+from tools.common import diagnostics as diag
+
 
 class TerraToolsBridge(QObject):
     """Launcher-level bridge. Tools now open inside the main window, so this
@@ -19,3 +21,17 @@ class TerraToolsBridge(QObject):
         self.parent_window.browser.page().runJavaScript(
             f"location.replace({json.dumps('#/' + tool_name)});"
         )
+
+    @Slot(str)
+    def diag_log(self, payload):
+        """Frontend reports (long tasks, slow frames, result sizes, render times) go to the same structured log as the
+        Python side. Cheap: the page batches them and sends at most one call every few seconds."""
+        try:
+            for rec in json.loads(payload):
+                diag.event("fe_" + str(rec.pop("ev", "event")), **rec)
+        except Exception:
+            pass
+
+    @Slot(str)
+    def set_active_tool(self, tool):
+        diag.set_tool(tool or None)

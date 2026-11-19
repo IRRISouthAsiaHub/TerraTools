@@ -325,7 +325,7 @@ def analyse(cfg, data: genotype_io.GenotypeData, labels=None, alleles=None, log=
     for name in cfg.models:
         try:
             if name in NEEDS_MAP and not map_ok:
-                raise ValueError("this model needs physical marker positions (marker names such as Chr3_123456); "
+                raise ValueError("this model needs physical marker positions (a Position row under the header, or marker names such as Chr3_123456); "
                                  + "; ".join(data.marker_map.notes))
             if name in ("OLS", *MIXED):
                 k = {"OLS": cfg.ols_pcs, "MLM": cfg.mlm_pcs, "EMMAX": cfg.emmax_pcs, "GEMMA": cfg.gemma_pcs}[name]

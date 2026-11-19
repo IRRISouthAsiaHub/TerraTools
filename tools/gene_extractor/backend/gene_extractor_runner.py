@@ -15,12 +15,10 @@ def _error(message):
 def run_extraction(config, results_dir):
     """
     config: {
-        "marker_path": str,   # QTL results: the QTL Intervals file of QTL Mapping (QTL_ID, QTL_Start, QTL_End), any
-                              # Chromosome + Start + End table, or the QTL table of QTL Mapping (positions in cM)
+        "marker_path": str,   # the QTL table of QTL Mapping (qtl_significant_*.csv, positions in cM)
         "gff_path": str,      # GFF3 gene annotation
-        "positions_path": str,  # REQUIRED: the genetic map with the base-pair position of the markers (a table Marker,
-                              # Chromosome, bp; also the 'Physical Map' sheet of a Linkage Mapping workbook) or, when there
-                              # is no map, a VCF (CHROM, POS, ID). It places the QTL of a QTL table in cM on the genome.
+        "positions_path": str,  # REQUIRED: the marker position file with the base-pair position of the markers of the QTL table (a table
+                              # Marker, Chromosome, bp; also the 'Physical Map' sheet of a Linkage Mapping workbook) or a VCF (CHROM, POS, ID)
         "interval": str,      # optional, QTL table in cM: "ci" (confidence interval, default) or "flank" (left to right marker)
         "fasta_path": str,    # optional reference FASTA: adds each gene's sequence
         "match": str          # optional: "inside" (gene completely inside the region, default) or "overlap"
@@ -44,15 +42,15 @@ def run_extraction(config, results_dir):
     """
     from tools.gene_extractor.backend.gff_genes import GeneExtractionError, run_gff_extraction
 
-    for key, label in (("marker_path", "QTL results"), ("gff_path", "Annotation (GFF3)")):
+    for key, label in (("marker_path", "QTL table"), ("gff_path", "Annotation (GFF3)")):
         if not config.get(key):
-            return _error("Please upload the QTL results, the genetic map (or a VCF) and the annotation (GFF3) file.")
+            return _error("Please upload the QTL table, the marker position file (or a VCF) and the annotation (GFF3) file.")
         if not Path(config[key]).exists():
             return _error(f"{label} file not found: {config[key]}")
     if not config.get("positions_path"):
-        return _error("Please select the genetic map (Marker, Chromosome, bp) or, if there is no map, a VCF file.")
+        return _error("Please select the marker position file (Marker, Chromosome, bp) or a VCF file: it gives the base-pair position of the QTL markers.")
     if not Path(config["positions_path"]).exists():
-        return _error(f"Genetic map / VCF file not found: {config['positions_path']}")
+        return _error(f"Marker position file / VCF not found: {config['positions_path']}")
     if config.get("fasta_path") and not Path(config["fasta_path"]).exists():
         return _error(f"Reference FASTA file not found: {config['fasta_path']}")
 

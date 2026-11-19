@@ -63,9 +63,10 @@ dependencies:
   # agricolae's conda build needs AlgDesign, which has no macOS arm64 build.
   # These four are compiled from CRAN after the environment is created
   # (build_macos/build_macos.sh does this automatically):
-  #     install.packages(c("AlgDesign", "enhancer", "agricolae", "sommer", "mrMLM"))
+  #     install.packages(c("AlgDesign", "enhancer", "agricolae", "sommer", "mrMLM", "CMplot"))
   # mrMLM (with lars, ncvreg, sampling, sbl, BEDMatrix, coin, data.table, doParallel, foreach and Rcpp, which install
-  # as its dependencies) runs the mrMLM and FASTmrMLM models of the GWAS tool.
+  # as its dependencies) runs the mrMLM and FASTmrMLM models of the GWAS tool. CMplot draws the circular Manhattan and QQ figures
+  # (the built-in matplotlib figures are used when it is missing).
   # Their dependencies that ARE on conda-forge come from here:
   - r-rcpp
   - r-rcpparmadillo

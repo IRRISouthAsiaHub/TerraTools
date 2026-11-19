@@ -47,7 +47,6 @@ export default function QtlTool() {
   const [tab, setTab] = useState('analysis')
   const [geno, setGeno] = useState('')
   const [pheno, setPheno] = useState('')
-  const [linkMap, setLinkMap] = useState('')
   const [traits, setTraits] = useState(null)
   const [trait, setTrait] = useState('')
   const [method, setMethod] = useState('CIM')
@@ -106,13 +105,13 @@ export default function QtlTool() {
   const run = () => {
     if (!geno || !pheno) return tool.fail('Please select both genotype and phenotype files.')
     if (!trait) return tool.fail('Please select a phenotype/trait.')
-    tool.run({ genotype_file: geno, phenotype_file: pheno, ...(linkMap ? { linkage_map_file: linkMap } : {}), phenotype_column: trait, mapping_method: method, ...settings(), plot })
+    tool.run({ genotype_file: geno, phenotype_file: pheno, phenotype_column: trait, mapping_method: method, ...settings(), plot })
   }
   const compare = () => {
     if (models.length < 2) return setCmpStatus('Select at least two models.')
     setCmpStatus('Running model comparison...'); setCmpBusy(true)
     bridge.run_compare(JSON.stringify({
-      genotype_file: geno, phenotype_file: pheno, ...(linkMap ? { linkage_map_file: linkMap } : {}), phenotype_column: trait, models, ...settings(), plot,
+      genotype_file: geno, phenotype_file: pheno, phenotype_column: trait, models, ...settings(), plot,
     }))
   }
   const findCommon = () => { setCommonStatus('Searching…'); setCommonBusy(true); bridge.find_common(JSON.stringify({ min_models: minModels, lod_threshold: lod })) }
@@ -142,11 +141,6 @@ export default function QtlTool() {
                 <label className="field-title">Phenotype CSV</label>
                 <FilePicker value={pheno} placeholder="Select phenotype CSV…" onBrowse={pickPheno} />
               </div>
-              <div className="field">
-                <label className="field-title">Linkage map (optional)</label>
-                <FilePicker value={linkMap} placeholder="Select Linkage Mapping output…" onBrowse={async () => { const p = await tool.browse('browse_linkage_map'); if (p) setLinkMap(p) }} />
-                <div className="field-hint">The Linkage Mapping output (Retained Markers / Linkage Map .xlsx): its marker positions place the QTL intervals on the genome for the QTL Intervals file.</div>
-              </div>
               <SelectField label="Trait / Phenotype" value={trait} onChange={setTrait}
                 options={traits && traits.length ? traits : [{ value: '', label: traits ? 'No traits found' : 'Load phenotype file first' }]} />
             </Card>
@@ -161,6 +155,13 @@ export default function QtlTool() {
                   <TextField label="Permutations" type="number" min={100} max={10000} step={100} value={nPerm} onChange={setNPerm} />
                   <TextField label="Genome-wide α" type="number" min={0.01} max={0.2} step={0.01} value={permAlpha} onChange={setPermAlpha} />
                 </div>
+              )}
+              {thrMode === 'permutation' && (method === 'CIM' || method === 'MQM') && (
+                <Note>
+                  Every permutation repeats the whole {method} analysis on the shuffled phenotype (the cofactors are selected again, then the scan), as Doerge &amp; Churchill (1996) advise;
+                  a single-marker null would give a threshold that is too low. It takes longer than SIM: about 0.15 s per permutation for 250 lines and 4,000 markers.
+                  RF, SVR and XGBoost use the typed LOD threshold.
+                </Note>
               )}
               <div className="grid-2" style={{ marginTop: 6 }}>
                 <TextField label="Peak p-value cut-off" type="number" min={0.000001} max={1} step={0.01} value={pThr} onChange={setPThr} />
@@ -206,15 +207,7 @@ export default function QtlTool() {
                 <button className="btn btn-secondary" onClick={() => dl('ideogram')}><Image size={15} /> Ideogram PNG</button>
                 <button className="btn btn-secondary" onClick={() => dl('qtl_csv')}><FileText size={15} /> QTL Table CSV</button>
                 <button className="btn btn-secondary" onClick={() => dl('full_csv')}><FileText size={15} /> Full Scan CSV</button>
-                {r.interval_csv && <button className="btn btn-secondary" onClick={() => dl('interval_csv')}><FileText size={15} /> QTL Intervals CSV</button>}
               </div>
-              {r.interval_note && <div className="info-line">{r.interval_note}</div>}
-              {(r.interval_remarks || []).map((m, i) => <div key={'ir' + i} className="info-line">{m}</div>)}
-              {!r.interval_remarks && r.interval_skipped && r.interval_skipped.length > 0 && (
-                <div className="info-line">
-                  Not in the interval file (fewer than two markers with a physical position on the chromosome): {r.interval_skipped.join(', ')}
-                </div>
-              )}
               <div className="plot-title">Chromosome-wise Manhattan Plot</div>
               <Pic src={r.manhattan} label="QTL Manhattan Plot" />
               <div className="plot-title">Chromosome Ideogram</div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Dna, SlidersHorizontal, LayoutGrid, FolderOpen, Info, PaintBucket, Grid3x3, ChartColumn, Table2, Download, FileText, ArrowRight } from 'lucide-react'
+import { Dna, SlidersHorizontal, LayoutGrid, FolderOpen, Info, PaintBucket, Grid3x3, ChartColumn, Table2, Download, FileText, ArrowRight, TriangleAlert } from 'lucide-react'
 import {
   ToolPage, TabPane, SectionHeader, Card, SelectField, ChipGroup, RadioChips, FilePicker, Note, SubTabs,
   EmptyState, StatCard, ImageGallery, DataTable,
@@ -18,6 +18,10 @@ const SUB = [
   { id: 'dl', label: 'Downloads', icon: Download },
 ]
 const MATRICES = { Additive: 'additive', Dominance: 'dominance' }
+const DOM_METHODS = [
+  { value: 'nishio', label: 'Nishio & Satoh 2014 (sommer D.mat) — for prediction' },
+  { value: 'vitezica', label: 'Vitezica et al. 2013 (orthogonal) — for variance partition' },
+]
 const MODES = [
   { value: 'single', label: 'One file — full matrix' },
   { value: 'split', label: 'Training + Testing files' },
@@ -54,6 +58,7 @@ export default function AdditiveDominanceTool({ navigate }) {
   const [testFile, setTestFile] = useState('')
   const [fromClu, setFromClu] = useState(false)
   const [impute, setImpute] = useState('mean')
+  const [domMethod, setDomMethod] = useState('nishio')
   const [types, setTypes] = useState(['Additive', 'Dominance'])
   const [which, setWhich] = useState('A')
 
@@ -73,10 +78,10 @@ export default function AdditiveDominanceTool({ navigate }) {
     const m = types.map((t) => MATRICES[t])
     if (mode === 'split') {
       if (!trainFile || !testFile) return tool.fail('Please select both the training and the testing file.')
-      return tool.run({ train_file: trainFile, test_file: testFile, impute_method: impute, matrix_types: m })
+      return tool.run({ train_file: trainFile, test_file: testFile, impute_method: impute, matrix_types: m, dominance_method: domMethod })
     }
     if (!file) return tool.fail('Please select a SNP file first.')
-    tool.run({ snp_file: file, impute_method: impute, matrix_types: m })
+    tool.run({ snp_file: file, impute_method: impute, matrix_types: m, dominance_method: domMethod })
   }
   const r = tool.result
   const s = (r && r.summary) || {}
@@ -111,7 +116,7 @@ export default function AdditiveDominanceTool({ navigate }) {
     <ToolPage
       id="ad" icon={Dna} tabs={TABS} tab={tab} setTab={setTab}
       title="Genomic Relationship Matrix Builder"
-      subtitle="Additive (rrBLUP A.mat) and dominance (sommer D.mat) genomic relationship matrices from SNP dosage data"
+      subtitle="Additive (VanRaden / rrBLUP A.mat) and dominance (Nishio & Satoh or Vitezica) genomic relationship matrices from SNP dosage data"
       run={{ label: 'Compute Matrices', runningLabel: 'Computing…', state: tool.state, status: tool.status, onRun: run }}
     >
       {tab === 'input' && (
@@ -153,10 +158,10 @@ export default function AdditiveDominanceTool({ navigate }) {
                 </Card>
               </div>
               <Note>
-                Markers are centred on the <b>training lines</b> (the testing lines do not influence the training matrix) and each value is the product of
-                the centred genotypes divided by the number of markers. The additive matrix is written as <b>training × training</b> and
-                <b>testing × training</b> — the training lines are the columns of both files. Missing calls (-1 or blank) are imputed from the
-                training lines. The dominance matrix is computed over all lines.
+                The allele frequencies, the centring, the imputation and the monomorphic-marker filter all come from the <b>training lines</b> only, for the
+                additive and the dominance matrix, so the testing lines never influence the training matrix. The additive matrix is scaled as in VanRaden (2008),
+                <code>X<sub>c</sub>X<sub>c</sub>′ / 2Σp(1−p)</code> (diagonal about 1, as <code>rrBLUP::A.mat</code>), and written as <b>training × training</b> and
+                <b>testing × training</b> — the training lines are the columns of both files. Missing calls (-1 or blank) are imputed from the training lines.
               </Note>
             </>
           )}
@@ -170,6 +175,17 @@ export default function AdditiveDominanceTool({ navigate }) {
               <ChipGroup options={Object.keys(MATRICES)} value={types} onChange={setTypes} />
             </Card>
           </div>
+          {types.includes('Dominance') && (
+            <Card title="Dominance matrix" icon={Grid3x3} delay={0.14}>
+              <SelectField label="Dominance relationship matrix" value={domMethod} onChange={setDomMethod} options={DOM_METHODS} />
+              <Note>
+                <b>Nishio &amp; Satoh</b> centres the heterozygosity of every marker; it is the matrix of <code>sommer::D.mat</code> and works for genomic
+                prediction. It is not orthogonal to the additive effects, so variance components estimated with it put too much into dominance and too little into
+                additive (Vitezica et al. 2013). <b>Vitezica</b> uses the dominance deviation of each genotype, orthogonal to the additive effect, and is the one to
+                use when you want to partition the variance. Both assume genotype frequencies close to Hardy–Weinberg, and neither is informative for RIL or DH lines.
+              </Note>
+            </Card>
+          )}
         </TabPane>
       )}
       {tab === 'results' && (
@@ -185,6 +201,10 @@ export default function AdditiveDominanceTool({ navigate }) {
                 {isSplit && <StatCard className="summary-card" value={sp.n_train ?? 0} label="Training lines" delay={0.24} />}
                 {isSplit && <StatCard className="summary-card" value={sp.n_test ?? 0} label="Testing lines" delay={0.3} />}
               </div>
+              {(Array.isArray(s.warnings) ? s.warnings : []).filter((w) => typeof w === 'string').map((w) => (
+                <div className="warning-box" key={w} style={{ marginBottom: 12 }}><TriangleAlert size={18} /><span>{w}</span></div>
+              ))}
+              {typeof s.dominance_method === 'string' && s.dominance_method && <Note>Additive: {s.additive_method}. Dominance: {s.dominance_method}. Heterozygous calls: {s.het_rate}%.</Note>}
               {isSplit && (
                 <div className="note" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <span><b>Next step:</b> genomic prediction, with the training and testing files and this matrix. They are filled in for you.</span>

@@ -120,15 +120,20 @@ class Engine:
             docs[gid] = doc
 
         if self.up.get("Gramene"):
-            direct = self.gra.genes(tokens)
+            direct, n = {}, len(tokens)
+            for i in range(0, n, 40):                     # the same 40-gene requests as Gramene.genes(), with a progress report per request
+                self.progress(10 + 8 * i / n, f"Looking up genes {i + 1}-{min(i + 40, n)} of {n} in Gramene…", {"api": self.api_status()})
+                direct.update(self.gra.genes(tokens[i:i + 40]))
             todo = []
             for tok in tokens:
                 if tok in direct:
                     accept(tok, tok, direct[tok])
                 else:
                     todo.append(tok)
-            for tok in todo:
+            for k, tok in enumerate(todo):
                 self.ctx.check()
+                self.progress(18 + 19 * k / len(todo), f"Searching for identifier {k + 1} of {len(todo)} that Gramene does not know as a gene ID: {tok}",
+                              {"api": self.api_status()})
                 gid = None
                 base = re.sub(r"\.\d+$", "", tok)                            # Os01g0100100.1 -> Os01g0100100
                 if base != tok:

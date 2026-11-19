@@ -2,6 +2,7 @@ import json
 import shutil
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 
 from tools.common.save_dialog import save_dialog
@@ -69,6 +70,7 @@ class FavourableAlleleBridge(QObject):
             self.statusUpdate.emit(f"Save failed: {e}")
 
     @Slot(str)
+    @single_run
     def run_heatmap(self, payload_json: str):
         try:
             payload = json.loads(payload_json)

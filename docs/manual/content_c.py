@@ -139,7 +139,7 @@ def ch_genofile():
      "<b>Raw sheet:</b> check the columns found for Marker, Chromosome, P1 and P2 and the allele separator; every other column is an individual.",
      "HapMap and VCF: set the <b>Output settings</b> — the marker names (as in the file, or <code>chromosome_position</code>, for example <code>chr01_1044946</code>, which carries the physical position of the marker, read by analyses such as Linkage Mapping), the chromosome labels (<code>Chr01</code> becomes <code>1</code>) and whether markers on scaffolds are left out.",
      "Click <b>Convert Genotype File</b>. The Results tab opens.",
-     "Download the coded file (CSV, or Excel with the reports), or continue with it in another tool with the buttons under <b>Your converted file</b>."])}
+     "Download the coded file (CSV, or Excel with the reports), or continue with it in another tool with the buttons under <b>Your converted file</b>: <b>Mendelian Segregation</b>, <b>Linkage Mapping</b> and <b>Recombination Analysis</b> open with the converted file already loaded."])}
 {figure("genofile_input")}
 <h3>Reading the results</h3>
 {figure("genofile_result")}
@@ -149,4 +149,94 @@ def ch_genofile():
      "<b>Coded markers</b> and <b>Markers left out</b> list the first rows, with the reason for each marker that was left out."])}
 {box("note", "A very large file (a table of more than 1.5 million coded cells) is not written as an Excel sheet, which would take minutes to write and open; the table is then given as the CSV only, and a small workbook holds the reports. HapMap and VCF files are read line by line, so even a large file is converted without filling the memory.")}
 {box("tip", "Convert once, then use the files in every analysis of the same population. If you used <i>chromosome_position</i> marker names, Linkage Mapping can read the physical positions from them.")}
+"""
+
+
+def ch_recombination():
+    return f"""
+<p class="lead">Recombination Analysis answers three questions about a mapping population of RILs or backcross-derived lines: <b>where did the crossovers happen</b>, <b>how much of the donor genome does each line carry</b>, and <b>where along the chromosomes is recombination frequent or rare</b>.
+It replaces the set of R scripts that were run one after the other (crossover detection, rate along the genome, circos plot, intragenic crossovers) with one tool.</p>
+<h3>What you need</h3>
+<p>One table with <b>a row per marker</b>, giving the chromosome, the <b>position in base pairs</b> and the genotype of every line, coded <b>0 / 1 / 2</b> with <b>−1</b> for missing. Two kinds of file are read:</p>
+{ul(["<b>A table with the recurrent parent in it</b> (the layout of a VCF-style table): <code>CHROM</code>, <code>POS</code>, <code>ID</code>, optional <code>REF</code>, <code>ALT</code> …, then one column per sample (<code>IRRI-370_GT</code>, <code>RIL-001_GT</code> …). The parent's allele is called <b>A</b>, the other homozygous allele <b>B</b> (the donor).",
+     "<b>A coded table</b> from the Genofile Converter (<code>Marker</code>, <code>Chromosome</code>, then the individuals): there is no parent column, <code>0</code> is the allele of Parent 1 (A) and <code>2</code> the allele of Parent 2 (B). The position is read from the marker name (<code>chr01_1044946</code>). The Genofile Converter has a button that opens its result here."])}
+{example("recombination/mapping_population_example.csv", rows=5, cols=9, caption="Genotype table: CHROM, POS, ID, REF, ALT, then one _GT column per sample.")}
+{sample_files("recombination")}
+{box("key", "If the marker names carry the gene (<code>chr1_134521_LOC_Os01g01280</code>) the crossovers are also split into <b>intragenic</b> (both flanking markers lie in the same gene) and <b>intergenic</b>, and the genes with the most intragenic crossovers are listed with their names.")}
+<h3>Step by step</h3>
+{ol(["Open <b>Recombination Analysis</b> (Trait Mapping) and click <b>Browse</b>. The page reads the file and shows the number of markers, chromosomes and samples, the share of heterozygous and missing calls and a preview.",
+     "Under <b>Parent and lines</b> choose the <b>recurrent parent</b> (the page guesses it). Name the <b>donor</b> only if it is genotyped in the file. List samples that are not part of the population — the donor, controls, a line that failed — under <b>Samples to leave out</b>. Choose <i>none</i> for a coded table.",
+     "Set the <b>smoothing</b> (below), the bin size of the rate plot and whether the rice centromeres are shaded.",
+     "Click <b>Run Analysis</b>. The Results tab opens with the figures, the downloads and the tables."])}
+{figure("recomb_input")}
+<h3>Smoothing: the setting that matters most</h3>
+<p>A genotyping error inside a block of the other parent's allele would look like two crossovers. TerraTools therefore overwrites every run of A or B calls <b>shorter than a minimum block</b>, given as a percentage of the markers of the chromosome (at least 3 markers). Three methods are offered:</p>
+{table(["Method", "What it does"], [
+    ["Original script", "The first run shorter than the minimum takes the value of the run before it (the first run takes the value of the next one); repeated up to 50 times. Reproduces the results of the earlier R scripts exactly."],
+    ["Shortest run first", "The shortest run is merged into its longer neighbour, again and again, until every run has the minimum length. No limit on the number of passes."],
+    ["None", "Every isolated call counts as two crossovers. Useful only to see how much noise there is."]])}
+{box("warn", "<b>The block size changes the numbers a great deal.</b> In a simulation with 489 known crossovers in 80 lines, a block of 2 % recovered 405 of them, 3 % about 350 and 5 % only 264 to 290, depending on the method,, because real short donor segments are shorter than the block and are removed with the errors. On the lab's 4K data the same file gave 3,432 crossovers with the original script and 5,686 with the shortest-run-first method at 5 %. Choose the block from what you know about the shortest introgression you expect, report it with your results, and compare two settings before you rely on a count.")}
+<h3>Reading the results</h3>
+{figure("recomb_result")}
+{ul(["<b>Summary cards:</b> lines, informative markers (the parent homozygous and at least one line with the other allele; the others cannot show a crossover), crossovers, mean per line, mean donor % and, when the marker names carry genes, the share of intragenic crossovers.",
+     "<b>Figures:</b> crossovers per line and per chromosome; the <b>genome-wide crossover rate</b> (crossovers per line in each bin, with the centromeres shaded); donor content per line and per chromosome; the <b>haplotype mosaic</b> (one row per line, sorted by donor %; yellow = parent, red = donor, blue = heterozygous, grey = missing); a <b>circos</b> version of it; and, with genes, intragenic versus intergenic crossovers and the genes with the most intragenic crossovers.",
+     "<b>Please note:</b> lines with more than half of their calls missing (they cannot be used), very heterozygous lines, and a reminder that a crossover is only located to the interval between its two flanking markers.",
+     "<b>Tables and downloads:</b> the <b>Excel workbook</b> has the sheets <i>Summary, Settings, Per_chromosome, Per_RIL, Crossovers, CO_rate_by_bin</i> and <i>Genes</i>; the <b>ZIP</b> has the same tables as CSV files and every figure as a PNG. The crossover table gives, for each crossover, the line, chromosome, the two flanking markers and their positions (<i>BP_start</i>, <i>BP_end</i>), the middle of the interval, its size, the number of markers inside it, the direction (A→B or B→A) and, with genes, the type and the gene."])}
+{box("note", "<b>Donor % per line</b> is the average of the chromosomes, each the share of B among its A and B calls; the column <i>Donor_pct_all_markers</i> pools all markers instead. A line with no locatable crossover is counted in the mean per line with 0.")}
+{box("tip", "In backcross-derived lines (mean donor around 20 %) crossovers can only be seen inside donor segments, so the crossovers per chromosome say as much about where the donor was kept as about the recombination rate. Compare chromosomes with that in mind.")}
+"""
+
+
+def ch_insilico():
+    return f"""
+<p class="lead"><b>In silico BSA</b> is bulked segregant analysis without any pooled sequencing. You already have the genotype of every line of a mapping population and its trait value, so TerraTools sorts the lines by the trait, takes the lowest and the highest fraction as the <b>low and the high pool</b>, and compares the genotypes of the two pools at every marker.
+It uses the <b>Gw statistic</b> of dQTG-seq (Li et al. 2022), which counts alleles <i>and</i> genotypes. Because it also looks at the heterozygotes, it finds <b>over-dominant</b> loci that allele-frequency methods (G′, ED, Δ SNP-index) cannot see.</p>
+{box("note", "This tool is for a population in which every line is genotyped and phenotyped (F2, F3, IMF2, BC1, RIL, DH). If you have <i>sequenced pools</i> (a high bulk and a low bulk), use <b>QTL-Seq</b> or <b>PYBSA G-statistics</b> instead.")}
+<h3>What you need</h3>
+<p>A genotype file and a phenotype file. Both are CSV or Excel files.</p>
+{ul(["<b>Genotype file</b> — one row per marker with a <code>CHROM</code> and a <code>POS</code> column (the position in base pairs), optionally an <code>ID</code> or <code>Marker</code> name, then one column per line, coded <b>0 / 1 / 2</b> with <b>−1</b> for missing: 0 and 2 are the two parents and 1 is heterozygous. The positions are read from <code>POS</code>, never from the marker name; only when there is no <code>POS</code> column are names such as <code>chr1_134521</code> used for the position. The coded files of the <b>Genofile Converter</b> work.",
+     "<b>Phenotype file</b> — the line names in the first column, written exactly as in the genotype file, then one numeric column per trait. Lines without a trait value are left out. A GWAS-ready file (one row per line with a trait column) can be given as the genotype file and then needs no phenotype file.",
+     "At least <b>20 lines</b> with both a genotype and a trait value."])}
+{example("insilico_bsa/insilico_genotypes_example.csv", rows=4, cols=8, caption="Genotype file: CHROM, POS, ID, then one column per line (0 / 1 / 2, −1 = missing).")}
+{example("insilico_bsa/insilico_phenotypes_example.csv", rows=4, cols=2, caption="Phenotype file: the line name and the trait.")}
+{sample_files("insilico_bsa")}
+<h3>Step by step</h3>
+{ol(["Open <b>In silico BSA</b> (Trait Mapping), click <b>Browse</b> and choose the genotype file, then the phenotype file. The page reports the markers, chromosomes and lines, the share of heterozygous and missing calls, and how many line names matched.",
+     "Choose the <b>trait</b> (when the file has several) and the <b>population type</b>. The page tells you what the heterozygosity of your data looks like, but the choice is yours.",
+     "Set the share of lines in each <b>pool</b> (20 % by default) and check the windows and the threshold (below).",
+     "Click <b>Run Analysis</b>. The Results tab opens when the run ends; with 900 markers and 1,000 permutations it takes a few seconds."])}
+{figure("insilico_input")}
+<h3>Population type</h3>
+<p>The type decides how heterozygous calls are used, and the page checks the heterozygosity of the data against it.</p>
+{table(["Population", "Heterozygous calls", "Statistic"], [
+    ["<b>F2 / F3 / IMF2</b> (1 : 2 : 1)", "Used. Three genotype classes.", "Gw (alleles and genotypes)"],
+    ["<b>BC1</b> (1 : 1)", "Used. Two genotype classes.", "Gw"],
+    ["<b>RIL</b>, <b>DH</b>", "Treated as missing: every line carries one allele.", "Gw equals G1 (alleles only), so the tool cannot find an over-dominant locus in these populations."]])}
+<h3>Settings</h3>
+{table(["Setting", "Default", "What it does"], [
+    ["Lines in each pool", "20 %", "The lowest and the highest fraction of the lines by trait value (5 to 50 %). A larger pool is more stable but dilutes the contrast."],
+    ["Primary window", "500 kb", "The window size used for the headline threshold, the genotype figure and the comparison with G1 and ΔAF. All three sizes (250 kb, 500 kb, 1 Mb) are analysed and reported in every run."],
+    ["Minimum scored markers per window", "0 = automatic", "Automatic is 3, or fewer on a sparse map (a 300-marker map has about one marker per window, so a fixed 3 would test almost nothing). Windows below the minimum are not tested."],
+    ["Merge windows closer than", "1000 kb", "Significant windows of a chromosome form one region when the gap between them is at most this. Choose it from the marker density and the decay of linkage disequilibrium; the Settings sheet lists the median marker spacing."],
+    ["Minimum called lines per pool", "5", "A marker with fewer calls in a pool is not scored."],
+    ["Minimum minor allele frequency", "0.05", "Rare markers are left out before the pools are compared."],
+    ["Permutations", "1,000", "200 to 5,000. More permutations give a smoother threshold and finer adjusted p-values."],
+    ["Significance level", "0.05", "0.10 (a looser level, suggested by Li et al. for small samples), 0.05 (genome-wide) or 0.01 (stringent)."]])}
+<h3>How the result is obtained</h3>
+{ul(["<b>Counts.</b> At every marker the two pools give a pool × allele table (2 × 2) and a pool × genotype table (2 × 3). A marker that cannot be scored gets <i>no</i> statistic (never a zero) and does not enter any window.",
+     "<b>Statistics.</b> <b>G1</b> is the G statistic of the allele table, <b>G2</b> that of the genotype table, and <b>Gw = G1/(G1+G2) · G1 + G2/(G1+G2) · G2</b>. A fully over-dominant locus has the same allele frequency in both pools (G1 near 0) but many more heterozygotes in one pool (a large G2), so only Gw sees it. The allele-frequency difference (the Δ SNP-index of QTL-seq) is reported too.",
+     "<b>Windows.</b> The genome is cut into non-overlapping windows of 250 kb, 500 kb and 1 Mb. The value of a window is the mean of the marker statistic over the scored markers it holds.",
+     "<b>Threshold.</b> Gw has no known distribution, so two pools of the same size are drawn at random from all lines many times and the largest window value of the genome is kept. The threshold of each window size is the (1 − α) quantile of those maxima, and the adjusted p-value of a window is (1 + the number of permutations that reach it) / (permutations + 1). This controls the error across all windows of that size."])}
+<h3>Reading the results</h3>
+{figure("insilico_result")}
+{ul(["<b>Please note:</b> warnings about the data, for example a heterozygosity that does not fit the chosen population or lines that were left out.",
+     "<b>Loci across the window sizes:</b> regions of the three sizes that overlap form one <i>locus</i>. <i>Windows_that_found_it</i> says how many sizes reach the threshold there (a locus found by all three does not depend on the window you chose), and <i>Peak_spread_kb</i> is how far apart the peak markers of the sizes lie.",
+     "<b>Significant regions of every window size:</b> one row per region and window size, with the left, peak and right marker and their positions, the adjusted p-value at the peak, the LOD (Gw / ln 10) and the Δ SNP-index (the allele of parent 2: positive means it is more frequent in the high pool). The Excel report adds the genotype classes at the peak. The <i>Pattern</i> column reads them: an <b>allele-frequency shift</b> (additive or dominant), or <b>heterozygotes enriched</b> in one pool without an allele shift (over-dominant). <i>Also_significant_by_G1</i> and <i>…_by_dAF</i> say whether the allele-based statistics find the same region.",
+     "<b>Closest to significant:</b> shown for any window size without a significant region: the regions nearest to the threshold, with the fraction of the threshold they reach. They are <b>not significant</b>; treat them as leads.",
+     "<b>Candidate genes (a separate step):</b> choose a window size, the GFF3 or GTF annotation of the <i>same genome assembly</i> as your marker positions and a flank (100 kb by default). The tool lists the genes that overlap each region, nearest to the peak marker first, and saves them as Excel and CSV. They are positional candidates, not the causal gene.",
+     "<b>Figures:</b> Gw along the genome for the three window sizes; the loci found by each size; Gw compared with G1 and the allele-frequency difference; the genotype classes of the two pools at each peak; the trait distribution with the two pools; and the permutation null distributions.",
+     "<b>Downloads:</b> the Excel workbook (<i>Summary, Settings, Window comparison, Loci, Regions, Thresholds, Windows, Closest to significant, Pools, Markers</i>), a ZIP with the same tables as CSV files and all figures, and the main tables as single CSV files."])}
+{box("key", "<b>The example:</b> the simulated F2 population of 300 plants has three QTL of about 8 % of the variance each. With 20 % pools, the F2 type and 1,000 permutations, all three window sizes find all three loci. The additive and the dominant QTL (chromosomes 3 and 1) are also found by G1. The over-dominant QTL on chromosome 2 (peak near 11.1 Mb) is found <b>only through the genotype counts</b>: 71 % of the high pool is heterozygous against 22 % of the low pool, with almost the same allele frequency in both.")}
+{box("warn", "The permutation test treats the lines as exchangeable, which fits an F2, IMF2, backcross or RIL population from <b>one cross</b>. In a diversity panel with family structure, related lines in the same pool give false signals everywhere; use <b>GWAS</b> with a kinship matrix there. A very polygenic trait gives many regions: compare them with <b>QTL Mapping</b> before you choose candidates.")}
+<p>Li P, Li G, Zhang Y-W, Zuo J-F, Liu J-Y, Zhang Y-M (2022). A combinatorial strategy to identify various types of QTLs for quantitative traits using extreme phenotype individuals in an F2 population. <i>Plant Communications</i> 3:100319. Magwene PM, Willis JH, Kelly JK (2011). The statistics of bulk segregant analysis using next generation sequencing. <i>PLoS Computational Biology</i> 7:e1002255.</p>
 """

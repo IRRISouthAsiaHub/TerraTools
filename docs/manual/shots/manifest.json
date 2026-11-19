@@ -21,18 +21,19 @@
   "title": "Mendelian Segregation \u2014 input and settings",
   "notes": [
    "Genotype CSV: Marker, Chromosome, then one column per individual (0 / 1 / 2).",
-   "Population type: RIL tests a 1:1 ratio, F2 tests 1:2:1.",
-   "p-value threshold: markers below it are flagged as distorted.",
+   "Population type: every type has its own model (RIL and DH 1:1, BC1 1:1, F2 1:2:1, F3 3:2:3, F4 7:2:7); the note below the list shows the one chosen.",
+   "Threshold (alpha) and the multiple-testing correction applied to the p-values (FDR by default).",
    "Values to treat as missing, separated by commas."
   ]
  },
  "mendelian_results": {
   "title": "Mendelian Segregation \u2014 results",
   "notes": [
-   "\u2212log10(p) for every marker: high points are markers whose genotype ratio departs from the expectation.",
-   "Share of distorted markers on each chromosome.",
-   "Downloads: markers that pass the test, and the full table.",
-   "Summary: markers tested and markers distorted."
+   "Segregation plot (Manhattan): \u2212log10(p) of every marker along the file, one colour per chromosome. Points above the dashed cut-off of the chosen correction are distorted markers.",
+   "Heterozygosity plot: the percentage of heterozygous calls of every marker, coloured by chromosome.",
+   "Distortion summary: the percentage of distorted markers on each chromosome.",
+   "Downloads: markers that pass the test, the full table and the LM-ready file for Linkage Mapping.",
+   "Summary: markers tested, inconclusive, flagged distorted, passing the quality check, and calls outside the model."
   ]
  },
  "linkage_upload": {
@@ -205,7 +206,8 @@
   "notes": [
    "CSV or TSV: sample IDs in the first column, one column per SNP (0 / 1 / 2, \u22121 = missing).",
    "K for K-means clustering.",
-   "Fraction of each cluster held out as the testing set."
+   "Fraction of each cluster held out as the testing set.",
+   "How many principal components K-means uses (0 = all of them). A few leading components keep the population structure and drop noise."
   ]
  },
  "clustering_results": {
@@ -213,6 +215,7 @@
   "notes": [
    "Samples, markers, clusters, train / test sizes and variance explained by PC1 and PC2.",
    "PCA plot coloured by K-means cluster.",
+   "Under the K-selection plot (silhouette width and within-cluster sum of squares for K = 2 to 10; red = the K you used, gold = the highest silhouette), the note says which K the data support.",
    "Downloads: training and testing genotype files (cluster-stratified), cluster membership and the plot."
   ]
  },
@@ -455,6 +458,42 @@
    "Markers in the file, coded (kept), left out, individuals and the share of calls that are missing or unexpected.",
    "What the file contains (a row per marker, a column per individual, coded 0 / 1 / 2 / \u22121), the CSV and Excel downloads, and shortcuts to continue in another tool.",
    "Parent missing, parent heterozygous, or both parents with the same allele; the genotype codes of all kept markers are counted on the right."
+  ]
+ },
+ "recomb_input": {
+  "title": "Recombination Analysis \u2014 file, parent and smoothing",
+  "notes": [
+   "The genotype table: a row per marker (CHROM, POS, ID \u2026) and a column per sample, coded 0 / 1 / 2 / \u22121. The page reports markers, chromosomes, samples and the share of heterozygous and missing calls.",
+   "The recurrent parent (found automatically), an optional genotyped donor, and samples to leave out.",
+   "Smoothing method and minimum block: the setting that changes the crossover counts most. Also the bin size of the rate plot and the centromere shading."
+  ]
+ },
+ "recomb_result": {
+  "title": "Recombination Analysis \u2014 results",
+  "notes": [
+   "Lines, informative markers, crossovers, mean per line, mean donor % and the share of intragenic crossovers.",
+   "Warnings about the data: lines with mostly missing calls, very heterozygous lines, and how precisely a crossover is located.",
+   "Crossovers per line and chromosome, the genome-wide crossover rate, donor content, the haplotype mosaic, a circos plot and the intragenic / intergenic split.",
+   "One Excel workbook with every table, a ZIP with CSV files and figures, and the main tables as CSV."
+  ]
+ },
+ "insilico_input": {
+  "title": "In silico BSA \u2014 genotype file, phenotype file, pools and windows",
+  "notes": [
+   "The genotype table: CHROM, POS, then one column per line, coded 0 / 1 / 2 / \u22121. The page reports the markers, chromosomes, lines and the share of heterozygous and missing calls.",
+   "The phenotype file: line names in the first column, then the traits. Not needed when the genotype file already has a trait column.",
+   "The share of lines in each pool (20 % = the lowest and the highest fifth) and the population type, which you choose yourself.",
+   "The primary window, the minimum markers per window, the distance for merging regions, the permutations and the significance level."
+  ]
+ },
+ "insilico_result": {
+  "title": "In silico BSA \u2014 loci, regions and figures",
+  "notes": [
+   "Lines, lines per pool, markers, loci, regions of all window sizes and the Gw threshold of the primary window.",
+   "Regions of the three window sizes that overlap are one locus; the table says how many sizes found it and how far apart their peaks lie.",
+   "One row per region and window size: left, peak and right marker with their positions, adjusted p-value, LOD and the allele-frequency difference.",
+   "Lists the genes of a GFF3 / GTF annotation that lie in a region, widened by a flank.",
+   "Gw along the genome for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."
   ]
  }
 }

@@ -93,7 +93,7 @@ class App:
         self.win.resize(1440, 1000)
         self.win.show()
         self.page = self.win.browser.page()
-        self.bridges = self.win.tool_bridges
+        self.bridges = {}          # filled by the driver once the window has registered the tool bridges
         mf = self.out / "manifest.json"
         self.manifest = json.loads(mf.read_text(encoding="utf-8")) if mf.exists() else {}   # partial re-runs merge in
         self.failures = []
@@ -236,6 +236,15 @@ class App:
     def run(self, scenarios, boot_ms=7000):
         def driver():
             try:
+                # The window shows a splash while the tool modules load on a worker thread (tens of seconds on a cold start),
+                # then loads the page: wait until the bridges exist and the React page is on screen.
+                waited = 0
+                while waited < 240000:
+                    if self.win.tool_bridges and self.page.url().scheme() == "file":
+                        break
+                    yield 500
+                    waited += 500
+                self.bridges = self.win.tool_bridges
                 yield boot_ms
                 for sc in scenarios:
                     label = getattr(sc, "__name__", str(sc))

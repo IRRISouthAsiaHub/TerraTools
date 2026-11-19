@@ -157,6 +157,37 @@ mod_herit <- function() {
 }
 
 # =============================================================================
+# BLUPs: best linear unbiased predictions of the accessions, with their reliability and the Cullis heritability
+# =============================================================================
+mod_blups <- function() {
+  trs <- mod_traits(); ptr <- mod_trait("plot_trait", trs)
+  res <- safe("blup_analysis", blups_all(working_data, trs, design, by_env = isTRUE(cfg("by_env", TRUE))))
+  if (is.null(res)) return(invisible())
+  for (e in res$errors) add_error("blup_analysis", e)
+  if (is.null(res$summary)) {
+    add_note("No BLUPs could be computed: a trait needs at least 10 plots and 5 accessions in the environment (or in all environments together).")
+    return(invisible())
+  }
+  if (!is.null(res$table))
+    write_table(tidy_blups(res$table), "blups", "BLUPs",
+                "BLUP of every accession per trait and environment (Pooled = all environments together), with its standard error, reliability, predicted value and rank")
+  write_table(tidy_blup_summary(res$summary), "blup_summary", "BLUP_Summary",
+              "Variance components and heritability of the BLUP models: Cullis (2006) H2 from the prediction error variances, mean reliability, classical entry-mean H2")
+  pt <- res$table[res$table$Trait == ptr, , drop = FALSE]
+  if (nrow(pt)) {
+    env_plot <- if ("Pooled" %in% pt$Environment) "Pooled" else pt$Environment[1]
+    fig("blup_plot", write_plot_out(plot_blups(pt[pt$Environment == env_plot, , drop = FALSE], ptr, env_plot, color_scheme), "blup_plot",
+                                    tooltip = "text", size_in = FIG_WIDE))
+  }
+  one_season <- setdiff(trs, res$summary$Trait[res$summary$Environment == "Pooled"])
+  if (length(one_season))
+    add_note(paste("Across-environment BLUPs need a trait measured in two or more environments; per-environment BLUPs only for:",
+                   paste(one_season, collapse = ", ")))
+  if (design == "augmented")
+    add_note("Checks are fixed effects, so they have BLUEs (BLUEs tab), not BLUPs, and are not listed here.")
+}
+
+# =============================================================================
 # CORRELATION between traits (on accession means)
 # =============================================================================
 mod_correlation <- function() {
@@ -249,7 +280,7 @@ mod_stability <- function() {
 }
 
 MODULE_FUNS <- list(descriptive = mod_descriptive, environments = mod_environments, blues = mod_blues, anova = mod_anova,
-                    herit = mod_herit, correlation = mod_correlation, pca = mod_pca, cluster = mod_cluster,
+                    herit = mod_herit, blups = mod_blups, correlation = mod_correlation, pca = mod_pca, cluster = mod_cluster,
                     stability = mod_stability)
 ALL_MODULES <- names(MODULE_FUNS)
 
@@ -263,6 +294,7 @@ MODULE_OUTPUTS <- list(
   blues        = list(tables = "blues", sheets = "BLUEs", plots = c("env_blues_plot", "blues_plot")),
   anova        = list(tables = "anova", sheets = character(0), plots = c("trait_variance_plot", "residual_plot", "qq_plot")),
   herit        = list(tables = "heritability", sheets = "Heritability", plots = "heritability_plot"),
+  blups        = list(tables = c("blups", "blup_summary"), sheets = c("BLUPs", "BLUP_Summary"), plots = "blup_plot"),
   correlation  = list(tables = "correlation_table", sheets = "Trait_Correlations",
                       plots = c("correlation_heatmap", "correlation_network")),
   pca          = list(tables = "pca", sheets = "PCA", plots = c("pca_plot", "pca_variance_plot")),

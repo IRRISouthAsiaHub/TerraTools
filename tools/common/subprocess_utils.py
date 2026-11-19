@@ -23,6 +23,12 @@ import subprocess
 
 
 def no_window_kwargs() -> dict:
+    """creationflags for every analysis subprocess: no console window, and BELOW_NORMAL priority.
+
+    The second flag matters on small machines: R / TensorFlow / scikit-learn workers use every core (n_jobs=-1, BLAS
+    threads), and at normal priority they starve the app's own UI thread and the Chromium processes, so the whole
+    window stops repainting while an analysis runs. Below-normal priority costs the analysis nothing when the machine
+    is otherwise idle and keeps the interface responsive when it is not."""
     if sys.platform.startswith("win"):
-        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+        return {"creationflags": subprocess.CREATE_NO_WINDOW | subprocess.BELOW_NORMAL_PRIORITY_CLASS}
     return {}

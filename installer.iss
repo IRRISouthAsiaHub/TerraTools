@@ -63,6 +63,9 @@ Name: "{app}"; Permissions: users-modify
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+; For machines where the normal window flickers, freezes or stays blank (old or hybrid graphics drivers, remote desktop,
+; virtual machines): the same app with software rendering and the decorative animations off.
+Name: "{group}\{#MyAppName} (safe graphics)"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--safe-graphics"; Comment: "Use if the normal window flickers or freezes"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 

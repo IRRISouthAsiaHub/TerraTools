@@ -5,10 +5,12 @@ TOOLS = [
     ("genofile", "Genofile Converter", "Data Analysis", "The start of the chain: turns the HapMap, VCF or raw allele files of a genotyping company into the 0 / 1 / 2 input files of Mendelian Segregation and Linkage Mapping."),
     ("phenotypic", "Phenotypic Data Analysis", "Data Analysis", "Multi-environment trial statistics: ANOVA, mixed models, BLUEs, heritability, G×E stability."),
     ("mendelian", "Mendelian Segregation", "Trait Mapping", "Tests every marker for the expected segregation ratio (1:1 or 1:2:1) to find distorted markers."),
+    ("recomb", "Recombination Analysis", "Trait Mapping", "Finds the crossovers of RILs or backcross-derived lines, the donor content of every line and the recombination hot and cold regions, with intragenic crossovers."),
     ("linkage", "Linkage Mapping", "Trait Mapping", "Builds genetic linkage maps (Kosambi cM) from coded marker data, with a file ready for QTL Mapping."),
     ("genotype", "Genotype Viewer", "Trait Mapping", "Draws graphical genotypes of every chromosome for each sample (CSV or VCF), with bright or publication-ready palettes."),
     ("qtl", "QTL Mapping", "Trait Mapping", "Locates QTL as regions with left / peak / right markers using six mapping methods; compares methods."),
     ("qtlseq", "QTL-Seq", "Trait Mapping", "Bulk segregant analysis with the Δ(SNP-index) method from reads, BAM files or a VCF."),
+    ("insilico", "In silico BSA", "Trait Mapping", "Bulked segregant analysis from the genotypes and the trait of every line of a mapping population: the extreme lines form the pools, with the Gw statistic that also finds over-dominant loci."),
     ("diversity", "Diversity Analysis", "Trait Mapping", "Haplotype diversity metrics, clustering, PCA and a neighbour-joining tree for varieties."),
     ("gwas", "GWAS", "Trait Mapping", "Genome-wide association with eight models; built-in rice 3K panel or your own VCF."),
     ("pybsa", "PYBSA G-statistics", "Trait Mapping", "Bulk segregant analysis from GATK variant tables using the G-statistic and Δ(allele frequency)."),
@@ -26,7 +28,7 @@ TOOLS = [
 def front_welcome():
     rows = [[f"{i + 1}", f"<b>{n}</b>", c, d] for i, (_k, n, c, d) in enumerate(TOOLS)]
     return f"""
-<p>TerraTools is a desktop application from IRRI-SAH that brings nineteen plant-breeding and genetics analyses into one window.
+<p>TerraTools is a desktop application from IRRI-SAH that brings twenty-one plant-breeding and genetics analyses into one window.
 You open a tool from the sidebar, load your files, press <b>Run</b>, and read the results as plots and tables that you can download.
 Everything runs on your own computer, and R and Python are already built in; only Gene Prioritization needs an internet connection, because it asks public gene databases.</p>
 <h3>The tools</h3>
@@ -59,7 +61,7 @@ use the <b>Download</b> buttons (Excel, CSV, PNG, ZIP) to save results where you
 
 def front_tour():
     return f"""
-<p>All nineteen tools share the same layout, so once you know one you know them all.</p>
+<p>All twenty-one tools share the same layout, so once you know one you know them all.</p>
 {figure("home")}
 <p>The <b>sidebar</b> on the left lists the tools by group. A green dot beside a tool means a run finished there while you were looking at another page;
 a spinning dot means it is still running — you can leave a tool while it works and come back later, and a notification appears when it is done.</p>
@@ -111,7 +113,7 @@ Run it before building a linkage map or mapping QTL, so that badly behaved marke
 <p>Genotypes as they come from a genotyping company (HapMap, VCF, <code>A:G</code> calls) are converted to this layout by the <b>Genofile Converter</b> (chapter 5), which has a <b>Mendelian Segregation</b> shortcut under <i>Your converted file</i>.</p>
 {example("mendelian/mendelian_RIL_example.csv", rows=5, cols=7)}
 {ul(["Genotypes are <code>0</code>, <code>1</code> and <code>2</code> (homozygous parent A, heterozygous, homozygous parent B). In a RIL population most calls are 0 or 2.",
-     "Every marker with at least one non-missing call is tested. When an <i>expected</i> class count is below 5 the χ² is unreliable, so the marker is flagged <i>low power</i> and counted in the summary.",
+     "Every marker is tested against the model of the population you choose. Calls that the model does not contain (heterozygotes in a RIL, for example) are not used in the test and are counted in the summary. A marker with too few calls to ever reach α is reported as <i>inconclusive</i>, not as passed.",
      "Missing values are whatever you list in <i>Missing Data</i> (see below).",
      "The file that Linkage Mapping writes for QTL Mapping (markers across, one row per individual, with a <code>Chromosome</code> and a <code>Position</code> row) is accepted too; it is turned into one row per marker automatically."])}
 {sample_files("mendelian")}
@@ -120,19 +122,31 @@ Run it before building a linkage map or mapping QTL, so that badly behaved marke
      "Choose the population type, the significance threshold (α) and the multiple-testing correction, and check the missing-data codes.",
      "Click <b>Run Segregation Test</b>. The Results tab opens when it finishes."])}
 {figure("mendelian_input")}
+<h3>Population types and tests</h3>
+{table(["Population", "Classes tested", "Expected ratio", "Test"], [
+    ["RIL, DH", "0 and 2", "1 : 1", "Exact binomial. Heterozygous calls (1) are not part of the test."],
+    ["BC1 to parent 1 (<code>BC1P1</code>)", "0 and 1", "1 : 1", "Exact binomial. Class 2 cannot occur."],
+    ["BC1 to parent 2 (<code>BC1P2</code>)", "1 and 2", "1 : 1", "Exact binomial. Class 0 cannot occur."],
+    ["F2", "0, 1, 2", "1 : 2 : 1", "Exact multinomial."],
+    ["F3", "0, 1, 2", "3 : 2 : 3", "Exact multinomial."],
+    ["F4", "0, 1, 2", "7 : 2 : 7", "Exact multinomial."]])}
+<p>An <b>F1</b> is refused: all its plants are heterozygous, so there is no segregation to test. The two backcross directions are separate types because the expected classes differ, and a backcross is never tested as a RIL.</p>
+<p>Both tests are exact, so they stay valid when a marker has few calls. The <b>binomial</b> test compares the two classes with 1 : 1. The <b>multinomial</b> test lists every possible outcome for the number of calls and adds up the probability of all outcomes that are no more likely than the one observed; with more than 200 calls the expected counts are large and the χ² approximation is used. A marker is <b>inconclusive</b> when it has no usable call, or so few that even the most extreme outcome could not give a p-value below α (for a two-class marker, fewer than 6 calls at α = 0.05). It is neither called distorted nor passed, and it does not take part in the multiple-testing correction.</p>
 {table(["Setting", "What it does"], [
-    ["Population type", "<b>RIL</b>: expects 1:1 between the two homozygous classes (χ², 1 d.f.). <b>F2</b>: expects 1 : 2 : 1 (χ², 2 d.f.)."],
+    ["Population type", "Each type has its own model, and a type without one is refused (see the table below). Choosing the wrong type tests the wrong ratio, so set it to the generation you genotyped."],
     ["Significance threshold (α)", "A marker is called <i>distorted</i> when its <b>corrected</b> p-value (<code>p_adj</code>) is below α."],
-    ["Multiple-testing correction", "<b>FDR (Benjamini-Hochberg)</b>, the default, <b>Bonferroni</b>, or <b>None</b> (raw p). Testing hundreds of markers at a raw α of 0.05 flags many by chance alone, so a correction is recommended. It is applied over all markers tested, before unplaced markers are dropped."],
+    ["Multiple-testing correction", "<b>FDR (Benjamini-Hochberg)</b>, the default, <b>Bonferroni</b>, or <b>None</b> (raw p). Testing hundreds of markers at a raw α of 0.05 flags many by chance alone, so a correction is recommended. It is applied over the conclusive markers (inconclusive ones are left out), before unplaced markers are dropped."],
     ["Missing data", "Comma-separated codes counted as missing. The default is <code>NA,.,-9,-1</code>."],
     ["Keep only markers with a known chromosome", "Drops markers without a chromosome (unplaced markers) from the results."]])}
 <h3>Reading the results</h3>
 {figure("mendelian_results")}
-{ul(["<b>−log10(p) by marker:</b> every point is a marker; red points are distorted after the correction. With Bonferroni or no correction a dashed line marks the cut-off; FDR has no single line, so the colour carries the call. A cluster of red points in one place usually means a genuinely distorted region, not several bad markers.",
-     "<b>Distortion rate by chromosome:</b> the share of distorted markers on each chromosome.",
-     "<b>Summary:</b> markers tested, flagged distorted, passing the quality check, and the number with an expected count below 5 (read their p-values with caution).",
-     "<b>Full Results (CSV):</b> every marker with its counts (<code>c0, c1, c2</code>), χ², p, <code>p_adj</code>, <code>distorted</code>, <code>low_power</code>, heterozygosity, −log10 p and the genotype calls.",
-     "<b>Filtered Markers (CSV):</b> the markers that are <i>not</i> distorted, i.e. that pass the quality check, with their genotypes.",
+<p>The Results tab draws three plots, each with its own <b>Download PNG</b> button.</p>
+{ul(["<b>Segregation plot (−log10(p) by marker):</b> a Manhattan plot: every point is a marker, placed by its index along the file and coloured by chromosome (the legend <i>Chr</i> is below the plot). The dashed line is the cut-off of the chosen correction as a raw p-value (Bonferroni: α divided by the number of markers; none: α; FDR: the largest p-value among the markers called distorted, and no line when none is). Markers above the line are distorted. A cluster of points above the line on one chromosome usually means a genuinely distorted region, not several bad markers.",
+     "<b>Heterozygosity plot:</b> the percentage of heterozygous calls of every marker, placed and coloured like the segregation plot. A dashed line marks the heterozygosity expected in the chosen population (50 % in an F2 or a backcross, 25 % in an F3, 12.5 % in an F4); RILs and DHs are homozygous, so a marker with many heterozygous calls (or a whole chromosome that sits higher) deserves a check for genotyping errors or residual heterozygosity.",
+     "<b>Distortion summary:</b> the percentage of distorted markers on each chromosome, which shows at a glance where the distortion is concentrated.",
+     "<b>Summary:</b> the population, markers tested, inconclusive markers, markers flagged distorted, markers passing the quality check, and the calls that the model does not contain.",
+     "<b>Full Results (CSV):</b> every marker with its counts (<code>c0, c1, c2</code>), <code>n</code> (calls used in the test), <code>n_unexpected</code>, the test used, χ², p, <code>p_adj</code>, <code>call</code> (<i>distorted</i>, <i>not distorted</i>, <i>inconclusive</i> or <i>no data</i>), heterozygosity, −log10 p and the genotype calls.",
+     "<b>Filtered Markers (CSV):</b> the markers called <i>not distorted</i>, i.e. that pass the quality check, with their genotypes. Inconclusive markers are not in it.",
      "<b>LM-ready File (XLSX):</b> the same markers as just Marker, Chromosome and the genotype calls, ready to load in Linkage Mapping."])}
 {box("tip", "A distorted region is not always a problem: it can point to a gametic selection factor or a sterility locus. Compare with the map position before deleting a whole stretch of markers.")}
 """
@@ -159,11 +173,10 @@ It writes a file that QTL Mapping can read directly. Genotypes from a genotyping
     ["Max recombination fraction (r)", "Neighbouring markers with r at or above this value are not considered linked and get a 50 cM gap (the QC report warns when this happens).", "0.45"],
     ["Marker order", "The starting / reference order: automatic (re-sorts a chromosome by the physical position in the marker names only if the file lists it alphabetically), by physical position, or as in the file.", "automatic"],
     ["Map method", "<b>Find the best marker order</b> (recommended) or <b>keep my marker order</b>. Both estimate Kosambi distances with all markers of a chromosome together and allow for 1 % genotyping error, so a single wrong call does not inflate the map. Markers linked more strongly to another chromosome, not linked to their own, or that add more than 10 cM to the map are removed and listed in the Removal Log.", "find best order"],
-    ["Segregation distortion filter", "Optional χ² filter that removes distorted markers (with optional Bonferroni correction). Monomorphic markers are always removed.", "off"],
     ])}
 <h3>Reading the results</h3>
-{ul(["<b>QC Report:</b> how many markers were removed and why (missing data, monomorphic, distortion, chromosome 0); the full list can be downloaded.",
-     "<b>Results:</b> the linkage-map table (marker, chromosome, position in cM), retained markers, all markers with their status, a chromosome summary (length, spacing, largest gap, log-likelihood, which order was used) and the Marker Fit table (suspect genotypes per map position — calls that are improbable given their neighbours).",
+{ul(["<b>QC Report:</b> how many markers were removed and why (missing data, monomorphic, chromosome 0, map construction); the full list can be downloaded.",
+     "<b>Results:</b> the linkage-map table (marker, chromosome, position in cM), retained markers, all markers with their status, a chromosome summary (length, spacing, largest gap, log-likelihood, which order was used) and the <b>recombination rate</b>: when the marker names carry their physical position (<code>chr02_16919033</code>), the length of each linkage group in cM is set against its physical span, which gives <i>kb per cM</i> (the genome-wide value is shown at the top). A group whose cM order disagrees with the genome is flagged as <i>partly out of order</i>, and its rate is not reliable. The rate is also in the <i>Physical Summary</i> sheet of the Excel results.",
      "<b>File for QTL Mapping:</b> the linkage map joined to your genotypes by marker ID and transposed — one row per individual, with marker, chromosome and position as the first three rows. Load it directly as the genotype file in <b>QTL Mapping</b>.",
      "<b>Map Plot, Density &amp; RF, Cytogenetic:</b> the map figure, marker density per bin, the recombination heat map of adjacent markers, and an interactive ideogram that shows the allele composition along each chromosome."])}
 {figure("linkage_results")}
@@ -193,7 +206,7 @@ LOD, p-value and effect at the peak — following the usual interval-mapping pra
 {figure("qtl_input")}
 {table(["Setting", "What it does"], [
     ["Mapping method", "<b>SIM</b> — one marker at a time. <b>CIM</b> — adds a few background markers (cofactors) to remove the effect of other QTL; the usual first choice. <b>MQM</b> — a larger background model. <b>RF, SVR, XGBoost</b> — machine-learning importance scores on a LOD-like scale (not true LODs)."],
-    ["Significance threshold", "<b>Fixed LOD</b> (default 2.5), or a <b>genome-wide permutation test</b> (SIM / CIM / MQM): the phenotype is shuffled many times and the 95th percentile of the genome-wide maximum LOD becomes the threshold. Permutation is the safer choice for publications."],
+    ["Significance threshold", "<b>Fixed LOD</b> (default 2.5), or a <b>genome-wide permutation test</b> (SIM / CIM / MQM): the phenotype is shuffled many times and the 95th percentile of the genome-wide maximum LOD becomes the threshold. For CIM and MQM every permutation repeats the whole method (the background cofactors are selected again and the composite scan is run again; Doerge &amp; Churchill 1996), so it takes longer than for SIM (about 0.15 s per permutation for 250 lines and 4,000 markers). Permutation is the safer choice for publications."],
     ["Peak p-value cut-off", "A peak must also have a nominal p-value below this (default 0.05)."],
     ["Peak separation (LOD drop)", "Two peaks on one chromosome count as separate QTL only if the LOD curve dips by at least this much between them (default 2)."],
     ["Support interval — LOD drop", "The QTL region extends left and right of the peak until the LOD has fallen by this amount; 1.5 gives roughly a 95 % interval (default 1.5). The first marker outside on each side is the flanking marker."],
@@ -211,10 +224,6 @@ LOD, p-value and effect at the peak — following the usual interval-mapping pra
     ["PVE_Marker_Percent", "Percent of the trait variance explained by the peak marker."],
     ["Additive_Effect, SE_Additive", "Half the difference between the two homozygous classes, in trait units. Positive means the higher-coded allele (genotype 2) raises the trait. For CIM / MQM it is estimated with the background markers in the model."],
     ["Dominance_Effect, Dominance_Class", "Departure of the heterozygote from the mid-point (F2 only) and a label: additive, partial dominance, dominance, overdominance."]])}
-<h3>QTL interval file</h3>
-<p>Besides the QTL table, every run offers <b>QTL Intervals CSV</b>: one row per QTL with three columns — <code>QTL_ID</code>, <code>QTL_Start</code> and <code>QTL_End</code>.
-The interval is the <i>CI_Start / CI_End</i> support interval. Because the map is in cM and a genome annotation in base pairs, the two ends are converted to bp by linear interpolation between the neighbouring markers, using the physical position written in the marker names (e.g. <code>chr03_5000000</code>). If you give the <b>Linkage map</b> (optional, under Input Files) — the <i>Retained Markers</i> or <i>Linkage Map</i> Excel file saved from Linkage Mapping — its marker positions are used for this conversion. It must be the map the genotype file was built from: if its cM positions differ from the genotype file's, it is ignored and a note says so. A QTL on a chromosome with fewer than two such markers cannot be converted and is listed under the download buttons instead.
-This file is the input of <b>Genes Extraction</b> (<i>Use QTL Mapping output</i>).</p>
 <h3>Compare Models and Common QTL</h3>
 <p>The <b>Compare Models</b> tab runs several methods on the same data and lines their QTL regions up; two methods found “the same QTL” when their regions overlap.
 <b>Common QTL</b> then keeps the regions that at least <i>n</i> methods agree on. Both tables can be downloaded as CSV.</p>
@@ -224,31 +233,22 @@ This file is the input of <b>Genes Extraction</b> (<i>Use QTL Mapping output</i>
 
 def ch_gene():
     return f"""
-<p class="lead">Takes the QTL found by <b>QTL Mapping</b> (or any table of QTL intervals), finds the genes of a GFF3 annotation in them, and lists each gene with the details of the annotation (name, function) and, if you give the reference genome, its sequence. The result can be downloaded as a table, as a <b>gene ID list</b> and as a FASTA file.</p>
+<p class="lead">Takes the QTL found by <b>QTL Mapping</b> (with the marker position file or a VCF), finds the genes of a GFF3 annotation in them, and lists each gene with the details of the annotation (name, function) and, if you give the reference genome, its sequence. The result can be downloaded as a table, as a <b>gene ID list</b> and as a FASTA file.</p>
 <h3>What you need</h3>
-<p><b>1. QTL results</b> — a CSV, TSV or Excel table. The columns are found by their <b>name</b>, in any order. Genes Extraction takes QTL results only: a table of single SNP positions, such as a GWAS result, is refused.</p>
-{table(["Your file has", "It is read as", "Example columns"], [
-    ["A chromosome, a start and an end", "<b>Intervals</b>, used exactly as given.", "<code>Chromosome, Start, End</code> · <code>QTL_ID, QTL_Start, QTL_End</code> · <code>Chromosome, Left, Right</code> · <code>Chromosome, Left_Mb, Right_Mb</code> (Mb and kb names are converted to bp)"],
-    ["The QTL table of QTL Mapping (<code>qtl_significant_*.csv</code>), with Left_Marker and Right_Marker", "<b>Intervals</b>. The table's positions are in cM, so the tool needs the base-pair position of its markers: from the <b>genetic map</b> (below) or, if you have no map, from a <b>VCF</b>. The confidence interval is placed between the QTL's left, peak and right markers.", "<code>QTL_ID, Chromosome, Left_Marker, Right_Marker, Left_Position …</code>"]])}
+<p><b>1. QTL table</b> — the <code>qtl_significant_*.csv</code> file of QTL Mapping (CSV, TSV or Excel), with its Left_Marker and Right_Marker columns. The columns are found by their <b>name</b>. A table of intervals already in base pairs (Chromosome, Start, End) and a table of single SNP positions, such as a GWAS result, are refused.</p>
 {example("gene_extractor/qtl_table_example.csv", rows=2, cols=9, caption="The QTL table of QTL Mapping (positions in cM; the marker names carry no position).")}
 {example("gene_extractor/marker_positions_example.csv", rows=6, cols=3, caption="Genetic map: the base-pair position of those markers (a VCF can be given instead).")}
-{example("gene_extractor/qtl_intervals_example.csv", rows=3, cols=3, caption="QTL intervals.")}
-{ul(["Positions are in <b>base pairs</b> (a column name that ends in <code>Mb</code> or <code>kb</code> is converted). The chromosome of an interval table without a Chromosome column is read from the QTL ID (<code>QTL_3.1</code> is chromosome 3, <code>QTL_Chr03.2</code> is <code>Chr03</code>).",
-     "An Excel workbook is read sheet by sheet: a sheet named like <i>QTL</i>, <i>Interval</i> or <i>Regions</i> is used first.",
-     "A header row is expected. A file with no header and three columns — ID, start, end — is also understood.",
-     "A position in <b>cM</b> is never used as base pairs: a column named <code>…_cM</code> is skipped, and a table whose positions are all below 1,000 is refused with a message. The QTL Intervals file of a QTL Mapping run that found no QTL has only a header; the tool says so, and <b>Use QTL Mapping output</b> takes the newest run that did find QTL."])}
-<p>You do not have to write the QTL file yourself: <b>QTL Mapping</b> writes it (<b>QTL Intervals CSV</b>, built from the support interval of every QTL), and <b>Use QTL Mapping output</b> takes the file of your last QTL Mapping run.</p>
-<p><b>2. Genetic map</b> (required) — the base-pair position of the markers: a table with <b>Marker</b>, <b>Chromosome</b> and <b>bp</b> columns (the names must be the same as <code>Left_Marker</code> / <code>Right_Marker</code> of the QTL table). The <i>Physical Map</i> sheet of a Linkage Mapping workbook works too. <b>If you have no genetic map, choose <i>No map: use a VCF</i></b> and select a VCF: its <code>CHROM</code> and <code>POS</code> give the position and its <code>ID</code> column the marker name (a VCF without IDs cannot be matched). The file needs only the markers of the QTL. It is used for a QTL table in cM; when the QTL results already have positions in bp it is not used, and the run says so. Marker positions come from the array manifest or the VCF of the markers, or from aligning the marker sequences to the genome.</p>
+<p><b>2. Marker position file</b> (required) — the base-pair position of the markers: a table with <b>Marker</b>, <b>Chromosome</b> and <b>bp</b> columns (the names must be the same as <code>Left_Marker</code> / <code>Right_Marker</code> of the QTL table). The <i>Physical Map</i> sheet of a Linkage Mapping workbook works too. <b>If you have no such file, choose <i>Use a VCF</i></b> and select a VCF: its <code>CHROM</code> and <code>POS</code> give the position and its <code>ID</code> column the marker name (a VCF without IDs cannot be matched). The file needs only the markers of the QTL. Marker positions come from the array manifest or the VCF of the markers, or from aligning the marker sequences to the genome.</p>
 <p><b>3. Annotation (GFF3)</b> — the genome annotation, plain or <code>.gz</code>. The genes are read from its <code>gene</code> lines.</p>
 <p><b>4. Reference genome FASTA</b> (optional) — plain <code>.fa</code> / <code>.fasta</code>, not zipped.</p>
 {box("warn", "Chromosome names are matched ignoring style (<code>Chr01</code>, <code>chr1</code> and <code>1</code> are the same chromosome), but the FASTA and the GFF3 must be of the same genome version as the positions in the QTL results (and in the marker position file).")}
 {sample_files("gene_extractor")}
 <h3>Options</h3>
 {table(["Option", "What it does"], [
-    ["QTL interval", "Only for a QTL table in cM. <b>Confidence interval</b> (default) places the support interval of the QTL on the genome, as the QTL Intervals file does; <b>Left to right flanking marker</b> takes the whole span between the flanking markers (wider, more genes)."],
+    ["QTL interval", "<b>Confidence interval</b> (default) places the support interval of the QTL on the genome; <b>Left to right flanking marker</b> takes the whole span between the flanking markers (wider, more genes)."],
     ["A gene is taken when it lies", "<b>Completely inside</b> the region (default): start and stop both within it. <b>Overlapping</b> also takes the genes cut by the border of the region."]])}
 <h3>Step by step</h3>
-{ol(["Open <b>Genes Extraction</b>. Browse to the QTL results (or click <b>Use QTL Mapping output</b> for the QTL Intervals file, <b>Use QTL table (cM)</b> for the QTL table) and to the genetic map (or choose <b>No map: use a VCF</b> and select the VCF) and to the annotation; add the FASTA if you want the sequences.", "Set the options if needed, then click <b>Extract Data</b>.",
+{ol(["Open <b>Genes Extraction</b>. Browse to the QTL table (or click <b>Use QTL table</b>), to the marker position file (or choose <b>Use a VCF</b> and select the VCF) and to the annotation; add the FASTA if you want the sequences.", "Set the options if needed, then click <b>Extract Data</b>.",
      "Open <b>Regions</b> to see how many genes each region holds, and <b>Genes in Gene Regions</b> for the genes. There, <b>Download Gene ID List</b> saves the gene IDs, <b>Download Genes Data</b> the table, and <b>Download Gene Sequences (FASTA)</b> the sequences."])}
 {figure("gene_input")}
 {figure("gene_results")}
@@ -267,7 +267,7 @@ def ch_prioritize():
 {box("warn", "The score ranks genes by the evidence found in the databases. It is <b>not</b> the probability that a gene is causal, and a low score does not mean a gene is unimportant: many genes simply have little annotation. Where a database has nothing, the tool says so; it never fills a gap with an estimate.")}
 <h3>What you need</h3>
 {ul(["<b>Species</b> — rice (<i>Oryza sativa</i>, IRGSP-1.0), wheat (<i>Triticum aestivum</i>) or maize (<i>Zea mays</i>). Chickpea is listed but cannot be used yet: it is not in Ensembl Plants or Gramene, so there is no verified source for its genes.",
-     "<b>Trait</b> — in words, for example <i>Drought tolerance</i>, <i>Salt tolerance</i>, <i>Blast resistance</i>, <i>Grain yield</i>. Related terms are added for you (drought: water deficit, osmotic stress, abscisic acid …); the terms used are listed on the Summary tab. Built-in vocabularies cover abiotic stress (drought, salt, heat, cold, submergence, oxidative, metal toxicity, alkalinity, nitrogen, phosphorus, potassium, micronutrients), biotic stress (blast, bacterial blight, sheath blight, rusts, Fusarium / head blight, mildews, viruses, nematodes, insects, weeds, general disease), yield (grain size, grain number, tillering, harvest index, grain filling, heterosis), phenology and architecture (flowering, height, lodging, leaf angle, roots, seedling vigor, senescence, photosynthesis), seeds and reproduction (dormancy and pre-harvest sprouting, shattering, male sterility, apomixis) and quality (amylose / cooking quality, glycemic index and resistant starch, protein, oil, aroma, chalkiness, pigments and vitamins, anti-nutrients, sugar, fibre). A trait outside these groups is still searched by its own words, and the Summary tab says so; try the wording the databases use.",
+     "<b>Trait</b> — in words, for example <i>Drought tolerance</i>, <i>Salt tolerance</i>, <i>Blast resistance</i>, <i>Grain yield</i>. Related terms are added for you (drought: water deficit, osmotic stress, abscisic acid …); the terms used are listed on the Summary tab. Built-in vocabularies cover abiotic stress (drought, salt, heat, cold, submergence, oxidative, metal toxicity, alkalinity, nitrogen, phosphorus, potassium, micronutrients), biotic stress (fungal diseases: blast, brown spot, leaf spots and blotches, rusts, mildews, sheath blight, smuts and bunts, false smut, Fusarium / head blight / bakanae, aflatoxin and grain moulds, anthracnose, root and stem rots, wilts; bacterial diseases: bacterial blight and leaf streak, bacterial panicle blight; phytoplasmas; viruses; nematodes; insects and mites: planthoppers and leafhoppers, stem borers, armyworms and other caterpillars, aphids, thrips and other sap-sucking pests, gall midges and flies, storage pests, root pests; parasitic weeds such as Striga; weeds and herbicides; general disease resistance and defence), yield (grain size, grain number, tillering, harvest index, grain filling, heterosis), phenology and architecture (flowering, height, lodging, leaf angle, roots, seedling vigor, senescence, photosynthesis), seeds and reproduction (dormancy and pre-harvest sprouting, shattering, male sterility, apomixis) and quality (amylose / cooking quality, glycemic index and resistant starch, protein, oil, aroma, chalkiness, pigments and vitamins, anti-nutrients, sugar, fibre). A trait outside these groups is still searched by its own words, and the Summary tab says so; try the wording the databases use.",
      "<b>The genes to rank</b> (below)."])}
 <p><b>A gene ID list</b> — paste IDs (one per line, or separated by commas, spaces or tabs) or choose a TXT / CSV / TSV / Excel file; the first column is read. For the genes of a QTL, use the <code>Gene_ID_list.txt</code> that <b>Genes Extraction</b> writes. Use the IDs of the Ensembl Plants / Gramene annotation: <code>Os02g0766700</code> (rice, RAP-DB), <code>TraesCS1A02G000100</code> (wheat), <code>Zm00001eb000010</code> (maize). Gene symbols and UniProt accessions are also looked up. Rice <b>MSU / LOC_Os IDs</b> are translated to RAP-DB IDs only for the genes that Oryzabase lists; the others are reported as not matched, so export the RAP-DB IDs instead.</p>
 {sample_files("gene_prioritization")}

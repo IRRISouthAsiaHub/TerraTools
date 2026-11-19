@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot, QThread, QUrl
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -228,15 +229,24 @@ class LinkageBridge(QObject):
                 path = to_marker_rows(path, tempfile.mkdtemp(prefix="terratools_linkage_upload_"))
 
             if path.lower().endswith((".csv", ".tsv", ".txt")):
-                df = pd.read_csv(path, sep="	" if path.lower().endswith((".tsv", ".txt")) else ",")
+                # This runs on the GUI thread (the page waits for the answer), so a text file is not parsed whole:
+                # the first rows give the preview and the column list, and only Marker + Chromosome are read in full.
+                sep = "	" if path.lower().endswith((".tsv", ".txt")) else ","
+                head_df = pd.read_csv(path, sep=sep, nrows=10)
+                if "Marker" not in head_df.columns:
+                    raise ValueError("Column 'Marker' not found.")
+                if "Chromosome" not in head_df.columns:
+                    raise ValueError("Column 'Chromosome' not found.")
+                df = pd.read_csv(path, sep=sep, usecols=["Marker", "Chromosome"])
+                all_columns = list(head_df.columns)
             else:
                 df = pd.read_excel(path, sheet_name=0)
-
-            if "Marker" not in df.columns:
-                raise ValueError("Column 'Marker' not found.")
-
-            if "Chromosome" not in df.columns:
-                raise ValueError("Column 'Chromosome' not found.")
+                if "Marker" not in df.columns:
+                    raise ValueError("Column 'Marker' not found.")
+                if "Chromosome" not in df.columns:
+                    raise ValueError("Column 'Chromosome' not found.")
+                head_df = df.head(10)
+                all_columns = list(df.columns)
 
             self.uploaded_path = path
 
@@ -256,7 +266,7 @@ class LinkageBridge(QObject):
                 for chrom, count in chr_counts.items()
             ]
 
-            n_individuals = max(int(len(df.columns) - 2), 0)
+            n_individuals = max(int(len(all_columns) - 2), 0)
 
             # Chromosome 0 = unplaced markers; the analysis leaves them out.
             chr0 = pd.to_numeric(df["Chromosome"], errors="coerce") == 0
@@ -284,11 +294,11 @@ class LinkageBridge(QObject):
                 # relying on the original "preview"/"columns" keys (if any)
                 # keeps working, while matching what linkage.html actually
                 # reads (preview_rows/preview_columns/chr_summary).
-                "preview_rows": df.head(10).fillna("").to_dict(orient="records"),
-                "preview_columns": [str(x) for x in df.columns],
+                "preview_rows": head_df.fillna("").to_dict(orient="records"),
+                "preview_columns": [str(x) for x in all_columns],
                 "chr_summary": chr_summary,
-                "preview": df.head(10).fillna("").to_dict(orient="records"),
-                "columns": [str(x) for x in df.columns],
+                "preview": head_df.fillna("").to_dict(orient="records"),
+                "columns": [str(x) for x in all_columns],
             }, ensure_ascii=False)
 
         except Exception as e:
@@ -310,6 +320,7 @@ class LinkageBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(str)
+    @single_run
     def run_linkage(self, config_json):
 
         print("[LINKAGE BRIDGE] run_linkage() called", flush=True)

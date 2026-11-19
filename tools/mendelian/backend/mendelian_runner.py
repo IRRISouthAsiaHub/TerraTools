@@ -17,12 +17,16 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from tools.mendelian.config import MendelianConfig
+from tools.mendelian.config import MendelianConfig, population_error
 from tools.common.genotype_layout import is_qtl_layout, to_marker_rows
 from tools.common.r_locator import find_rscript, rscript_not_found_message
 from tools.common.subprocess_utils import no_window_kwargs
 
 R_TIMEOUT_SECONDS = 600  # 10 min ceiling; adjust if your datasets are larger
+# Rows of the per-marker table sent to the page. The whole table goes through the web channel as one JSON string
+# and into the page's memory, so a file of 100 000 markers would be tens of MB; the page shows the most significant
+# markers and every marker is in the downloadable Full Results CSV.
+MAX_TABLE_ROWS = 3000
 
 
 class MendelianEngine:
@@ -32,6 +36,9 @@ class MendelianEngine:
         self._cli_path = self._backend_dir / "mendelian_cli.R"
 
     def run(self) -> dict:
+        bad = population_error(self.config.pop)
+        if bad:
+            return {"status": "error", "message": bad}
         rscript = find_rscript()
         if rscript is None:
             return {
@@ -99,5 +106,10 @@ class MendelianEngine:
         with open(results_json_path, "r") as f:
             table_rows = json.load(f)
 
+        summary["table_total"] = len(table_rows)
+        if len(table_rows) > MAX_TABLE_ROWS:
+            table_rows.sort(key=lambda r: (r.get("p") is None, r.get("p") if r.get("p") is not None else 0))
+            table_rows = table_rows[:MAX_TABLE_ROWS]
         summary["table"] = table_rows
+        summary["table_truncated"] = summary["table_total"] > len(table_rows)
         return summary

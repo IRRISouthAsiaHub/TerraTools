@@ -19,15 +19,20 @@
 #                    cols = SNP markers, first column = sample
 #                    IDs, values in {0,1,2,NA})
 #   train_file,    - INSTEAD of snp_file: the Training and Testing files
-#   test_file        written by the Clustering tool. Markers are centred on
-#                    the TRAINING lines' means and the additive matrix is
-#                    X Xt / number of markers, cut into the blocks
-#                    training x training and testing x training (the testing
-#                    lines do not influence the training block). Imputation
-#                    and the monomorphic filter also use the training lines.
+#   test_file        written by the Clustering tool. Every marker statistic
+#                    (allele frequency, centring, imputation, monomorphic
+#                    filter) comes from the TRAINING lines only, for the additive
+#                    AND the dominance matrix, so the testing lines never
+#                    influence the training block. The additive matrix is
+#                    VanRaden (2008): X_c X_c' / (2 sum p(1-p)), cut into the
+#                    blocks training x training and testing x training.
 #                    Columns named phenotypes / Cluster are not markers.
 #   impute_method  - "mean" | "median" | "zero"
 #   matrix_types   - array subset of ["additive","dominance"]
+#   dominance_method - "nishio" (default; Nishio & Satoh 2014, as sommer::D.mat) |
+#                    "vitezica" (Vitezica et al. 2013: dominance deviations
+#                    orthogonal to the additive effects; use it to partition
+#                    variance). Both need Hardy-Weinberg-like genotype frequencies.
 #
 # -1 is read as a missing call (the coding of the Clustering tool).
 # ============================================================
@@ -167,6 +172,33 @@ if (is.null(matrix_types) || length(matrix_types) == 0) {
     matrix_types <- c("additive", "dominance")
 }
 
+dominance_method <- config$dominance_method
+if (is.null(dominance_method) || !nzchar(dominance_method)) dominance_method <- "nishio"
+if (!dominance_method %in% c("nishio", "vitezica")) {
+    fail(paste0("Unknown dominance method '", dominance_method, "'. Use 'nishio' or 'vitezica'."))
+}
+DOM_LABEL <- c(nishio = "Nishio & Satoh 2014 (sommer::D.mat)",
+               vitezica = "Vitezica et al. 2013 (orthogonal to additive)")
+
+# Dominance relationship matrix of genotypes `geno` (0/1/2, imputed, may be fractional).
+# Allele frequency and centring come from the rows `ref_rows` only.
+#   nishio  : M = (1 - |x - 1|) - mean of that over ref_rows;  D = M M' / sum((2pq)^2)
+#             (identical to sommer::D.mat when ref_rows is every line)
+#   vitezica: dominance deviation of the genotype, -2p^2 / 2pq / -2q^2 for 0 / 1 / 2 copies of the
+#             counted allele, written as the quadratic -2p^2 + (2p+1)x - x^2 so that imputed
+#             (fractional) dosages are handled; D = W W' / sum((2pq)^2)
+dom_matrix <- function(geno, ref_rows, method) {
+    p  <- colMeans(geno[ref_rows, , drop = FALSE]) / 2
+    c0 <- sum((2 * p * (1 - p))^2)
+    if (method == "vitezica") {
+        W <- sweep(t(t(geno) * (2 * p + 1)) - geno^2, 2, 2 * p^2)
+    } else {
+        Xd <- 1 - abs(geno - 1)
+        W  <- sweep(Xd, 2, colMeans(Xd[ref_rows, , drop = FALSE]))
+    }
+    tcrossprod(W) / c0
+}
+
 result <- tryCatch({
 
     # ---- 1. Read file(s) ----
@@ -215,6 +247,8 @@ result <- tryCatch({
     }
 
     pct_miss <- round(100 * mean(is.na(geno_matrix)), 2)
+    het_rate <- mean(geno_matrix == 1, na.rm = TRUE)
+    warnings_out <- list()
 
     # Rows that define the marker statistics: the training lines in split mode, every line otherwise
     ref_rows <- if (split_mode) seq_len(split_info$n_train) else seq_len(nrow(geno_matrix))
@@ -259,9 +293,11 @@ result <- tryCatch({
 
     if ("additive" %in% matrix_types) {
         if (split_mode) {
-            # centre every marker on the training lines' mean, then X Xt / number of markers
-            Xc <- sweep(geno_imputed, 2, colMeans(geno_imputed[ref_rows, , drop = FALSE]))
-            A_mat <- tcrossprod(Xc) / ncol(Xc)
+            # VanRaden (2008) with the allele frequencies and the centring of the TRAINING lines:
+            # A = X_c X_c' / (2 sum p(1-p)), so the scale is the one of rrBLUP::A.mat (diagonal about 1)
+            p_tr <- colMeans(geno_imputed[ref_rows, , drop = FALSE]) / 2
+            Xc   <- sweep(geno_imputed, 2, 2 * p_tr)
+            A_mat <- tcrossprod(Xc) / (2 * sum(p_tr * (1 - p_tr)))
         } else {
             A_mat <- rrBLUP::A.mat(geno_coded)
         }
@@ -269,8 +305,14 @@ result <- tryCatch({
     }
 
     if ("dominance" %in% matrix_types) {
-        D_mat <- sommer::D.mat(geno_coded)
+        D_mat <- if (!split_mode && dominance_method == "nishio") sommer::D.mat(geno_coded) else
+                 dom_matrix(geno_imputed, ref_rows, dominance_method)
         rownames(D_mat) <- colnames(D_mat) <- sample_ids
+        if (het_rate < 0.05) {
+            warnings_out[[length(warnings_out) + 1]] <- sprintf(
+                "Only %.1f%% of the genotype calls are heterozygous (as in RIL or DH lines). The dominance matrix then carries almost no information; %s",
+                100 * het_rate, "use it only for populations that segregate for heterozygotes (F2, BC1, F3, hybrids, outbred material).")
+        }
     }
 
     out <- list(
@@ -284,9 +326,13 @@ result <- tryCatch({
             minus1_as_missing = n_minus1,
             matrix_types = as.list(matrix_types),
             mode = if (split_mode) "split" else "single",
-            additive_method = if (split_mode) "centred on training means, X Xt / markers" else "rrBLUP::A.mat"
+            additive_method = if (split_mode) "VanRaden 2008, frequencies and centring from the training lines" else "rrBLUP::A.mat (VanRaden 2008)",
+            het_rate = round(100 * het_rate, 2)
         )
     )
+    # a NULL inside a list is written as {} by jsonlite, so add the label only when there is one
+    if ("dominance" %in% matrix_types) out$summary$dominance_method <- unname(DOM_LABEL[dominance_method])
+    out$summary$warnings <- I(as.character(unlist(warnings_out)))
     if (split_mode) {
         out$summary$split <- split_info
         n_tr    <- split_info$n_train

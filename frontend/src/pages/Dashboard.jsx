@@ -4,7 +4,6 @@ import { Layers, CircleCheck, Network, Microscope, Search, X, ArrowUpRight, Leaf
 import { Tabs, StatCard } from '../components/kit.jsx'
 import { TOOLS, CATEGORIES, ALL_TAB } from '../lib/tools.js'
 import { useRunStates } from '../lib/runState.js'
-import logo from '../assets/terratools-logo.png'
 
 const ease = [0.22, 1, 0.36, 1]
 
@@ -14,21 +13,12 @@ const SPARKS = Array.from({ length: 14 }, (_, i) => ({ x: rnd(i, 1) * 100, y: 30
 
 function AppCard({ tool, index, onOpen, run }) {
   const Icon = tool.icon
-  const track = (e) => {
-    const r = e.currentTarget.getBoundingClientRect()
-    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
-    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
-  }
+  // Entrance, hover lift and press are CSS (see .app-card): no per-mouse-move JavaScript and no inline transforms.
   return (
-    <motion.button
+    <button
       className="app-card"
       onClick={() => onOpen(tool.id)}
-      onMouseMove={track}
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: Math.min(index, 12) * 0.04, ease }}
-      whileHover={{ y: -6, transition: { duration: 0.2 } }}
-      whileTap={{ scale: 0.985 }}
+      style={{ '--i': Math.min(index, 12) }}
     >
       <div className="top">
         <span className="category-label">{CATEGORIES.find((c) => c.id === tool.cat).label}</span>
@@ -43,7 +33,7 @@ function AppCard({ tool, index, onOpen, run }) {
         <span>{run === 'running' || run === 'success' ? 'Continue' : 'Open'}</span>
         <ArrowUpRight size={17} />
       </div>
-    </motion.button>
+    </button>
   )
 }
 
@@ -69,12 +59,10 @@ export default function Dashboard({ navigate }) {
         <div className="banner-photo" />
         <div className="banner-shade" />
         {SPARKS.map((s, i) => (
-          <motion.span key={i} className="firefly" style={{ left: `${s.x}%`, top: `${s.y}%` }}
-            animate={{ y: [0, s.dy, 0], opacity: [0, 0.9, 0] }} transition={{ duration: s.d, delay: s.delay, repeat: Infinity, ease: 'easeInOut' }} />
+          <span key={i} className="firefly rise" style={{ left: `${s.x}%`, top: `${s.y}%`, '--dy': `${s.dy}px`, animationDuration: `${s.d}s`, animationDelay: `${s.delay}s` }} />
         ))}
         <div className="banner-content">
           <div className="logo-row">
-            <img className="home-logo" src={logo} alt="TerraTools" />
             <h1>TerraTools</h1>
           </div>
           <p className="subtitle">

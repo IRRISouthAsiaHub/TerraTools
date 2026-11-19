@@ -35,7 +35,9 @@ You can download that file from the Results tab and reuse it. SNP positions are 
 <p>One CSV: <b>ID</b>, <b>Phenotype</b>, then one column per SNP named <code>Chr&lt;chromosome&gt;_&lt;position&gt;</code> with the genotype values (blank or <code>NA</code> for missing) in the coding you choose under <b>Genotype coding</b>.</p>
 {ul(["<b>0 / 1 / 2 dosage</b>: the number of copies of the counted allele.", "<b>−1 / 0 / 1 centred</b>: converted to 0 / 1 / 2 by adding 1.",
      "A file that holds only 0 and 1 is <b>ambiguous</b> (a 0/1 dosage, or a centred matrix with no homozygous alternate). TerraTools never guesses: you must choose the coding, and the choice, the conversion and the number of missing calls are written to the log and the report.",
+     "A <code>−1</code> that stands next to values above 1 (0 / 1 / 2 files from Linkage Mapping, Mendelian Segregation or the Genofile Converter) can only be a <b>missing</b> call, since a centred −1 / 0 / 1 matrix has no 2, and it is read as missing; the number is written to the log.",
      "Values outside the chosen coding stop the run. <code>-9</code>, <code>-99</code>, <code>-999</code> and <code>NA</code> are read as missing; add other codes under <b>Extra values to read as missing</b>. Sample IDs, marker names, chromosomes and positions are kept as they are in the file."])}
+<p><b>Second layout — marker positions in their own rows.</b> The file Linkage Mapping writes for QTL mapping is accepted as it is: the header holds <b>ID</b>, the phenotype column and the marker names (any names); the next two rows hold the <b>physical position of every marker in base pairs</b> and the <b>chromosome of every marker</b> (blank ID and phenotype); then one row per individual. TerraTools takes chromosomes and positions from those rows, not from the marker names, so FarmCPU, BLINK, mrMLM and FASTmrMLM run on the real map. A label in the ID cell (<code>Position</code>, <code>Chromosome</code>) is honoured in either order; without labels the row with the larger numbers is the position row. Genotypes may use <code>-1</code> for missing next to 0 / 1 / 2: because a −1/0/1 centred matrix cannot contain the value 2, −1 together with 2 can only be a missing code, and it is read as missing (this is stated in the log).</p>
 {example("gwas/gwas_ready_example.csv", rows=5, cols=6, tail_cols=0)}
 {sample_files("gwas")}
 <h3>Quality control</h3>
@@ -65,7 +67,7 @@ You can download that file from the Results tab and reuse it. SNP positions are 
     ["MLM, EMMAX, GEMMA-style", "b²v / (b²v + σ²ₐ·mean(diag K) + σ²ₑ), b the marker effect, v its sample variance, the variances from the null REML fit. A marginal share relative to the variance model; it is not a joint estimate."],
     ["Multi-locus models", "Conditional: what the marker adds to the joint linear model of all selected markers and covariates."]])}
 <p>Where an estimate cannot be defined (singular design, invalid statistic) it is shown as <b>unavailable</b>, not as 0. PVE from different models is not on a common basis and is not claimed to equal the value another program reports.</p>
-<p>The <b>Manhattan plot</b> shows −log₁₀ p along the genome with the Bonferroni and suggestive lines (genome-wide hits filled, exploratory markers hollow), the <b>QQ plot</b> the p-value distribution and λ, and the <b>circos plot</b> the genome-wide markers on a ring of chromosomes.</p>
+<p>The figures are drawn with R (CMplot and base graphics). The <b>Manhattan plot</b> shows −log₁₀ p along the genome, <b>one plot per model on its own scale</b>, with the Bonferroni, suggestive and (when it was simulated) null-based lines; genome-wide hits are outlined and the names of the strongest ones, at most twelve, are written above the plot, with a strip of the marker density under the chromosomes. The <b>QQ plot</b> shows the p-value distribution of all models with λ, and the <b>circos plot</b> the genome-wide markers on a ring of chromosomes. Should R not be available, the program draws simpler built-in versions instead.</p>
 {box("note", "On a strongly structured panel such as rice (indica, japonica, aus) OLS without PCs is expected to give a λ far above 1 and many false associations; the mixed models are meant to remove them. This is checked by simulation: see <i>tools/gwas/validation</i> in the program folder, which reports false-positive rate, power and p-value calibration of every model on rice-like simulated data.")}
 """
 
@@ -79,11 +81,15 @@ set up a fair genomic-selection experiment.</p>
 {example("clustering/clustering_genotypes_example.csv", rows=5, cols=8)}
 {sample_files("clustering")}
 <h3>Step by step</h3>
-{ol(["Open <b>Clustering &amp; Genomic Selection</b> and load the genotype file.", "Set the number of clusters <i>K</i> and the fraction of each cluster to keep for testing.", "Click <b>Run Clustering &amp; Split</b>."])}
+{ol(["Open <b>Clustering &amp; Genomic Selection</b> and load the genotype file.", "Set the number of clusters <i>K</i> and the fraction of each cluster to keep for testing. Under <b>Space the clusters are found in</b> you can limit the principal components that K-means uses (see below).", "Click <b>Run Clustering &amp; Split</b>."])}
 {figure("clustering_input")}
+<h3>Choosing K and the number of principal components</h3>
+{ul(["<b>Principal components used by K-means</b> (default 0 = all). With all components K-means works in the full genotype space, so the PCA removes no noise. Population structure usually sits in the first few components: with a clear structure, 5 to 20 components give the same groups with less noise from the rest of the genome. The first components are always the ones kept, and the result states how many of the available components were used.",
+     "<b>K-selection plot.</b> Every run also draws the mean silhouette width (higher = better separated clusters) and the within-cluster sum of squares (the elbow) for K = 2 to 10, in the same space the clusters were found in. A red line marks the K you used and a gold line the K with the highest silhouette; the note under the plot names both. The plot is a guide, not a rule: choose K from what you know of the material (the number of parents, the breeding groups) and use the plot to check it. It can be downloaded as <i>K selection (PNG)</i>."])}
 <h3>Reading the results</h3>
 {figure("clustering_results")}
 {ul(["<b>The plot</b> shows the samples on the first two principal components, coloured by cluster; the axis labels give the variance each component explains.",
+     "<b>The K-selection plot</b> below it (see above).",
      "<b>Training Data</b> and <b>Testing Data</b> (CSV) are the two genotype files, ready to load in BreedSight. The split is <i>stratified</i> by cluster; if a cluster is too small for that, the tool says so and falls back to a random split.",
      "<b>Cluster membership</b> lists the cluster of every sample."])}
 {box("note", "K is capped automatically so that it never exceeds the number of samples minus one.")}
@@ -92,7 +98,7 @@ set up a fair genomic-selection experiment.</p>
 
 def ch_additive():
     return f"""
-<p class="lead">Builds genomic relationship matrices from SNP dosages: the <b>additive</b> matrix (rrBLUP <code>A.mat</code>) and the <b>dominance</b> matrix (sommer <code>D.mat</code>).
+<p class="lead">Builds genomic relationship matrices from SNP dosages: the <b>additive</b> matrix (VanRaden 2008, as rrBLUP <code>A.mat</code>) and the <b>dominance</b> matrix (<b>Nishio &amp; Satoh 2014</b>, as sommer <code>D.mat</code>, for prediction, or <b>Vitezica et al. 2013</b>, orthogonal to the additive effects, for variance partition).
 They are the building blocks of GBLUP and of kinship-aware selection.</p>
 <h3>What you need</h3>
 <p>One CSV or TSV: <b>rows are samples, columns are SNP markers</b>, the first column holds the sample ID. Markers are coded <code>0</code> (AA), <code>1</code> (Aa), <code>2</code> (aa). Blank cells are treated as missing.</p>
@@ -101,7 +107,7 @@ They are the building blocks of GBLUP and of kinship-aware selection.</p>
 <h3>Step by step</h3>
 {ol(["Open <b>Additive Dominance</b> and load the SNP file.", "Choose how missing values are filled (mean, median or zero) and tick the matrices you want.", "Click <b>Compute Matrices</b>."])}
 {figure("additive_input")}
-{ul(["Markers with no variation are removed automatically; at least two samples are needed.", "Missing values are filled <i>per marker</i> with the mean (default), the median or zero."])}
+{ul(["Markers with no variation are removed automatically; at least two samples are needed.", "With a training and a testing file, the allele frequencies, the centring and the imputation come from the training lines only, for both matrices, and the additive matrix has the VanRaden scale (diagonal about 1).", "The tool warns when fewer than 5 % of the calls are heterozygous (RIL, DH): the dominance matrix is then almost uninformative.", "Missing values are filled <i>per marker</i> with the mean (default), the median or zero."])}
 <h3>Reading the results</h3>
 {figure("additive_results")}
 {ul(["<b>Heatmaps:</b> sample-by-sample relationship; blocks along the diagonal are groups of related lines.",
@@ -126,16 +132,18 @@ It tells you how well the genotypes predict the trait and predicts the breeding 
 {ol(["Open <b>BreedSight GUI</b> and load the four files.", "Set the cross-validation folds and the trait's heritability h² (used only to put the accuracy in context).",
      "Keep the network settings at their defaults for a first run. Click <b>Run BreedSight Analysis</b>. The live log shows each fold; a run trains the network once per fold plus a final time, so it can take many minutes on larger data."])}
 {figure("breedsight_input")}
-{table(["Setting", "What it does"], [
-    ["Number of CV folds / h²", "Cross-validation folds; trait heritability (the ceiling for prediction accuracy is about √h²)."],
-    ["Epochs, batch size, learning rate", "Training schedule of the neural network."],
-    ["DNN weight α", "The ensemble prediction is α × DNN + (1 − α) × random forest."],
-    ["L2 regularization, dropout", "Guard against over-fitting."],
-    ["RF trees / max depth", "Size of the random forest (0 = unlimited depth)."],
-    ["PCA / RFE / raw genotypes", "Feature engineering: PCA of the relationship matrix, recursive feature elimination, or the raw genotypes."]])}
+{table(["Setting", "Default", "What it does"], [
+    ["Number of CV folds / h²", "5 / 0.82", "Cross-validation folds; trait heritability (the ceiling for prediction accuracy is about √h²)."],
+    ["Epochs, batch size, learning rate", "300 / 32 / 0.001", "Training schedule of the neural network. Training stops early when the validation error stops improving."],
+    ["DNN weight α", "0.40", "The ensemble prediction is α × DNN + (1 − α) × random forest."],
+    ["L2 regularization, dropout", "0.001 / 0.20", "Guard against over-fitting."],
+    ["RF trees / max depth", "300 / 0", "Size of the random forest (0 = unlimited depth)."],
+    ["PCA / RFE / raw genotypes", "on / on / off", "Feature engineering: PCA of the relationship matrix, recursive feature elimination, or the raw genotypes. With PCA the shared feature space has 50 components (RFE keeps 100)."]])}
+<p>BreedSight itself uses a smaller network (two hidden layers of 64 and 32 units), standardises the trait before training, and feeds the first 20 PCA components to the network and the forest, while the forest also uses a minimum leaf size of 3 and a third of the features at each split. The comparison models (Lasso, GBLUP_1, RRBLUP_1) always use the shared 50-component feature space, so changing the BreedSight settings does not change their results.</p>
 <h3>Reading the results</h3>
 {figure("breedsight_results")}
 {box("note", "The screenshots use the small example data with 2 folds and 50 epochs so that the run takes minutes, which is why the accuracy is modest and the program rates it “Very poor”. Read the page the same way with your own data: compare the models with each other, look at the validation r (not the training r — a high training r with a low validation r means over-fitting), and compare the best r with the theoretical maximum √h².")}
+{box("note", "The accuracy depends on the data and the number of folds. As a guide, the small example data gives a validation R² of about 0.57 with 2 folds and 50 epochs, while a larger yield data set (about 1,300 lines, 5 folds) gives about 0.46 (r about 0.69). The network is random, so repeated runs differ by about ±0.03 in R².")}
 {ul(["<b>Metrics &amp; Interpretation:</b> R², Pearson r and RMSE for every model on the training and validation folds, and a plain-language reading of how close the best model is to the theoretical maximum for your heritability.",
      "<b>Test Predictions:</b> the predicted value for every test sample (and the observed value if you supplied it).",
      "<b>Plots:</b> regression of predicted against observed, model comparison, per-fold results, a performance heat map and the phenotype distribution.",
@@ -244,8 +252,8 @@ correlations, clustering, PCA and genotype-by-environment stability (including A
 {box("note", "Pick the design that matches how the trial was planted. The same file can be analysed with any of them, but a wrong choice gives wrong error terms: an RCBD model on an augmented trial ignores the block effects, and an alpha-lattice model needs Block numbers that really are incomplete blocks.")}
 <h3>Step by step</h3>
 {ol(["Open <b>Phenotypic Data Analysis</b> and load the file in <b>Data &amp; Design</b>. A summary shows the design, plots, accessions, environments and traits, with a table of the traits and the design check.", "Choose the <b>experimental design</b>, whether to analyse all environments or only some, whether 0 counts as missing, and the colour scheme.",
-     "Open <b>Analyses</b>, pick an analysis (Descriptives, Environments, BLUEs, ANOVA, Heritability, Correlation, PCA, Clustering or Stability &amp; G×E), choose its traits and options and click its <b>Run</b> button. Every analysis runs on its own, so you can run only what you need; results stay until you change the data settings.",
-     "Use <b>Downloads</b> for the Excel workbook of everything run so far, the ANOVA workbook, all figures (300-dpi PNG and vector PDF) or everything in one zip."])}
+     "Open <b>Analyses</b>, pick an analysis (Descriptives, Environments, BLUEs, ANOVA, Heritability, BLUPs, Correlation, PCA, Clustering or Stability &amp; G×E), choose its traits and options and click its <b>Run</b> button. Every analysis runs on its own, so you can run only what you need; results stay until you change the data settings.",
+     "Use <b>Downloads</b> for the Excel workbook of everything run so far, the ANOVA workbook, the BLUPs workbook, all figures (300-dpi PNG and vector PDF) or everything in one zip."])}
 {figure("phenotypic_input")}
 <h3>Reading the results</h3>
 {figure("phenotypic_results")}
@@ -255,11 +263,13 @@ correlations, clustering, PCA and genotype-by-environment stability (including A
     ["BLUEs", "Adjusted means (BLUEs) of every accession within each environment and over all environments from a mixed model; the standard errors of differences are added to the Design Check."],
     ["ANOVA", "One analysis-of-variance table per trait with every environment and the pooled analysis side by side (DF, SS, MS, F, P, CV), a plot of where the variation comes from, and residual and normal Q-Q plots of one trait."],
     ["Heritability", "Genotypic, G×E, block and error variance components and heritability on a plot and on an entry-mean basis, per trait, environment and pooled."],
+    ["BLUPs", "The best linear unbiased prediction (BLUP) of every accession per trait and environment (and across environments), with its standard error, reliability, predicted value and rank, plus the Cullis H² and mean reliability of each model. Download the table as a CSV or the BLUPs workbook. In an augmented design the checks are fixed effects and are not listed (see BLUEs)."],
     ["Correlation, PCA, Clustering", "Relationships between traits (Pearson, Spearman or Kendall with P values), a PCA biplot and variance explained, and clusters of accessions (K-means or Ward hierarchical) with their trait means."],
     ["Stability &amp; G×E", "Wricke ecovalence, Finlay-Wilkinson slope, AMMI scores and ASV of every accession, with the stability, G×E and AMMI1 biplots."]])}
 <p>Every figure can be saved as a 300-dpi PNG or as a vector PDF, and every table as a CSV. A message box above the results lists notes, warnings and errors of that analysis (for example when an environment has too little data).</p>
 {figure("phenotypic_anova")}
 {figure("phenotypic_heritability")}
+{box("note", "BLUPs come from the same mixed model as the Heritability tab, so their genotypic variance is the same. The standard errors and reliabilities are computed from the full mixed-model equations (they include the uncertainty of the fixed effects). H² Cullis = 1 − (mean variance of a difference between two BLUPs) / (2 Vg) (Cullis, Smith and Coombes 2006); it equals the classical entry-mean H² in a balanced trial and is the better figure when replication is unequal. Mean reliability = 1 − mean(PEV) / Vg is a slightly different number.")}
 {box("tip", "Heritability is a property of the trial, not only of the trait: it grows with replication and with the number of environments. Compare it between trials with that in mind.")}
 """
 
@@ -276,7 +286,7 @@ def appendix_workflows():
 {ol(["<b>Clustering &amp; Genomic Selection</b> — split the lines into training and testing sets.", "<b>BreedSight GUI</b> — train and validate; check that the accuracy is useful.",
      "<b>Additive Dominance</b> — compute the kinship matrix of the candidate parents.", "<b>Optimal Cross Selection</b> — with the marker effects, the dosage matrix and a genetic map, choose the crosses."])}
 <h3>D. Bulk segregant analysis</h3>
-{ol(["Call variants for the parent and the two bulks.", "<b>QTL-Seq</b> with the two bulks (and the parents, when you have them) as sorted BAM files or VCF files: Δ SNP-index, simulated confidence limits and QTL intervals.", "Alternative: <b>PYBSA G-statistics</b> with the two GATK tables, for a G-statistic analysis with a report."])}
+{ol(["Call variants for the parent and the two bulks.", "<b>QTL-Seq</b> with the two bulks (and the parents, when you have them) as sorted BAM files or VCF files: Δ SNP-index, simulated confidence limits and QTL intervals.", "Alternative: <b>PYBSA G-statistics</b> with the two GATK tables, for a G-statistic analysis with a report.", "No sequenced bulks, but every line of an F2, backcross or RIL population is genotyped and phenotyped? Use <b>In silico BSA</b> instead: it pools the extreme lines by their trait value and finds the over-dominant loci that the allele-frequency methods miss."])}
 <h3>E. A figure of the population's chromosomes</h3>
 {ol(["Prepare a file with the chromosome, the marker name, the position (bp) and one column per sample, parents included (or use a VCF).", "<b>Genotype Viewer</b> — choose the species, <i>Compare</i> mode for one chromosome or <i>Normal</i> for one image per sample, a bright or mixed palette and, for a paper, 600 dpi plus the vector PDF.", "Type the parents' names into <i>Legend names</i> and download the images."])}
 <h3>F. Choosing parents by their trait alleles</h3>
@@ -290,6 +300,7 @@ def appendix_troubleshooting():
         ["Result tables are empty, or “0 matching samples”", "The IDs in your files are not written identically (case, spaces, <code>Chr3</code> vs <code>3</code>). Open both files side by side and compare the first IDs."],
         ["“Phenotype column not found”, “Trait not found”", "The phenotype file has a different header than you expect, or the trait column is not numeric. Re-select the file after fixing it."],
         ["QTL Mapping: “Only n matching samples”", "The first column of the phenotype file and the first column of the genotype rows do not share IDs, or fewer than 8 do."],
+        ["The window flickers (white flashes), stays blank or stops responding", "Start <b>TerraTools (safe graphics)</b> from the Start menu. It uses software rendering and switches the decorative animations off, which avoids problems with graphics drivers, remote desktop sessions and virtual machines. TerraTools also switches to it by itself after two start-ups that did not end normally. A diagnostics log is written to <code>%LOCALAPPDATA%\\TerraTools\\logs\\diagnostics.log</code> (window freezes, slow runs, the graphics mode in use); send it with a bug report."],
         ["Genofile Converter: every marker is left out, or almost none are coded", "Parent 1 and Parent 2 are not the two parents (or are the same line): a marker is only coded when both parents are called, homozygous and carry different alleles. Pick the right samples; the <i>Markers left out</i> table gives the reason of every marker."],
         ["Linkage Mapping: a marker is missing from the map", "Look at the QC Report: it lists every removed marker with the reason (too much missing data, monomorphic, distorted, chromosome 0)."],
         ["Linkage map is far longer than expected", "Markers are not in map order in the input file, or markers from different regions are on one chromosome. Fix the order and the chromosome column."],
@@ -307,6 +318,10 @@ def appendix_troubleshooting():
         ["Genotype Viewer: the VCF takes a long time", "Every sample and every site is converted to a table first. Filter the VCF to the markers you need (for example with <code>bcftools view -R</code>) and keep biallelic sites only."],
         ["Genotype Viewer: the colours do not match the parents", "The viewer only knows REF and ALT. Code the file so that parent 1 is <code>A</code> / <code>0|0</code> and parent 2 is <code>B</code> / <code>1|1</code>, and name them in <i>Legend names</i>."],
         ["Favourable Allele Analysis: the page is blank", "The dashboard is built into the program and needs no files. Close the tool page and open it again; if it stays blank, restart TerraTools."],
+        ["In silico BSA: “At least 20 lines with a genotype and a trait value are needed”, or no line names match", "The names in the first column of the phenotype file are not written exactly as in the genotype header (case, spaces, a prefix). The page shows how many names matched; fix them in one of the files."],
+        ["In silico BSA: no significant region", "Try a larger pool fraction, the 0.10 level or more permutations. The <i>Closest to significant</i> table lists the best regions of each window size; they are leads, not findings. Check that the population type is the right one: in a RIL or DH population Gw equals G1 and cannot find an over-dominant locus."],
+        ["In silico BSA: the heterozygosity does not fit the population", "The Please-note box compares the heterozygous calls with what the type should show (about 50 % for an F2 or a backcross, near 0 for RIL and DH). Choose the type that matches the generation you genotyped."],
+        ["Clustering: the groups change with the number of components", "With all components K-means uses the full genotype space. Limit it to the first 5 to 20 components and read the K-selection plot to check which K the data support."],
         ["BreedSight / Heterosis is very slow", "They train neural networks. Lower the epochs and the folds for a trial run, and reduce the number of markers."],
         ["A plot looks empty or a table says “Not computed”", "That analysis was not applicable to the data (for example dominance without heterozygous calls). The message on the page says which."],
         ["The page looks stuck", "Look at the status line below the Run button — long analyses show their progress there. You can switch to another tool; a notification appears when the run ends."],
@@ -323,15 +338,17 @@ def appendix_glossary():
         ["Evidence level", "Gene Prioritization: Direct association, Multiple lines, Two lines, Single line or No trait evidence, from how many evidence categories support the gene."],
         ["Final score", "Gene Prioritization: the final score (0–100) weighs what the databases know about a gene and the trait. It is not the probability that the gene is causal."],
         ["GEBV", "Genomic estimated breeding value: a line's predicted genetic value from its markers."],
+        ["G statistic, Gw (In silico BSA)", "G is the log likelihood ratio of a table of counts. G1 is that of the pool × allele table, G2 that of the pool × genotype table, and Gw is their weighted mean, so it also sees loci where the heterozygotes, not the alleles, differ between the pools."],
         ["GenoSee", "The graphical-genotype program (Hashimoto 2024, MIT licence) on which the Genotype Viewer is based."],
         ["Heritability (H²)", "Share of the phenotypic variance that is genetic."],
+        ["In silico pool", "In silico BSA: the lowest or the highest fraction of the lines by trait value, used as a bulk without any pooled sequencing."],
         ["Kinship", "Genetic relatedness of two lines; 0 = unrelated, 1 = identical."],
         ["LOD", "Logarithm of odds. In QTL Mapping the likelihood-ratio LOD of a marker; in GWAS the 1-df χ² statistic divided by 2 ln 10. Higher = stronger evidence."],
         ["Lambda (λ)", "Genomic inflation factor of a GWAS: about 1 when p-values are well calibrated."],
         ["MAF", "Minor-allele frequency: the frequency of the rarer allele at a marker."],
         ["MPH / BPH", "Mid-parent / better-parent heterosis: how far a hybrid exceeds the parents' mean / the better parent, in percent."],
         ["MTA", "Marker–trait association: a marker that passes the significance threshold in GWAS."],
-        ["Permutation threshold", "A significance level obtained by shuffling the phenotype many times and taking the 95th percentile of the highest genome-wide statistic."],
+        ["Permutation threshold", "A significance level obtained by shuffling the phenotype many times, repeating the analysis on each shuffled phenotype and taking the 95th percentile of the highest genome-wide statistic."],
         ["PVE", "Percent of the phenotypic variance explained by a marker or QTL."],
         ["QTL", "Quantitative trait locus: a genome region that influences a quantitative trait."],
         ["SNP-index", "Share of a bulk's reads that carry the allele of the non-baseline parent."],
@@ -343,14 +360,16 @@ def appendix_formats():
         ["Genofile Converter", "1 HapMap, VCF / VCF.GZ or raw Excel / CSV", "HapMap: rs#, alleles, chrom, pos … then samples; VCF: #CHROM … FORMAT then samples (GT); raw: Marker, Chromosome, P1, P2, offspring (A:G …); the two parents are named in the tool", "genofile/*"],
         ["Phenotypic Data Analysis", "1 CSV/Excel", "Columns by name: Genotype, Environment, Rep, Block (not for an RCBD); every other numeric column is a trait", "phenotypic/*"],
         ["Mendelian Segregation", "1 CSV", "Marker, Chromosome, one column per individual (0/1/2); the QTL Mapping layout is also accepted", "mendelian/mendelian_RIL_example.csv"],
+        ["Recombination Analysis", "1 CSV / Excel", "One row per marker: CHROM, POS (bp), ID, then one column per sample (the recurrent parent may be one of them), coded 0/1/2/−1 · or the coded table of the Genofile Converter with positions in the marker names (chr01_1044946)", "recombination/mapping_population_example.csv"],
         ["Linkage Mapping", "1 Excel or CSV", "Marker, Chromosome, one column per individual (0/1/2/−1) — made by the Genofile Converter from company files", "linkage/linkage_F2_coded_example.xlsx"],
         ["Genotype Viewer", "1 CSV or VCF", "By position: chromosome, marker, position (bp), then one column per sample (A/H/B/N, 0|1 or 0/1); or a VCF / VCF.GZ", "genotype_viewer/*"],
         ["QTL Mapping", "2 CSV", "Genotype: 3 header rows (marker, chromosome, cM) then one row per individual; Phenotype: ID, traits", "qtl/qtl_genotypes_example.csv, qtl_phenotypes_example.csv"],
         ["QTL-Seq", "2 BAM + FASTA, or 2 VCF", "Bulk VCFs with GT:AD per sample (a parental VCF is optional)", "qtl_seq/qtlseq_example.vcf.gz"],
         ["Diversity Analysis", "1 CSV", "Variety, Sample ID, haplotype block codes (−1 = missing)", "diversity/haplotype_blocks_example.csv"],
         ["GWAS", "phenotype + (3K | VCF | ready file)", "Phenotype: ID, traits · ready file: ID, Phenotype, Chr1_12345 …", "gwas/*"],
+        ["In silico BSA", "2 CSV / Excel", "Genotypes: CHROM, POS, ID, then one column per line (0/1/2, −1 missing) · phenotypes: line name, traits (or a GWAS-ready file with the trait column) · optional GFF3 / GTF for candidate genes", "insilico_bsa/*"],
         ["PYBSA G-statistics", "2 tables (TSV/CSV)", "CHROM, POS, REF, ALT, then &lt;sample&gt;.GT / .AD / .GQ", "pybsaseq/parents_example.tsv, bulks_example.tsv"],
-        ["Genes Extraction", "CSV / Excel + GFF3", "QTL intervals (Chromosome, Start, End / QTL_ID, QTL_Start, QTL_End) or the QTL table of QTL Mapping · genetic map (Marker, Chromosome, bp) or, without a map, a VCF · GFF3 annotation · optional FASTA", "gene_extractor/*"],
+        ["Genes Extraction", "CSV / Excel + GFF3", "QTL table of QTL Mapping (cM) · marker position file (Marker, Chromosome, bp) or a VCF (required) · GFF3 annotation · optional FASTA", "gene_extractor/*"],
         ["Gene Prioritization", "Gene IDs", "Gene IDs (TXT / CSV / Excel, first column, or pasted; the Gene_ID_list.txt of Genes Extraction) · internet connection", "gene_prioritization/*"],
         ["Clustering & Genomic Selection", "1 CSV/TSV", "SampleID, SNP columns (0/1/2, −1 missing)", "clustering/clustering_genotypes_example.csv"],
         ["Additive Dominance", "1 CSV/TSV", "SampleID, SNP columns (0/1/2, blank missing)", "additive_dominance/snp_dosage_example.csv"],

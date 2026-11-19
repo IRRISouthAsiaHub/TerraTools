@@ -363,6 +363,8 @@ physical_map <- function(linkage_map) {
       Length_cM = round(i$len, 2),
       Physical_Span_Mb = if (is.na(i$span)) NA_real_ else round(i$span / 1e6, 3),
       Mb_per_cM = if (is.na(i$span) || i$len <= 0) NA_real_ else round(i$span / 1e6 / i$len, 4),
+      kb_per_cM = if (is.na(i$span) || i$len <= 0) NA_real_ else round(i$span / 1e3 / i$len, 1),
+      Recombination_Rate = if (is.na(i$span) || i$len <= 0) "" else sprintf("1 cM = ~%s kb", format(round(i$span / 1e3 / i$len), big.mark = ",")),
       cM_vs_bp_Spearman = if (is.na(i$rho)) NA_real_ else round(i$rho, 3),
       Collinearity = if (is.na(i$rho)) "not enough positioned markers"
                      else if (abs(i$rho) >= 0.9) "map follows the genome"
@@ -376,6 +378,8 @@ physical_map <- function(linkage_map) {
       Linkage_Group = "All groups", Physical_Chromosome = NA_integer_, Markers = sum(summ$Markers),
       Markers_With_bp_In_Name = sum(summ$Markers_With_bp_In_Name), Length_cM = round(sum(summ$Length_cM), 2),
       Physical_Span_Mb = round(sum(summ$Physical_Span_Mb, na.rm = TRUE), 3), Mb_per_cM = round(pop_factor / 1e6, 4),
+      kb_per_cM = round(pop_factor / 1e3, 1),
+      Recombination_Rate = sprintf("1 cM = ~%s kb", format(round(pop_factor / 1e3), big.mark = ",")),
       cM_vs_bp_Spearman = NA_real_,
       Collinearity = sprintf("population factor: 1 cM = %.0f kb (groups whose cM order follows the genome)", pop_factor / 1e3),
       stringsAsFactors = FALSE))
@@ -402,6 +406,9 @@ attach_bp_to_pairs <- function(rec, bp) {
   same <- !is.na(bp$Physical_Chromosome[i1]) & bp$Physical_Chromosome[i1] %in% bp$Physical_Chromosome[i2] &
           bp$Physical_Chromosome[i1] == bp$Physical_Chromosome[i2]
   rec$Distance_bp <- ifelse(same, abs(rec$Marker2_bp - rec$Marker1_bp), NA_real_)
+  # local recombination rate of the interval: physical distance per genetic distance (1 cM = ~X kb);
+  # undefined for a zero-length interval
+  rec$kb_per_cM <- ifelse(!is.na(rec$Distance_bp) & rec$MapDistance_cM > 0, round(rec$Distance_bp / 1e3 / rec$MapDistance_cM, 1), NA_real_)
   rec
 }
 
@@ -585,9 +592,6 @@ create_linkage_map <- function(df,
                                recombination_threshold = 0.5,
                                max_total_cm            = 1500,
                                scaling_method          = "proportional",
-                               enable_chi_square       = FALSE,
-                               chi_square_alpha        = 0.05,
-                               use_bonferroni          = FALSE,
                                marker_order            = "auto",
                                map_config              = default_map_config()) {
 
@@ -695,41 +699,6 @@ create_linkage_map <- function(df,
   }
 
   n_after_mono  <- nrow(df)
-  n_failed_chi  <- 0
-  chi_note       <- "Chi-square filter : DISABLED"
-
-  if (enable_chi_square) {
-    p_values   <- perform_chi_square_test(df, population_type)
-    alpha_used <- if (use_bonferroni) chi_square_alpha / nrow(df) else chi_square_alpha
-    failed_chi_markers <- names(p_values)[p_values < alpha_used]
-    if (length(failed_chi_markers) > 0) {
-      chi_df      <- df[df$Marker %in% failed_chi_markers, ]
-      chi_details <- sapply(failed_chi_markers, function(mk) {
-        pv <- p_values[mk]
-        paste0("p = ", formatC(pv, format="e", digits=3),
-               " (alpha = ", formatC(alpha_used, format="e", digits=3), ")")
-      })
-      removal_log <- rbind(removal_log, data.frame(
-        Marker     = failed_chi_markers,
-        Chromosome = chi_df$Chromosome,
-        Reason     = "Segregation distortion (chi-square)",
-        Detail     = chi_details,
-        stringsAsFactors = FALSE
-      ))
-      df <- df[!df$Marker %in% failed_chi_markers, ]
-      n_failed_chi <- length(failed_chi_markers)
-    }
-    bonf_label <- if (use_bonferroni)
-      paste0("Bonferroni-corrected (alpha/", n_after_mono, ")")
-    else "Uncorrected"
-    chi_note <- paste0(
-      "Chi-square filter : ENABLED\n",
-      "  Significance    : alpha = ", chi_square_alpha, " (", bonf_label, ")\n",
-      "  Effective alpha : ", formatC(alpha_used, format="e", digits=3), "\n",
-      "  Markers removed : ", n_failed_chi
-    )
-  }
-
   if (nrow(df) == 0) {
     res <- empty_result(df_orig); res$removal_log <- removal_log; return(res)
   }
@@ -762,10 +731,8 @@ create_linkage_map <- function(df,
     "  Removed (chromosome 0)     : ", n_chr0, "\n",
     "  Removed (missing data)     : ", length(failed_miss), "\n",
     "  Removed (monomorphic)      : ", length(mono_markers), "\n",
-    "  Removed (chi-square)       : ", n_failed_chi, "\n",
     if (use_ml) paste0("  Removed (map construction) : ", n_before_map - n_after_qc, "  (see Removal Log)\n"),
     "  Markers retained           : ", n_after_qc, "\n\n",
-    chi_note, "\n\n",
     order_res$note,
     if (use_ml) paste0("\nMap construction\n----------------\n", ml_report, "\n\n"),
     "  First marker of each chromosome = 0 cM.\n"
@@ -1265,9 +1232,6 @@ create_marker_density_plot <- function(linkage_map, selected_chr, bin_width = 10
 #   "recombination_threshold": 0.45,
 #   "max_total_cm": 1500,
 #   "scaling_method": "proportional" | "equal",
-#   "enable_chi_square": false,
-#   "chi_square_alpha": 0.05,
-#   "use_bonferroni": false,
 #   "output_dir": "..."
 # }
 #
@@ -1360,9 +1324,6 @@ run_linkage <- function(config) {
     recombination_threshold = as_num(config$recombination_threshold, 0.45),
     max_total_cm            = as_num(config$max_total_cm, 1500),
     scaling_method          = as.character(config$scaling_method %||% "proportional"),
-    enable_chi_square       = as_bool(config$enable_chi_square, FALSE),
-    chi_square_alpha        = as_num(config$chi_square_alpha, 0.05),
-    use_bonferroni           = as_bool(config$use_bonferroni, FALSE),
     marker_order             = as.character(config$marker_order %||% "auto"),
     map_config               = default_map_config(
       map_method        = as.character(config$map_method %||% "ml"),

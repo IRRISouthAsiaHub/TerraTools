@@ -169,8 +169,8 @@ export default function LinkageTool({ navigate }) {
   const [upload, setUpload] = useState(null)
   const [uploadLog, setUploadLog] = useState('No file uploaded yet.')
   const [p, setPr] = useState({
-    missing_threshold: 0.3, recombination_threshold: 0.45, enable_chi_square: false, chi_square_alpha: 0.05,
-    use_bonferroni: false, marker_order: 'auto', map_method: 'ml',
+    missing_threshold: 0.3, recombination_threshold: 0.45,
+    marker_order: 'auto', map_method: 'ml',
     max_total_cm: 100000, scaling_method: 'proportional',   // estimated distances are kept as they are
   })
   const setP = (k) => (v) => setPr((x) => ({ ...x, [k]: v }))
@@ -316,15 +316,6 @@ export default function LinkageTool({ navigate }) {
                   { value: 'fixed', label: 'Keep my marker order' },
                 ]}
                 hint="Both estimate distances with all markers together. The first also checks the order against the genotypes." />
-              <div className="plot-title" style={{ marginTop: 18 }}>Chi-Square Filter</div>
-              <Toggle label="Enable segregation distortion filter" checked={p.enable_chi_square} onChange={setP('enable_chi_square')} />
-              {p.enable_chi_square ? (
-                <>
-                  <TextField label="Significance level (α)" type="number" min={0.001} max={0.2} step={0.005} value={p.chi_square_alpha} onChange={setP('chi_square_alpha')} />
-                  <Toggle label="Apply Bonferroni correction" checked={p.use_bonferroni} onChange={setP('use_bonferroni')} />
-                  <div className="info-line warn">Chi-square filtering removes markers with skewed allele ratios.</div>
-                </>
-              ) : <div className="field-hint">Chi-square filter is OFF.</div>}
             </Card>
             <Card title="Parameter Guide" icon={BookOpen} delay={0.06}>
               <ul className="plain-list">
@@ -333,7 +324,6 @@ export default function LinkageTool({ navigate }) {
                 <li><b>Marker order:</b> the reference order. Automatic re-orders a chromosome by the physical position in the marker names only when the file lists it alphabetically (an accidental sort).</li>
                 <li><b>Map method:</b> identical markers share a position; the order is checked against the genotypes (the physical order is kept unless the data favour another by more than 3 LOD); distances are estimated with all markers of a chromosome together, allowing for 1 % genotyping error (Kosambi cM). Markers linked to another chromosome, unlinked to their own, or that wreck the map are removed and listed in the QC tab.</li>
                 <li><b>Monomorphic markers</b> are always removed.</li>
-                <li><b>Chi-Square Filter:</b> optional — removes segregation-distorted markers.</li>
               </ul>
             </Card>
           </div>
@@ -361,29 +351,24 @@ export default function LinkageTool({ navigate }) {
                   <button className="btn btn-secondary" onClick={() => dl('recombination')}><FileSpreadsheet size={15} /> Recombination Table + Heatmap</button>
                 </div>
               </Card>
-              <Card title="Retained Markers" icon={Table2}><Tbl rows={r.retained_markers} columns={r.retained_markers_columns} /></Card>
-              <Card title="All Markers — Status + Positions" icon={Table2}><Tbl rows={r.all_markers} columns={r.all_markers_columns} /></Card>
-              <Card title="Linkage Map Table" icon={MapIcon}><Tbl rows={r.linkage_map} columns={r.linkage_map_columns} /></Card>
               {r.physical_summary && r.physical_summary.length > 0 && (
-                <Card title="Physical Positions (bp) — cM converted to the genome" icon={MapIcon}>
-                  <div className="field-hint" style={{ marginBottom: 8 }}>
-                    Recombination fraction → cM (Kosambi) → bp. Each marker's bp is read from its name; a marker without one is
-                    placed by interpolating its cM between the markers of the same chromosome that have one. A group whose cM order
-                    disagrees with the genome is flagged: bp converted from its cM is unreliable. Download: the <b>Physical Map</b> and
-                    <b> Physical Summary</b> sheets of the results workbook.
-                  </div>
-                  <Tbl rows={r.physical_summary} columns={r.physical_summary_columns} />
-                  <div style={{ height: 12 }} />
-                  <Tbl rows={r.physical_map} columns={r.physical_map_columns} />
+                <Card title="Recombination Rate — 1 cM = ~ kb" icon={MapIcon}>
+                  {(() => {
+                    const all = r.physical_summary.find((x) => x.Linkage_Group === 'All groups')
+                    return all && all.Recombination_Rate ? (
+                      <Note>
+                        <b>Genome-wide: {all.Recombination_Rate}</b> ({all.kb_per_cM} kb per cM). Marker positions in bp are read
+                        from the marker names. A group flagged "partly out of order" has an unreliable rate.
+                      </Note>
+                    ) : null
+                  })()}
+                  <Tbl rows={r.physical_summary} columns={['Linkage_Group', 'Markers', 'Length_cM', 'Physical_Span_Mb', 'kb_per_cM', 'Recombination_Rate', 'Collinearity'].filter((c) => r.physical_summary_columns.includes(c))} />
                 </Card>
               )}
+              <Card title="Retained Markers" icon={Table2}><Tbl rows={r.retained_markers} columns={r.retained_markers_columns} /></Card>
               {r.chrom_summary && r.chrom_summary.length > 0 && (
-                <Card title="Chromosome Summary" icon={ChartLine}><Tbl rows={r.chrom_summary} columns={r.chrom_summary_columns} /></Card>
+                <Card title="Summary" icon={ChartLine}><Tbl rows={r.chrom_summary} columns={r.chrom_summary_columns} /></Card>
               )}
-              {r.marker_fit && r.marker_fit.length > 0 && (
-                <Card title="Marker Fit — suspect genotypes per map position" icon={ClipboardCheck}><Tbl rows={r.marker_fit} columns={r.marker_fit_columns} /></Card>
-              )}
-              <Card title="Summary Statistics" icon={ChartLine}><LogBox>{r.summary_stats || '—'}</LogBox></Card>
             </>
           )}
         </TabPane>

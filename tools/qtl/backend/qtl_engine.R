@@ -552,6 +552,110 @@ perm_max_lod <- function(X, y, n_perm = 1000, seed = 42) {
   out
 }
 
+# ------------------------------------------------------------
+# PERMUTATION THRESHOLD FOR CIM / MQM  (Doerge & Churchill 1996)
+#   The whole procedure is repeated on every shuffled phenotype: the background
+#   cofactors are selected again and the composite scan is run again; the largest
+#   LOD of the scan is kept.  The single-marker null (above) is NOT used for them,
+#   because with cofactors the maxima are larger (the cofactors absorb chance
+#   associations and leave less residual variance), which made the cut-off too low.
+#
+#   Only the maximum is needed, so the scan is computed in blocks: the markers that
+#   share the same cofactor set (all cofactors outside their window) are regressed
+#   together on the residuals of the cofactor model.  Markers that cannot be handled
+#   that way (missing calls, more than 3 genotype classes) use the same lr_test() as
+#   qtl_scan_linear(), so the maximum equals max(qtl_scan_*()$LOD) exactly.
+# ------------------------------------------------------------
+# Genotype classes of every marker, worked out once (they do not change between permutations):
+# the 0/1 indicator of the 2nd class (and of the 3rd class for 3-class markers).
+cim_prep <- function(X) {
+  n <- nrow(X); m <- ncol(X)
+  nlev <- integer(m); D1 <- D2 <- matrix(0, n, m)
+  for (j in seq_len(m)) {
+    g <- X[, j]; lv <- sort(unique(g[!is.na(g)])); nlev[j] <- length(lv)
+    if (anyNA(g) || !(length(lv) %in% 2:3)) next
+    D1[, j] <- as.numeric(g == lv[2])
+    if (length(lv) == 3) D2[, j] <- as.numeric(g == lv[3])
+  }
+  list(nlev = nlev, fast = colSums(is.na(X)) == 0 & nlev %in% 2:3, D1 = D1, D2 = D2)
+}
+
+cim_max_lod <- function(X, y, marker_info, cof, window_cM, prep = cim_prep(X)) {
+  n <- length(y)
+  mi  <- marker_info[match(colnames(X), marker_info$Marker), , drop = FALSE]
+  chr <- as.character(mi$Chromosome); pos <- mi$Position
+  k   <- length(cof)
+  Xc  <- if (k) impute_mean(X[, cof, drop = FALSE]) else NULL
+  # code[j]: which cofactors are left out for marker j (itself, or on its chromosome within the window)
+  code <- rep(0, ncol(X))
+  if (k) {
+    cm <- marker_info[match(cof, marker_info$Marker), , drop = FALSE]
+    cof_chr <- as.character(cm$Chromosome); cof_pos <- cm$Position
+    excl <- outer(seq_len(k), seq_len(ncol(X)), function(a, j) {
+      cof[a] == colnames(X)[j] | (cof_chr[a] == chr[j] & abs(cof_pos[a] - pos[j]) <= window_cM) })
+    excl[is.na(excl)] <- FALSE
+    code <- colSums(excl * 2^(seq_len(k) - 1))
+  }
+  best <- 0
+  for (cd in unique(code)) {
+    cols <- which(code == cd & !is.na(pos))
+    if (!length(cols)) next
+    use <- if (k) which(bitwAnd(as.integer(cd), as.integer(2^(seq_len(k) - 1))) == 0) else integer(0)
+    X0  <- cbind(rep(1, n), if (length(use)) Xc[, use, drop = FALSE])
+    fast <- cols[prep$fast[cols]]
+    if (length(fast)) {
+      qrx <- qr(X0); r0 <- qr.resid(qrx, y); rss0 <- sum(r0^2)
+      for (nl in 2:3) {
+        idx <- fast[prep$nlev[fast] == nl]
+        if (!length(idx)) next
+        D1 <- qr.resid(qrx, prep$D1[, idx, drop = FALSE])
+        u  <- colSums(D1 * r0); A <- colSums(D1^2)
+        if (nl == 2) {
+          expl <- ifelse(A > 1e-8 * n, u^2 / A, 0)
+        } else {
+          D2 <- qr.resid(qrx, prep$D2[, idx, drop = FALSE])
+          v <- colSums(D2 * r0); C <- colSums(D2^2); B <- colSums(D1 * D2)
+          det <- A * C - B^2
+          expl <- ifelse(det > 1e-8 * n^2, (u^2 * C - 2 * u * v * B + v^2 * A) / det, 0)
+        }
+        rss1 <- pmax(rss0 - expl, 0)
+        ok   <- rss1 > 0 & expl > 0
+        if (any(ok)) best <- max(best, max(n / 2 * log10(rss0 / rss1[ok])))
+      }
+    }
+    for (j in setdiff(cols, fast)) {                     # slow path: the exact code of qtl_scan_linear()
+      g <- X[, j]; ok <- !is.na(g) & !is.na(y)
+      if (sum(ok) < 8 || length(unique(g[ok])) < 2) next
+      X0j <- cbind(rep(1, sum(ok)), if (length(use)) Xc[ok, use, drop = FALSE])
+      tst <- lr_test(y[ok], X0j, cbind(X0j, geno_design(g[ok])))
+      if (!is.null(tst)) best <- max(best, tst$lod)
+    }
+  }
+  best
+}
+
+perm_max_lod_cim <- function(X, y, marker_info, method = "CIM", n_perm = 1000, window_cM = 10,
+                             n_cofactors = 5, seed = 42, progress = TRUE) {
+  ok <- !is.na(y)
+  X <- as.matrix(X[ok, , drop = FALSE]); y <- y[ok]
+  X <- X[, apply(X, 2, function(x) length(unique(na.omit(x))) >= 2), drop = FALSE]     # as in qtl_scan()
+  if (method == "MQM") { window_cM <- 25; max_cof <- 15; p_remove <- 0.02 } else { max_cof <- n_cofactors; p_remove <- 0.05 }
+  prep <- cim_prep(X)
+  set.seed(seed)
+  out <- numeric(n_perm); t0 <- Sys.time()
+  for (b in seq_len(n_perm)) {
+    yp  <- sample(y)
+    cof <- select_cofactors(X, yp, marker_info, max_cof = max_cof, p_enter = 0.01, p_remove = p_remove, min_dist = window_cM)
+    out[b] <- cim_max_lod(X, yp, marker_info, cof, window_cM, prep)
+    if (progress && (b %% 50 == 0 || b == n_perm)) {
+      el <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+      cat(sprintf("  permutation %d / %d  (%.0f s elapsed, about %.0f s left)\n", b, n_perm, el, el / b * (n_perm - b)))
+      flush.console()
+    }
+  }
+  out
+}
+
 # ============================================================
 # QTL REGIONS: peaks, flanking markers, support intervals
 #
@@ -737,12 +841,13 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
                                                band_light_col = "#6AAB6E",
                                                border_col     = "#1A4A1F",
                                                qtl_size_min   = 0.7,
-                                               qtl_size_max   = 2.0) {
+                                               qtl_size_max   = 2.0,
+                                               x_gap          = 1.8,
+                                               lane_step      = 0.26) {
   if (is.null(all_markers_df) || nrow(all_markers_df) == 0) return(invisible(NULL))
 
   chroms    <- chr_order(all_markers_df$Chromosome)
   n_chr     <- length(chroms)
-  x_gap     <- 1.8
   bar_w     <- 0.55
   max_pos   <- max(all_markers_df$Position, na.rm = TRUE)
   model_names <- names(qtl_list)
@@ -779,7 +884,7 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
       q <- q[as.character(q$Chromosome) == chr, , drop = FALSE]
       if (nrow(q) == 0) next
       col_m <- model_colors[trait]; if (is.na(col_m)) col_m <- "#CC0000"
-      x_off <- x_center + bar_w/2 + 0.12 + (ti - 1) * 0.26
+      x_off <- x_center + bar_w/2 + 0.12 + (ti - 1) * lane_step
       for (ri in seq_len(nrow(q))) {
         segments(x_off, q$Left_Position[ri], x_off, q$Right_Position[ri], col = col_m, lwd = 4, lend = 1)
         segments(x_center + bar_w/2, q$Peak_Position[ri], x_off, q$Peak_Position[ri], col = col_m, lwd = 1)

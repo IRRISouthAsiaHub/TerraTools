@@ -3,6 +3,7 @@ import threading
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QThread, QUrl, Signal, Slot
+from tools.common.single_run import single_run
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -307,6 +308,7 @@ class AdditiveDominanceBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(str)
+    @single_run
     def run_matrices(self, config_json: str):
 
         print(

@@ -34,8 +34,8 @@ const FILES = [
 // the built-in comparison models (BreedSight alone is run unless some are ticked)
 const COMPARE = ['GBLUP', 'RBLUP', 'Lasso']
 const DEFAULTS = {
-  outer_n_splits: 5, heritability: 0.82, epochs: 300, batch_size: 32, learning_rate: 0.001, alpha: 0.5,
-  l2_reg: 0.01, dropout_rate: 0.3, rf_n_estimators: 200, rf_max_depth: 15,
+  outer_n_splits: 5, heritability: 0.82, epochs: 300, batch_size: 32, learning_rate: 0.001, alpha: 0.4,
+  l2_reg: 0.001, dropout_rate: 0.2, rf_n_estimators: 300, rf_max_depth: 0,
   use_pca: true, feature_selection: true, use_raw_genotypes: false, n_components: 50, rfe_n_features: 100,
 }
 
@@ -135,7 +135,7 @@ export default function GenomicPredictionTool() {
               <Slider label="DNN weight α (RF weight = 1−α)" value={c.alpha} onChange={set('alpha')} min={0} max={1} step={0.05} format={(v) => v.toFixed(2)} />
             </Card>
             <Card title="Regularization & RF" icon={TreePine} delay={0.1}>
-              <Slider label="L2 regularization" value={c.l2_reg} onChange={set('l2_reg')} min={0} max={0.1} step={0.005} format={(v) => v.toFixed(3)} />
+              <Slider label="L2 regularization" value={c.l2_reg} onChange={set('l2_reg')} min={0} max={0.1} step={0.001} format={(v) => v.toFixed(3)} />
               <Slider label="Dropout rate" value={c.dropout_rate} onChange={set('dropout_rate')} min={0} max={0.7} step={0.05} format={(v) => v.toFixed(2)} />
               <Slider label="RF trees" value={c.rf_n_estimators} onChange={set('rf_n_estimators')} min={50} max={500} step={50} />
               <Slider label="RF max depth (0 = None)" value={c.rf_max_depth} onChange={set('rf_max_depth')} min={0} max={30} />

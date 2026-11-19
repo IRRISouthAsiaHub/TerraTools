@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   ChartLine, SlidersHorizontal, LayoutGrid, FileSpreadsheet, Dna, Globe, Group, Palette, Table2, Activity, ChartColumn,
-  Calculator, Waypoints, Braces, Scale, Download, FileArchive, ClipboardCheck, LayoutPanelTop, ListChecks, Settings2,
+  Calculator, Waypoints, Braces, Scale, Download, FileArchive, ClipboardCheck, LayoutPanelTop, ListChecks, Settings2, Medal,
 } from 'lucide-react'
 import {
   ToolPage, TabPane, SectionHeader, Card, Slider, SelectField, Toggle, ChipGroup, RadioChips, FilePicker, SubTabs,
@@ -33,6 +33,10 @@ const MODS = [
   { id: 'herit', label: 'Heritability', title: 'Heritability', icon: Dna, multi: true, min: 1,
     plots: { heritability_plot: 'Entry-mean heritability per trait' },
     tables: { heritability: 'Variance components and heritability per trait and season' } },
+  { id: 'blups', label: 'BLUPs', title: 'BLUPs', icon: Medal, multi: true, min: 1,
+    plots: { blup_plot: 'BLUPs of the accessions, best first' },
+    tables: { blups: 'BLUP of every accession per trait and environment (Pooled = all environments together)',
+              blup_summary: 'Variance components and heritability of the BLUP models' } },
   { id: 'correlation', label: 'Correlation', title: 'Correlation', icon: Waypoints, multi: true, min: 2,
     plots: { correlation_heatmap: 'Trait correlation', correlation_network: 'Correlation circles' },
     tables: { correlation_table: 'Correlation between traits (with P values)' } },
@@ -50,6 +54,7 @@ const MODS = [
 // Settings an analysis has besides its traits
 const EXTRA_DEFAULTS = {
   descriptive: { plot_trait: '', by_env: true },
+  blups: { plot_trait: '', by_env: true },
   blues: { interaction: true },
   anova: { diag_trait: '' },
   correlation: { method: 'pearson' },
@@ -60,6 +65,11 @@ const EXTRA_DEFAULTS = {
 const HERIT_INTRO = 'H² entry-mean: heritability of an accession mean (use this for selection). H² plot basis: of a single plot. ' +
   'Pooled = all environments together. In an augmented design the error comes from the check plots only, so single-environment ' +
   'values can swing a lot; 0 = no genotypic variance detected.'
+
+const BLUP_INTRO = 'BLUP = best linear unbiased prediction of an accession: its deviation from the mean, shrunk towards 0 the less it was measured. Rank accessions on it. ' +
+  'Predicted value = BLUP + the average of the fixed part (environment, check) over the plots of the accessions. SE and Reliability (1 − PEV / Vg, 0 to 1) come from the ' +
+  'mixed-model equations, so the uncertainty of the fixed effects is included. H² Cullis = 1 − (mean variance of a difference between two BLUPs) / (2 Vg) (Cullis et al. 2006): ' +
+  'the heritability of the BLUPs, the one to report for unbalanced trials; Mean reliability = 1 − mean(PEV) / Vg is a slightly different number.'
 
 const COL_GENOTYPE = 'Name of the variety or line. Checks and new entries both go here; a genotype that appears more than once is treated as replicated.'
 const COL_ENV = 'Location, season or year label. At least 2 different environments are needed.'
@@ -219,6 +229,7 @@ function ModuleResults({ mod, r, anovaFirst, onSave }) {
     <>
       <Messages msgs={msgs} />
       {mod.id === 'herit' && <div className="field-hint" style={{ marginTop: 10 }}>{HERIT_INTRO}</div>}
+      {mod.id === 'blups' && <div className="field-hint" style={{ marginTop: 10 }}>{BLUP_INTRO}</div>}
       {wide ? (
         <div className="plot-block" style={{ marginTop: 14 }}>
           <div className="plot-title">
@@ -311,6 +322,8 @@ export default function PhenotypicTool() {
     if (pv.req !== undefined && pv.req !== req.current) return          // an older request
     setLoading(false)
     if (pv.status !== 'success') { setInfo(null); return tool.setStatus('Error reading file: ' + pv.message) }
+    const L = (v) => (Array.isArray(v) ? v : v === undefined || v === null || v === '' ? [] : [v])   // a one-item list must still be a list
+    for (const k of ['columns', 'environments', 'traits', 'empty_traits', 'errors', 'warnings', 'notes', 'design_notes']) pv[k] = L(pv[k])
     setInfo(pv)
     const isNew = fresh.current
     if (isNew) {
@@ -360,6 +373,7 @@ export default function PhenotypicTool() {
     const settings = {}
     if (mod.multi) settings.traits = c.traits; else settings.trait = c.trait
     if (mod.id === 'descriptive') { settings.plot_trait = c.traits.includes(c.plot_trait) ? c.plot_trait : c.traits[0]; settings.by_env = !!c.by_env }
+    if (mod.id === 'blups') { settings.plot_trait = c.traits.includes(c.plot_trait) ? c.plot_trait : c.traits[0]; settings.by_env = !!c.by_env }
     if (mod.id === 'blues') settings.interaction = !!c.interaction
     if (mod.id === 'anova') settings.diag_trait = c.traits.includes(c.diag_trait) ? c.diag_trait : c.traits[0]
     if (mod.id === 'correlation') settings.method = c.method
@@ -404,7 +418,7 @@ export default function PhenotypicTool() {
     <ToolPage
       id="phen" icon={ChartLine} tabs={TABS} tab={tab} setTab={setTab}
       title="Phenotypic Data Analysis"
-      subtitle="Descriptive stats, environments, BLUEs, ANOVA, heritability, correlation, PCA, clustering and G×E stability"
+      subtitle="Descriptive stats, environments, BLUEs, ANOVA, heritability, BLUPs, correlation, PCA, clustering and G×E stability"
       run={tab === 'analyses' ? {
         label: `Run ${mod.title}`, runningLabel: 'Analysing…', state: tool.state, status: tool.status, onRun: run, disabled: !info || loading,
       } : null}
@@ -509,12 +523,18 @@ export default function PhenotypicTool() {
                     <SelectField value={c.trait || ''} onChange={(v) => setC({ trait: v })} options={allTraits} />
                   )}
                 </Card>
-                {['descriptive', 'blues', 'anova', 'correlation', 'pca', 'cluster'].includes(mod.id) && (
+                {['descriptive', 'blues', 'blups', 'anova', 'correlation', 'pca', 'cluster'].includes(mod.id) && (
                   <Card title="Options" icon={Settings2} delay={0.04}>
                     {mod.id === 'descriptive' && (
                       <>
                         <SelectField label="Trait for the distribution plots" value={traitChoices.includes(c.plot_trait) ? c.plot_trait : traitChoices[0] || ''} onChange={(v) => setC({ plot_trait: v })} options={traitChoices} />
                         <Toggle label="Also show each environment separately" checked={!!c.by_env} onChange={(v) => setC({ by_env: v })} />
+                      </>
+                    )}
+                    {mod.id === 'blups' && (
+                      <>
+                        <SelectField label="Trait for the figure" value={traitChoices.includes(c.plot_trait) ? c.plot_trait : traitChoices[0] || ''} onChange={(v) => setC({ plot_trait: v })} options={traitChoices} />
+                        <Toggle label="Also compute the BLUPs of each environment separately" checked={!!c.by_env} onChange={(v) => setC({ by_env: v })} />
                       </>
                     )}
                     {mod.id === 'blues' && <Toggle label="Include Genotype × Environment (BLUEs per environment)" checked={!!c.interaction} onChange={(v) => setC({ interaction: v })} />}
@@ -552,6 +572,7 @@ export default function PhenotypicTool() {
                 {[
                   { kind: 'all', icon: FileSpreadsheet, label: 'All tables (.xlsx)' },
                   results.anova && { kind: 'anova', icon: FileSpreadsheet, label: 'ANOVA tables (.xlsx)' },
+                  results.blups && { kind: 'blups', icon: FileSpreadsheet, label: 'BLUPs (.xlsx)' },
                   { kind: 'figures', icon: FileArchive, label: 'All figures: 300-dpi PNG + vector PDF (.zip)' },
                   { kind: 'everything', icon: FileArchive, label: 'Everything (.zip)' },
                 ].filter(Boolean).map((d) => (

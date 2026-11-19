@@ -117,30 +117,38 @@ class GWASEngine:
             items.append((name, np.asarray(r.p), thr, sig["genome_wide"], ex & ~sig["genome_wide"]))
             circ_p[name] = np.asarray(r.p)
             circ_thr[name] = sig["thresholds"]["bonferroni_p"]
-        figs = {}
-        if len(items) == 1:
-            name, p, thr, gw, ex = items[0]
-            figs["01_Manhattan"] = plots.plot_manhattan(p, A.chrom, A.pos, name, thr, gw, ex, show_bonferroni=cfg.show_bonferroni,
-                                                        show_suggestive=cfg.show_suggestive)
-        else:
-            figs["01_Manhattan"] = plots.plot_model_comparison_manhattan(items, A.chrom, A.pos)
         lam = {n: r.info["diag"]["lambda"] for n, r in res.items()}
-        figs["02_QQ"] = plots.plot_qq({n: r.p for n, r in res.items()}, lam, "QQ plot")
-        try:
-            hits = [r for r in mta if r["Category"] in ("Genome-wide significant", "QTN")]
-            figs["03_Circos"] = plots.plot_circos_mta(circ_p, A.chrom, A.pos, A.snp, list(res), hits, thresholds=circ_thr)
+        png_paths, zip_path = {}, None
+        try:                      # the figures are drawn in R (CMplot / base graphics)
+            hit_names = {name: [str(A.snp[i]) for i in np.flatnonzero(gw)] for name, _p, _t, gw, _e in items}
+            r_files = plots.r_figures(A.chrom, A.pos, A.snp, {n: p for n, p, *_ in items}, {n: t for n, _p, t, *_ in items}, hit_names, lam,
+                                      out_dir, show_bonferroni=cfg.show_bonferroni, show_suggestive=cfg.show_suggestive)
+            order = {f"01_Manhattan_{n}.png": i for i, (n, *_r) in enumerate(items)}
+            png_paths = {os.path.splitext(k)[0]: v for k, v in sorted(r_files.items(), key=lambda kv: (order.get(kv[0], 99), kv[0]))}
+            zip_path = plots.save_png_zip(png_paths, out_dir)
         except Exception as ex:
-            import traceback
-            traceback.print_exc()
-            print(f"Circos plot failed: {ex}")
+            print(f"R figures not available ({ex}); drawing the built-in figures instead", flush=True)
+            png_paths = {}
+        if not png_paths:
+            figs = {}
+            for name, p, thr, gw, ex in items:           # one Manhattan per model, each on its own y scale
+                key = "01_Manhattan" if len(items) == 1 else f"01_Manhattan_{name}"
+                figs[key] = plots.plot_manhattan(p, A.chrom, A.pos, name, thr, gw, ex, show_bonferroni=cfg.show_bonferroni,
+                                                 show_suggestive=cfg.show_suggestive, snp_names=A.snp)
+            figs["02_QQ"] = plots.plot_qq({n: r.p for n, r in res.items()}, lam, "QQ plot")
+            try:
+                hits = [r for r in mta if r["Category"] in ("Genome-wide significant", "QTN")]
+                figs["03_Circos"] = plots.plot_circos_mta(circ_p, A.chrom, A.pos, A.snp, list(res), hits, thresholds=circ_thr)
+            except Exception as ex:
+                import traceback
+                traceback.print_exc()
+                print(f"Circos plot failed: {ex}")
+            for name, fig in figs.items():
+                path = os.path.join(out_dir, f"{name}.png")
+                fig.savefig(path, format="png", dpi=plots.RENDER_DPI, bbox_inches="tight", facecolor=fig.get_facecolor())
+                png_paths[name] = path
+            zip_path = plots.save_all_plots_zip(figs, out_dir)
         grp = A.structure.get("groups", {})
-
-        png_paths = {}
-        for name, fig in figs.items():
-            path = os.path.join(out_dir, f"{name}.png")
-            fig.savefig(path, format="png", dpi=plots.RENDER_DPI, bbox_inches="tight", facecolor=fig.get_facecolor())
-            png_paths[name] = path
-        zip_path = plots.save_all_plots_zip(figs, out_dir)
         plt.close("all")
 
         # ── tables ──

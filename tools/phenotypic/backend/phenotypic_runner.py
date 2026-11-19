@@ -134,6 +134,10 @@ class PhenotypicEngine:
             if not wb.get("excel_anova"):
                 return {"status": "error", "message": "Run the ANOVA first."}
             return {"status": "success", "kind": kind, "path": wb["excel_anova"], "name": "ANOVA_tables.xlsx"}
+        if kind == "blups":
+            if not wb.get("excel_blups"):
+                return {"status": "error", "message": "Run the BLUPs first."}
+            return {"status": "success", "kind": kind, "path": wb["excel_blups"], "name": "BLUPs.xlsx"}
         # everything: tables, workbooks and figures in one zip (the internal state file stays out)
         zp = out / "phenotypic_results.zip"
         zp.unlink(missing_ok=True)

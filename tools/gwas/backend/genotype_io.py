@@ -81,6 +81,17 @@ def to_dosage(G, encoding="auto", extra_missing=()):
     Returns (dosage matrix, report). Raises InputError when the encoding is ambiguous (auto) or the values do not fit it."""
     G, sentinels = clean_missing(G, extra_missing)
     requested = str(encoding or "auto").lower()
+    if requested == "auto":
+        # TerraTools files (Linkage Mapping, Mendelian, Genofile Converter) mark a missing call with -1 next to 0/1/2.
+        # A -1/0/1 centred matrix cannot hold the value 2, so -1 together with values above 1 can only be a missing code.
+        v0 = G[~np.isnan(G)]
+        neg = np.unique(v0[v0 < 0])
+        if neg.size == 1 and neg[0] == -1.0 and (v0 > 1).any():
+            hit = G == -1.0
+            sentinels = dict(sentinels)
+            sentinels[-1.0] = int(hit.sum())
+            G = G.copy()
+            G[hit] = np.nan
     if requested not in ("auto", "dosage", "centred"):
         raise InputError(f"Unknown genotype encoding '{encoding}'. Use 0/1/2 dosage or -1/0/1 centred.")
     n_missing = int(np.isnan(G).sum())
@@ -120,7 +131,8 @@ def report_items(d):
 
 # ============================================================================================ marker map
 
-_NAME = re.compile(r"^(?:chr|chromosome)?[_\-]?0*(\d+)[_\-:.](\d+)$", re.I)
+# Chr3_123456, chr03-123456, 3:123456, and names that go on after the position: chr1_134521_LOC_Os01g01280, Chr3_123456_A_G
+_NAME = re.compile(r"^(?:chr|chromosome)?[_\-]?0*(\d+)[_\-:.](\d+)(?:[_\-:.].*)?$", re.I)
 
 
 @dataclass
@@ -128,7 +140,7 @@ class MarkerMap:
     chrom: np.ndarray
     pos: np.ndarray
     chrom_source: str          # "chromosome row", "marker names" or "none"
-    pos_source: str            # "marker names" or "none" (positions are then the order of the markers)
+    pos_source: str            # "position row", "marker names" or "none" (positions are then the order of the markers)
     valid: bool                # real chromosomes and physical positions are known
     notes: list = field(default_factory=list)
 
@@ -143,12 +155,28 @@ def map_from_names(snp_ids, chrom_row=None):
     notes = []
     if chrom_row is not None:
         chrom = np.asarray(chrom_row, dtype=int)
+        # The marker names usually carry the physical position (chr1_134521, Chr3_123456_A_G): use it when EVERY name gives one
+        # and the chromosome in the name is the chromosome of the row.
+        parsed = [_NAME.match(str(n).strip()) for n in snp_ids]
+        if all(parsed):
+            nchr = np.array([int(t.group(1)) for t in parsed])
+            npos = np.array([int(t.group(2)) for t in parsed], dtype=np.int64)
+            if np.array_equal(nchr, chrom):
+                notes.append("Chromosomes come from the chromosome row of the file and physical positions from the marker names.")
+                firsts = [int(npos[chrom == c].min()) for c in dict.fromkeys(chrom.tolist())]
+                lasts = [int(npos[chrom == c].max()) for c in dict.fromkeys(chrom.tolist())]
+                if len(firsts) > 1 and all(firsts[i] > lasts[i - 1] for i in range(1, len(firsts))):
+                    notes.append("The positions in the marker names run on from one chromosome to the next (whole-genome coordinates). "
+                                 "Distances within a chromosome are still correct, which is what the models use.")
+                return MarkerMap(chrom, npos, "chromosome row", "marker names", True, notes)
+            notes.append(f"The chromosome in the marker names differs from the chromosome row for {int((nchr != chrom).sum()):,} markers, "
+                         "so the positions in the names were not used.")
         counters, pos = {}, np.zeros(m, dtype=np.int64)
         for i, c in enumerate(chrom):
             counters[c] = counters.get(c, 0) + 1
             pos[i] = counters[c]
         notes.append("The file gives the chromosome of every marker but no positions: positions are the order of the markers "
-                     "on each chromosome, not physical distances.")
+                     "on each chromosome, not physical distances. Add a Position row, or name the markers Chr<number>_<position>.")
         return MarkerMap(chrom, pos, "chromosome row", "none", False, notes)
     chrom, pos = np.zeros(m, dtype=int), np.zeros(m, dtype=np.int64)
     ok = np.zeros(m, dtype=bool)
@@ -164,8 +192,39 @@ def map_from_names(snp_ids, chrom_row=None):
                          "Name every marker like Chr3_123456, or give none of them a position.")
     notes.append("The marker names carry no chromosome and position. All markers are placed on one chromosome in file order, so "
                  "the Manhattan plot shows marker order and the models that need physical positions (FarmCPU, mrMLM, FASTmrMLM) "
-                 "are not available. Name the markers Chr<number>_<position> to enable them.")
+                 "are not available. Add a Position row under the header (and a Chromosome row), or name the markers Chr<number>_<position>, to enable them.")
     return MarkerMap(np.ones(m, dtype=int), np.arange(1, m + 1, dtype=np.int64), "none", "none", False, notes)
+
+
+_POS_LABELS = ("pos", "position", "positions", "bp", "physicalposition", "physpos", "basepair", "coordinate")
+_CHR_LABELS = ("chr", "chrom", "chromosome", "chromosomes", "chrs")
+_NAME_CHR = re.compile(r"(?:^|[_\-:.])(?:chr|chromosome)?0*(\d+)[_\-:.]\d+", re.I)
+
+
+def map_from_rows(snp_ids, chrom_row=None, pos_row=None):
+    """Marker map from the rows of the file itself.
+
+    chromosome row + position row  -> real physical map (the layout Linkage Mapping writes for QTL mapping: marker names,
+                                      then a Position row and a Chromosome row, then one row per individual)
+    chromosome row only            -> positions unknown (order of the markers)
+    position row only              -> chromosomes taken from marker names such as Chr3_123456, otherwise an error"""
+    m = len(snp_ids)
+    if pos_row is None:
+        return map_from_names(snp_ids, chrom_row)
+    pos = np.asarray(pos_row, dtype=np.int64)
+    if chrom_row is not None:
+        chrom = np.asarray(chrom_row, dtype=int)
+        return MarkerMap(chrom, pos, "chromosome row", "position row", True,
+                         ["Marker positions (bp) were read from the position row of the file and chromosomes from its chromosome row."])
+    chrom = np.zeros(m, dtype=int)
+    for i, name in enumerate(snp_ids):
+        mt = _NAME_CHR.search(str(name).strip())
+        if not mt:
+            raise InputError("The file has a position row but no chromosome row, and the marker name '%s' does not start with a "
+                             "chromosome (Chr3_123456). Add a chromosome row below the position row." % name)
+        chrom[i] = int(mt.group(1))
+    return MarkerMap(chrom, pos, "marker names", "position row", True,
+                     ["Marker positions (bp) were read from the position row of the file; chromosomes from the marker names."])
 
 
 def check_map(chrom, pos):
@@ -204,9 +263,13 @@ def _read_table(path):
     return pd.read_csv(path, sep=sep, na_values=NA_TOKENS, keep_default_na=True), head, sep
 
 
+def _norm_label(v):
+    return re.sub(r"[^0-9a-z]", "", str(v).lower()) if not pd.isna(v) else ""
+
+
 def read_gwas_file(path=None, text=None, encoding="auto", extra_missing=()):
     """Read a GWAS-ready file: column 1 = sample ID, column 2 = phenotype, then one column per marker.
-    An optional second row without a phenotype holds the chromosome of every marker."""
+    Optional rows under the header without a phenotype hold the marker positions (bp) and/or the chromosome of every marker."""
     if path is not None:
         raw, head, sep = _read_table(path)
     elif text and text.strip():
@@ -227,18 +290,46 @@ def read_gwas_file(path=None, text=None, encoding="auto", extra_missing=()):
     id_col, phen_col, snp_cols = cols[0], cols[1], cols[2:]
     notes = []
 
-    chrom_row = None
-    if len(raw) > 1:
-        second = raw.iloc[1]
-        no_phenotype = pd.isna(pd.to_numeric(second[phen_col], errors="coerce"))
-        vals = second[snp_cols]
-        label = str(second[id_col]).strip().lower()
-        labelled = pd.isna(second[id_col]) or label in ("", "nan", "chr", "chrom", "chromosome", "chromosomes", "chrs")
-        if no_phenotype and vals.notna().all() and vals.astype(str).str.match(r"^\d+(\.0+)?$").all() and \
-                (labelled or float(vals.astype(float).max()) > 2):
-            chrom_row = vals.astype(float).astype(int).to_numpy()
-            raw = raw.drop(index=1).reset_index(drop=True)
-            notes.append("The second row of the file was read as the chromosome of every marker.")
+    chrom_row, pos_row = None, None
+    map_rows = []                      # leading rows without a phenotype that hold one number per marker
+    for k in range(min(2, len(raw) - 1)):
+        row = raw.iloc[k]
+        if not pd.isna(pd.to_numeric(row[phen_col], errors="coerce")):
+            break
+        vals = pd.to_numeric(row[snp_cols], errors="coerce")
+        if vals.isna().any() or not (np.abs(vals - vals.round()) < 1e-9).all():
+            break
+        label = _norm_label(row[id_col])
+        known = label in _POS_LABELS or label in _CHR_LABELS
+        blank = label in ("", "nan")
+        if not (known or (blank and (float(vals.min()) >= 1 or map_rows))):
+            break
+        map_rows.append((k, label, vals.astype(float).astype(np.int64).to_numpy()))
+    for k, label, vals in map_rows:
+        if label in _POS_LABELS:
+            pos_row = vals
+        elif label in _CHR_LABELS:
+            chrom_row = vals
+    unlabelled = [r for r in map_rows if r[1] not in _POS_LABELS and r[1] not in _CHR_LABELS]
+    if len(unlabelled) == 2:           # no labels: the row with the larger numbers holds base-pair positions
+        a, b = sorted(unlabelled, key=lambda r: int(r[2].max()))
+        chrom_row, pos_row = a[2], b[2]
+    elif len(unlabelled) == 1:
+        only = unlabelled[0][2]
+        if chrom_row is None and pos_row is None:
+            # a lone unlabelled row: chromosome numbers are small, base-pair positions are not
+            if int(only.max()) > 1000:
+                pos_row = only
+            else:
+                chrom_row = only
+        elif chrom_row is None:
+            chrom_row = only
+        else:
+            pos_row = only
+    if map_rows:
+        raw = raw.drop(index=[r[0] for r in map_rows]).reset_index(drop=True)
+        what = (["positions"] if pos_row is not None else []) + (["chromosomes"] if chrom_row is not None else [])
+        notes.append("The first %d row(s) under the header were read as the marker %s." % (len(map_rows), " and ".join(what)))
 
     pheno = pd.to_numeric(raw[phen_col], errors="coerce")
     ok = pheno.notna()
@@ -257,7 +348,7 @@ def read_gwas_file(path=None, text=None, encoding="auto", extra_missing=()):
         geno = geno.apply(pd.to_numeric, errors="coerce")
     G, enc = to_dosage(geno.to_numpy(dtype=float), encoding, extra_missing)
     snp_ids = np.array([str(c) for c in snp_cols])
-    mmap = map_from_names(snp_ids, chrom_row)
+    mmap = map_from_rows(snp_ids, chrom_row, pos_row)
     problems = check_map(mmap.chrom, mmap.pos)
     if problems:
         raise InputError("Invalid marker map: " + "; ".join(problems) + ".")

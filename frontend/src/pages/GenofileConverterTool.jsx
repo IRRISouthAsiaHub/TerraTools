@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   FileCog, SlidersHorizontal, LayoutGrid, BookOpen, FileInput, FileSpreadsheet, FileText, Columns3, Users, Info, Ban, ListChecks,
-  Table2, ArrowRight, Dna, Link2, Settings2,
+  Table2, ArrowRight, Dna, Link2, Settings2, Shuffle,
 } from 'lucide-react'
 import {
   ToolPage, TabPane, SectionHeader, Card, SelectField, RadioChips, Toggle, FilePicker, Note, StatCard, DataTable, DownloadButtons, EmptyState,
@@ -165,7 +165,7 @@ export default function GenofileConverterTool({ navigate }) {
   const step = r ? 3 : info ? (problem ? 1 : 2) : 0
   const outName = (suffix, ext) => `${stemOf(file)}_${suffix}.${ext}`
   const toTool = (id) => {
-    setPipe({ genofile: { mendelian: r.coded_csv, linkage: r.coded_file, name: lastName(file), target: id, stamp: Date.now() } })
+    setPipe({ genofile: { mendelian: r.coded_csv, linkage: r.coded_file, recombination: r.coded_csv, name: lastName(file), target: id, stamp: Date.now() } })
     navigate && navigate(id)
   }
   const set = (k) => (v) => setCols((c) => ({ ...c, [k]: v }))
@@ -326,6 +326,7 @@ export default function GenofileConverterTool({ navigate }) {
                   <span>Continue with this file in</span>
                   <button type="button" className="btn btn-secondary sm" disabled={!r.informative} onClick={() => toTool('mendelian')}><Dna size={14} /> Mendelian Segregation</button>
                   <button type="button" className="btn btn-secondary sm" disabled={!r.informative} onClick={() => toTool('linkage')}><Link2 size={14} /> Linkage Mapping</button>
+                  <button type="button" className="btn btn-secondary sm" disabled={!r.informative} onClick={() => toTool('recombination')}><Shuffle size={14} /> Recombination Analysis</button>
                 </div>
               </Card>
 

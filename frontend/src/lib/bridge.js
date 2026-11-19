@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { RouteContext, setRunState } from './runState.js'
+import { diag } from './perf.js'
 
 /* ------------------------------------------------------------------ *
  * QWebChannel access.
@@ -77,6 +78,9 @@ export function useTool(bridge, runSlot, opts = {}) {
   const [status, setStatus] = useState('Ready')
   const [result, setResult] = useState(null)
   const resultCb = useRef(null)
+  const runStart = useRef(0)
+  const stateRef = useRef('idle')
+  stateRef.current = state
   const accept = useRef(opts.accept)
   accept.current = opts.accept
   const onResult = useCallback((cb) => { resultCb.current = cb }, [])
@@ -86,7 +90,13 @@ export function useTool(bridge, runSlot, opts = {}) {
     const onStatus = (t) => setStatus(t)
     const onDone = (json) => {
       try {
+        const t0 = performance.now()
         const r = typeof json === 'string' ? JSON.parse(json) : json
+        const parse = performance.now() - t0
+        const started = runStart.current
+        runStart.current = 0
+        diag('run_result', { tool: route || 'home', status: r && r.status, bytes: typeof json === 'string' ? json.length : -1,
+          parse_ms: Math.round(parse), seconds: started ? Math.round((performance.now() - started) / 100) / 10 : null })
         const ok = r.status === 'success'
         if (ok || (accept.current && accept.current(r))) {
           setResult(r)
@@ -123,11 +133,15 @@ export function useTool(bridge, runSlot, opts = {}) {
   const run = useCallback(
     (config) => {
       if (!bridge) return
+      // One run per tool at a time: a second request while one is running would replace the backend's worker thread.
+      if (stateRef.current === 'running') return
       setState('running')
       setStatus('Starting…')
+      runStart.current = performance.now()
+      diag('run_start', { tool: route || 'home', slot: runSlot })
       bridge[runSlot](JSON.stringify(config))
     },
-    [bridge, runSlot],
+    [bridge, runSlot, route],
   )
   const fail = useCallback((msg) => { setState('error'); setStatus(msg) }, [])
 

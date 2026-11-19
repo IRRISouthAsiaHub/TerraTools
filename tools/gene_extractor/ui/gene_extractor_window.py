@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot, QThread, QUrl
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -63,33 +64,12 @@ class geneExtractorBridge(QObject):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select QTL Results (QTL intervals or QTL table)",
+            "Select the QTL table of QTL Mapping (qtl_significant_*.csv)",
             "",
             "Input tables (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
         )
 
         return path or ""
-
-    @Slot(result=str)
-    def latest_qtl_intervals(self):
-        """The QTL Intervals CSV of the most recent QTL Mapping run ('' when there is none)."""
-
-        found = sorted(
-            QTL_RESULT_DIR.glob("qtl_intervals_*.csv"),
-            key=lambda f: f.stat().st_mtime,
-            reverse=True
-        )
-
-        # the newest run that found a QTL (a header-only file means that run had no QTL to extract)
-        for f in found:
-            try:
-                with open(f, encoding="utf-8-sig") as fh:
-                    if sum(1 for line in fh if line.strip()) > 1:
-                        return str(f)
-            except OSError:
-                continue
-
-        return str(found[0]) if found else ""
 
     @Slot(result=str)
     def latest_qtl_table(self):
@@ -116,9 +96,9 @@ class geneExtractorBridge(QObject):
 
         path, _ = QFileDialog.getOpenFileName(
             None,
-            "Select the Genetic Map (Marker, Chromosome, bp)",
+            "Select the marker position file (Marker, Chromosome, bp)",
             "",
-            "Genetic map (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
+            "Marker position file (*.csv *.tsv *.txt *.xlsx *.xls);;All Files (*)"
         )
 
         return path or ""
@@ -152,6 +132,7 @@ class geneExtractorBridge(QObject):
     # --------------------------------------------------------
 
     @Slot(str)
+    @single_run
     def run_extraction(self, config_json):
 
         print("[gene EXTRACTOR BRIDGE] run_extraction() called", flush=True)

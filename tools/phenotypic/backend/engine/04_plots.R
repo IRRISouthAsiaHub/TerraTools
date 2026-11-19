@@ -149,6 +149,20 @@ plot_blues_ranked <- function(df, trait, scheme) {
     scale_x_discrete(labels = function(x) stringr::str_trunc(x, 22))
 }
 
+# BLUPs of one trait in one environment (or pooled), best first; bars = +-1 SE of the prediction error
+plot_blups <- function(df, trait, env, scheme) {
+  pal <- get_color_palette(scheme, 2)
+  df <- df[order(-df$BLUP), , drop = FALSE]; df$Order <- seq_len(nrow(df))
+  ggplot(df, aes(x = Order, y = BLUP)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
+    geom_linerange(aes(ymin = BLUP - SE, ymax = BLUP + SE), color = pal[2], alpha = 0.35) +
+    geom_point(aes(text = paste0(Accession, ": BLUP = ", signif(BLUP, 4), " (SE ", signif(SE, 3), ")")),
+               size = 1.6, color = pal[2], alpha = 0.9) +
+    labs(title = paste0("BLUPs of ", trait, " (", if (env == "Pooled") "all environments" else env, ")"),
+         x = "Accession (best first)", y = "BLUP: deviation from the mean (bars = ±1 SE)") +
+    theme_pheno()
+}
+
 # Entry-mean heritability of every trait: one bar per season, and one for all seasons pooled
 plot_heritability <- function(h2_df, scheme) {
   envs <- unique(h2_df$Environment); envs <- c(setdiff(envs, "Pooled"), intersect(envs, "Pooled"))

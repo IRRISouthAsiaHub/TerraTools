@@ -966,11 +966,11 @@ lm_build_maps <- function(df, pop, cfg, removal_log) {
       Largest_Gap_cM = if (L >= 2) round(max(g$cm), 2) else NA_real_,
       Linkage_Breaks = g$info$n_breaks,
       Log_Likelihood = round(g$info$ll, 2),
-      Suspect_Genotypes = sum(g$suspect), Order_Source = g$info$order_source,
+      Suspect_Genotypes = sum(g$suspect),
       stringsAsFactors = FALSE)
     el <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
-    grp_lines <- c(grp_lines, sprintf("    chr %-4s %4d markers  %4d positions  %7.1f cM  logL %.1f  [%s, %.1fs]%s%s",
-                                      cc, sum(alive & chr == cc), L, len, g$info$ll, g$info$order_source, el,
+    grp_lines <- c(grp_lines, sprintf("    chr %-4s %4d markers  %4d positions  %7.1f cM  logL %.1f  [%.1fs]%s%s",
+                                      cc, sum(alive & chr == cc), L, len, g$info$ll, el,
                                       if (g$info$n_breaks > 0) sprintf("  WARNING: %d interval(s) with r >= %.2f (unlinked) counted as 50 cM", g$info$n_breaks, cfg$recombination_threshold) else "",
                                       if (length(g$info$notes)) paste0("  NOTE: ", paste(g$info$notes, collapse = "; ")) else ""))
     if (!is.null(g$info$ll_given) && is.finite(g$info$ll_given) && is.finite(g$info$ll_data))

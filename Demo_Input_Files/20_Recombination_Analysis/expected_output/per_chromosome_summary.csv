@@ -1,0 +1,4 @@
+Chromosome,Polymorphic_markers,Length_Mb,Min_block_markers,Crossovers,Mean_COs_per_RIL,COs_per_RIL_per_100Mb,Mean_donor_pct,Intragenic,Intergenic
+1,300,41.62,6,142,1.775,4.26,13.27,15,127
+2,300,35.64,6,145,1.812,5.09,16.45,15,130
+3,300,33.2,6,118,1.475,4.44,16.17,7,111

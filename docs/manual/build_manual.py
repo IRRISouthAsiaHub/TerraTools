@@ -144,8 +144,8 @@ def build(pages=None, screen=False):
     out.append(chapter("c-tour", 3, "Finding your way around", A.front_tour(), "Getting started"))
     out.append(chapter("c-data", 4, "Preparing your data", A.front_data(), "Getting started"))
     out.append(part("p2", "Part 2 — The tools", "One chapter per tool: the files it needs, what to click, what the settings mean and how to read the results."))
-    tools = [("genofile", C.ch_genofile), ("phenotypic", B.ch_phenotypic), ("mendelian", A.ch_mendelian), ("linkage", A.ch_linkage), ("genotype", C.ch_genotype), ("qtl", A.ch_qtl),
-             ("qtlseq", A.ch_qtlseq), ("diversity", A.ch_diversity), ("gwas", B.ch_gwas), ("pybsa", A.ch_pybsa), ("gene", A.ch_gene), ("prioritize", A.ch_prioritize),
+    tools = [("genofile", C.ch_genofile), ("phenotypic", B.ch_phenotypic), ("mendelian", A.ch_mendelian), ("recomb", C.ch_recombination), ("linkage", A.ch_linkage), ("genotype", C.ch_genotype), ("qtl", A.ch_qtl),
+             ("qtlseq", A.ch_qtlseq), ("insilico", C.ch_insilico), ("diversity", A.ch_diversity), ("gwas", B.ch_gwas), ("pybsa", A.ch_pybsa), ("gene", A.ch_gene), ("prioritize", A.ch_prioritize),
              ("clustering", B.ch_clustering), ("additive", B.ch_additive), ("breedsight", B.ch_breedsight), ("cross", B.ch_cross),
              ("heterosis", B.ch_heterosis), ("favallele", C.ch_favallele)]
     names = {k: (n, g) for k, n, g, _d in A.TOOLS}
@@ -171,7 +171,7 @@ def build(pages=None, screen=False):
 
     cover = """<section class="cover"><div><div class="brand">IRRI · SAH</div></div>
 <div><div class="leaf">🌱</div><h1>TerraTools</h1><div class="sub">User manual — plant genetics and breeding analyses in one desktop application</div></div>
-<div class="meta">Nineteen tools · input formats · step-by-step guides<br>Version for TerraTools 1.0 · October 2026</div></section>"""
+<div class="meta">Twenty-one tools · input formats · step-by-step guides<br>Version for TerraTools 1.0 · October 2026</div></section>"""
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>TerraTools User Manual</title><style>{CSS}{SCREEN_CSS if screen else ""}</style></head><body>'
             + cover + "".join(toc) + "".join(out) + "</body></html>")
 

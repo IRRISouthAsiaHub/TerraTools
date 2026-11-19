@@ -2,8 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar, TopBar, RunToasts } from './components/Shell.jsx'
 import { Background } from './components/kit.jsx'
 import { RouteContext } from './lib/runState.js'
+import { useBridge } from './lib/bridge.js'
+import { setDiagSender, watchLongTasks, motionGuard } from './lib/perf.js'
 import Dashboard from './pages/Dashboard.jsx'
 import GenofileConverterTool from './pages/GenofileConverterTool.jsx'
+import RecombinationTool from './pages/RecombinationTool.jsx'
 import MendelianTool from './pages/MendelianTool.jsx'
 import LinkageTool from './pages/LinkageTool.jsx'
 import GenotypeViewerTool from './pages/GenotypeViewerTool.jsx'
@@ -12,6 +15,7 @@ import GeneExtractorTool from './pages/GeneExtractorTool.jsx'
 import GenePrioritizationTool from './pages/GenePrioritizationTool.jsx'
 import PybsaseqTool from './pages/PybsaseqTool.jsx'
 import QtlSeqTool from './pages/QtlSeqTool.jsx'
+import InSilicoBsaTool from './pages/InSilicoBsaTool.jsx'
 import DiversityTool from './pages/DiversityTool.jsx'
 import GwasTool from './pages/GwasTool.jsx'
 import EtGwasTool from './pages/EtGwasTool.jsx'
@@ -29,6 +33,7 @@ const ROUTES = {
   '': Dashboard,
   genofile: GenofileConverterTool,
   mendelian: MendelianTool,
+  recombination: RecombinationTool,
   linkage: LinkageTool,
   genotype_viewer: GenotypeViewerTool,
   qtl: QtlTool,
@@ -36,6 +41,7 @@ const ROUTES = {
   gene_prioritization: GenePrioritizationTool,
   pybsaseq: PybsaseqTool,
   qtl_seq: QtlSeqTool,
+  insilico_bsa: InSilicoBsaTool,
   diversity: DiversityTool,
   gwas: GwasTool,
   et_gwas: EtGwasTool,
@@ -59,6 +65,11 @@ try { collapsedPref = localStorage.getItem('tt.sidebar') === '1' } catch { /* st
 
 export default function App() {
   const [route, setRoute] = useState(parse)
+  // Diagnostics: page reports (long tasks, slow runs) go to the Python log; the active tool is named in stall reports.
+  const { bridge: tt } = useBridge('terraTools')
+  useEffect(() => { watchLongTasks(); motionGuard() }, [])
+  useEffect(() => { if (tt && tt.diag_log) setDiagSender((s) => tt.diag_log(s)) }, [tt])
+  useEffect(() => { if (tt && tt.set_active_tool) tt.set_active_tool(route || 'home') }, [tt, route])
   // Tool pages stay mounted once opened, so a running analysis, its inputs
   // and its results survive going Back and coming in again.
   const [opened, setOpened] = useState(() => [...new Set(['', parse()])])

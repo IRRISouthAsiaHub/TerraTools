@@ -161,8 +161,9 @@ if ("Message" %in% colnames(scan_all)) {
 # THRESHOLD
 #   lod         -> the LOD cut-off typed by the user
 #   permutation -> genome-wide cut-off from shuffling the phenotype
-#                  (Churchill & Doerge 1994); for CIM / MQM it comes from
-#                  the single-marker permutation null, a standard approximation.
+#                  (Churchill & Doerge 1994).  SIM: single-marker scan.  CIM / MQM:
+#                  the cofactor selection and the composite scan are repeated on every
+#                  permutation (Doerge & Churchill 1996).
 # ============================================================
 
 linear_method <- method %in% LINEAR_METHODS
@@ -173,10 +174,17 @@ thr <- lod_threshold
 if (threshold_mode == "permutation") {
   if (linear_method) {
     cat("Permutation test:", n_perm, "permutations ...\n")
-    perm_null <- perm_max_lod(X_train, y_train, n_perm = n_perm)
+    if (method == "SIM") {
+      perm_null <- perm_max_lod(X_train, y_train, n_perm = n_perm)
+    } else {
+      cat("Each permutation repeats the cofactor selection and the", method, "scan; this takes longer than for SIM.
+")
+      perm_null <- perm_max_lod_cim(X_train, y_train, marker_info, method = method, n_perm = n_perm,
+                                    window_cM = window_size, n_cofactors = n_cofactors)
+    }
     thr <- as.numeric(quantile(perm_null, 1 - perm_alpha, type = 7))
     threshold_note <- sprintf("Genome-wide permutation threshold (%d permutations, alpha = %g)", n_perm, perm_alpha)
-    if (method != "SIM") threshold_note <- paste0(threshold_note, "; null from single-marker regression")
+    if (method != "SIM") threshold_note <- paste0(threshold_note, "; cofactors re-selected and the ", method, " scan repeated in every permutation")
     cat(sprintf("Permutation LOD threshold (alpha=%g): %.3f\n", perm_alpha, thr))
   } else {
     threshold_note <- "Permutation threshold is only available for SIM, CIM and MQM; the typed LOD threshold was used."

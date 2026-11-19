@@ -42,116 +42,128 @@
   "group": "Trait Mapping"
  },
  {
-  "id": "c-linkage",
+  "id": "c-recomb",
   "n": 8,
+  "title": "Recombination Analysis",
+  "group": "Trait Mapping"
+ },
+ {
+  "id": "c-linkage",
+  "n": 9,
   "title": "Linkage Mapping",
   "group": "Trait Mapping"
  },
  {
   "id": "c-genotype",
-  "n": 9,
+  "n": 10,
   "title": "Genotype Viewer",
   "group": "Trait Mapping"
  },
  {
   "id": "c-qtl",
-  "n": 10,
+  "n": 11,
   "title": "QTL Mapping",
   "group": "Trait Mapping"
  },
  {
   "id": "c-qtlseq",
-  "n": 11,
+  "n": 12,
   "title": "QTL-Seq",
   "group": "Trait Mapping"
  },
  {
+  "id": "c-insilico",
+  "n": 13,
+  "title": "In silico BSA",
+  "group": "Trait Mapping"
+ },
+ {
   "id": "c-diversity",
-  "n": 12,
+  "n": 14,
   "title": "Diversity Analysis",
   "group": "Trait Mapping"
  },
  {
   "id": "c-gwas",
-  "n": 13,
+  "n": 15,
   "title": "GWAS",
   "group": "Trait Mapping"
  },
  {
   "id": "c-pybsa",
-  "n": 14,
+  "n": 16,
   "title": "PYBSA G-statistics",
   "group": "Trait Mapping"
  },
  {
   "id": "c-gene",
-  "n": 15,
+  "n": 17,
   "title": "Genes Extraction",
   "group": "Trait Mapping"
  },
  {
   "id": "c-prioritize",
-  "n": 16,
+  "n": 18,
   "title": "Gene Prioritization",
   "group": "Trait Mapping"
  },
  {
   "id": "c-clustering",
-  "n": 17,
+  "n": 19,
   "title": "Clustering & Genomic Selection",
   "group": "Genomic Selection"
  },
  {
   "id": "c-additive",
-  "n": 18,
+  "n": 20,
   "title": "Additive Dominance",
   "group": "Genomic Selection"
  },
  {
   "id": "c-breedsight",
-  "n": 19,
+  "n": 21,
   "title": "BreedSight GUI",
   "group": "Genomic Selection"
  },
  {
   "id": "c-cross",
-  "n": 20,
+  "n": 22,
   "title": "Optimal Cross Selection",
   "group": "Genomic Selection"
  },
  {
   "id": "c-heterosis",
-  "n": 21,
+  "n": 23,
   "title": "Heterosis",
   "group": "Genomic Selection"
  },
  {
   "id": "c-favallele",
-  "n": 22,
+  "n": 24,
   "title": "Favourable Allele Analysis",
   "group": "Genomic Selection"
  },
  {
   "id": "c-work",
-  "n": 23,
+  "n": 25,
   "title": "Typical workflows",
   "group": "Reference"
  },
  {
   "id": "c-trouble",
-  "n": 24,
+  "n": 26,
   "title": "Troubleshooting",
   "group": "Reference"
  },
  {
   "id": "c-glossary",
-  "n": 25,
+  "n": 27,
   "title": "Glossary",
   "group": "Reference"
  },
  {
   "id": "c-formats",
-  "n": 26,
+  "n": 28,
   "title": "Input formats at a glance",
   "group": "Reference"
  }

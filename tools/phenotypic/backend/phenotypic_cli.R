@@ -37,6 +37,8 @@ result_path <- file.path(outdir, paste0("result_", action, ".json"))
 
 chr <- function(x) if (is.null(x) || length(x) == 0) character(0) else as.character(unlist(x))
 as_rows <- function(df) if (is.null(df)) list() else df
+# a text vector is always a JSON array, also when it holds one item (auto_unbox would turn it into a bare string)
+arr <- function(x) I(as.character(x))
 
 # ── inspect: what the data file holds, as the analyses will see it ───────────────────────
 inspect_data <- function(p) {
@@ -69,11 +71,11 @@ inspect_data <- function(p) {
   }
   list(status = "success", design = list(code = design, label = DESIGN_LABELS[[design]]),
        default_design = if ("Block" %in% names(data)) "augmented" else "rcbd",
-       columns = names(data), environments = all_envs,
+       columns = arr(names(data)), environments = arr(all_envs),
        n_plots = nrow(dd), n_genotypes = if ("Genotype" %in% names(dd)) length(unique(dd$Genotype)) else 0,
        n_environments = length(unique(as.character(dd$Environment))), n_variables = ncol(data),
-       traits = traits, empty_traits = empty, usable_traits = usable_traits(data),
-       errors = v$validation$errors, warnings = w, notes = z$notes, design_notes = dnotes,
+       traits = arr(traits), empty_traits = arr(empty), usable_traits = arr(usable_traits(data)),
+       errors = arr(v$validation$errors), warnings = arr(w), notes = arr(z$notes), design_notes = arr(dnotes),
        trait_stats = as_rows(stats), design_check = as_rows(dcheck))
 }
 
@@ -91,7 +93,7 @@ run_module <- function(p) {
     color_scheme = if (is.null(p$color_scheme)) "default" else p$color_scheme,
     zero_as_na = !isFALSE(p$zero_as_na),
     modules = m, settings = setNames(list(s), m), accumulate = TRUE, workbook = FALSE)
-  out <- list(status = "success", module = m, outdir = outdir, design = res$design, traits_all = res$traits_all,
+  out <- list(status = "success", module = m, outdir = outdir, design = res$design, traits_all = arr(res$traits_all),
               tables = res$tables, plots = res$plots, msgs = res$msgs)
   if (m == "anova") {                                       # the wide layout shown on screen (the CSV is the tidy version)
     wide <- tryCatch(anova_wide_table(outdir), error = function(e) NULL)
@@ -107,7 +109,7 @@ run_module <- function(p) {
 result <- tryCatch({
   if (action == "export") {
     f <- export_workbook(outdir)
-    list(status = "success", excel_all = f$all, excel_anova = f$anova)
+    list(status = "success", excel_all = f$all, excel_anova = f$anova, excel_blups = f$blups)
   } else {
     p <- jsonlite::fromJSON(args[["params"]], simplifyVector = TRUE)
     if (action == "inspect") inspect_data(p) else run_module(p)

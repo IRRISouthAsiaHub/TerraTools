@@ -42,8 +42,14 @@ def test_values_must_fit_the_chosen_encoding():
 
 
 def test_mixed_negative_and_large_values_are_rejected():
+    # -1 beside a 2 can only be TerraTools' missing code (a centred matrix has no 2) ...
+    out, rep = gio.to_dosage(np.array([[-1, 0, 2]], float), "auto")
+    assert np.isnan(out[0, 0]) and rep["encoding"] == "dosage"
+    # ... any other mixture is still refused
     with pytest.raises(gio.InputError):
-        gio.to_dosage(np.array([[-1, 0, 2]], float), "auto")
+        gio.to_dosage(np.array([[-2, 0, 2]], float), "auto")
+    with pytest.raises(gio.InputError):
+        gio.to_dosage(np.array([[-1, -2, 2]], float), "auto")
 
 
 def test_missing_codes_are_not_genotypes():
@@ -196,3 +202,36 @@ def test_imputation_options():
         qcmod.run_qc(G, snp, ch, pos, ids, qcmod.QCSettings(imputation="none"))
     ok = qcmod.run_qc(make()[0], snp, ch, pos, ids, qcmod.QCSettings(imputation="none"))
     assert ok.imputed_calls == 0
+
+
+def _rows_file(tmp_path, labels=("", ""), swap=False, minus_one=False):
+    ids = [f"S{i}" for i in range(6)]
+    rng = np.random.default_rng(1)
+    g = rng.integers(0, 3, size=(6, 4))
+    if minus_one:
+        g[0, 0] = -1
+    pos = ["1000", "2000", "500", "9000"]
+    chrom = ["1", "1", "2", "2"]
+    rows = [(labels[0], pos), (labels[1], chrom)] if not swap else [(labels[0], chrom), (labels[1], pos)]
+    lines = ["ID,Pheno,m_a,m_b,m_c,m_d"] + [f"{lab},," + ",".join(v) for lab, v in rows]
+    lines += [f"{i},{k + 1.5}," + ",".join(str(x) for x in r) for k, (i, r) in enumerate(zip(ids, g))]
+    f = tmp_path / "rows.csv"
+    f.write_text("\n".join(lines) + "\n")
+    return f
+
+
+def test_position_and_chromosome_rows_give_a_physical_map(tmp_path):
+    for kw in ({}, {"labels": ("Position", "Chromosome")}, {"labels": ("Chromosome", "Position"), "swap": True}):
+        d = gio.read_gwas_file(path=str(_rows_file(tmp_path, **kw)), encoding="dosage")
+        assert d.marker_map.valid and d.marker_map.pos_source == "position row"
+        assert list(d.chrom) == [1, 1, 2, 2] and list(d.pos) == [1000, 2000, 500, 9000]
+        assert d.G.shape == (6, 4) and list(d.snp_ids) == ["m_a", "m_b", "m_c", "m_d"]
+
+
+def test_minus_one_next_to_two_is_missing_in_auto_mode(tmp_path):
+    f = _rows_file(tmp_path, minus_one=True)
+    d = gio.read_gwas_file(path=str(f))                  # auto
+    assert np.isnan(d.G[0, 0]) and np.nanmax(d.G) <= 2 and np.nanmin(d.G) >= 0
+    # an explicit centred choice is not reinterpreted
+    with pytest.raises(gio.InputError):
+        gio.read_gwas_file(path=str(f), encoding="centred")

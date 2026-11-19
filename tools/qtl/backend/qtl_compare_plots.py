@@ -6,7 +6,10 @@ Drawn with matplotlib's object API (Figure + Agg canvas, no pyplot) so it
 is safe to call from the app's worker threads.
 """
 
+import json
 import math
+import subprocess
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -15,10 +18,16 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
+# One colour per model, the same in the ideogram and the bar chart of the comparison
 MODEL_COLORS = {
-    "SIM": "#2d6a4f", "CIM": "#e76f51", "MQM": "#457b9d",
-    "RF": "#e9a23b", "SVR": "#8e5ea2", "XGBOOST": "#c0392b",
+    "SIM": "#FF69B4",       # pink
+    "CIM": "#FF1A1A",       # bright red
+    "MQM": "#FF8C00",       # orange
+    "RF": "#8C8C8C",        # grey
+    "SVR": "#7EC8F0",       # light blue
+    "XGBOOST": "#7B2CBF",   # purple
 }
+BACKEND_DIR = Path(__file__).resolve().parent
 CHR_FILL, CHR_EDGE, INK, MUTED = "#e3f1e9", "#2d6a4f", "#1a3a2a", "#5a7566"
 
 
@@ -106,13 +115,42 @@ def _regions_by_model(model_results):
     return reg
 
 
-def plot_comparison(model_results, out_dir):
+def _r_ideogram(model_results, out_dir, plot_cfg, trait):
+    """The chromosome map of the single-model run (same R function), with a lane and a colour per model.
+    Returns the PNG path, or None when R is not available / fails (the caller then draws a plain version)."""
+    from tools.common.r_locator import find_rscript, get_r_env
+    from tools.common.subprocess_utils import no_window_kwargs
+
+    rscript = find_rscript()
+    if rscript is None:
+        return None
+    models = [{"name": m, "qtl_csv": r.get("qtl_csv"), "full_csv": r.get("full_csv"), "color": MODEL_COLORS.get(str(m).upper(), "#CC0000")}
+              for m, r in model_results.items() if r.get("full_csv")]
+    if not models:
+        return None
+    out = Path(out_dir) / "compare_ideogram.png"
+    with tempfile.TemporaryDirectory() as tmp:
+        cfg = Path(tmp) / "ideogram.json"
+        cfg.write_text(json.dumps({"models": models, "plot": plot_cfg or {}, "trait": trait or ""}), encoding="utf-8")
+        p = subprocess.run([str(rscript), str(BACKEND_DIR / "qtl_compare_ideogram.R"), str(cfg), str(out)],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                           cwd=str(BACKEND_DIR), env=get_r_env(rscript), timeout=600, **no_window_kwargs())
+    if p.returncode != 0 or not out.exists():
+        print("[QTL] compare ideogram (R) failed:", (p.stderr or p.stdout)[-600:], flush=True)
+        return None
+    return str(out.resolve()).replace("\\", "/")
+
+
+def plot_comparison(model_results, out_dir, plot_cfg=None, trait=""):
     """Per-model QTL regions (bar = left..right flanking marker, dot = peak)
     and the number of QTL each model found."""
     scans = load_scans(model_results)
     if not scans:
         return None, None
     out_dir = Path(out_dir)
+    ideogram = _r_ideogram(model_results, out_dir, plot_cfg, trait)
+    if ideogram:
+        return ideogram, _counts_bar(model_results, scans, out_dir)
     order, lengths = _chromosome_lengths(scans)
     models = list(scans)
     n = len(models)
@@ -125,7 +163,7 @@ def plot_comparison(model_results, out_dir):
     for k, model in enumerate(models):
         sub = regions[regions["Model"] == model]
         x0 = -0.25 + lane * (k + 0.5)
-        col = MODEL_COLORS.get(model, INK)
+        col = MODEL_COLORS.get(str(model).upper(), INK)
         for i, ch in enumerate(order):
             for _, r in sub[sub["Chromosome"] == ch].iterrows():
                 ax.vlines(i + x0, r["Left_Position"], r["Right_Position"], color=col, linewidth=5, alpha=0.45, zorder=3)
@@ -135,7 +173,14 @@ def plot_comparison(model_results, out_dir):
     ax.set_title("QTL regions by model (bar = flanking markers, dot = peak)", color=INK, fontsize=12, fontweight="bold")
     _style(ax)
     ideogram = _save(fig, out_dir / "compare_ideogram.png")
+    return ideogram, _counts_bar(model_results, scans, out_dir)
 
+
+def _counts_bar(model_results, scans, out_dir):
+    """Bar chart: number of QTL regions found by each model."""
+    models = list(scans)
+    n = len(models)
+    regions = _regions_by_model(model_results)
     counts = [int((regions["Model"] == m).sum()) for m in models]
     fig = Figure(figsize=(max(5.5, 1.1 * n + 2), 4.2))
     ax = fig.add_subplot(111)
@@ -148,8 +193,7 @@ def plot_comparison(model_results, out_dir):
     ax.grid(axis="y", color="#e6efe9", zorder=0)
     ax.set_ylim(0, max(counts + [1]) * 1.18)
     _style(ax)
-    bar = _save(fig, out_dir / "compare_counts.png")
-    return ideogram, bar
+    return _save(fig, out_dir / "compare_counts.png")
 
 
 # ───────────────────────── Common QTL ─────────────────────────

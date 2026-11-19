@@ -27,6 +27,9 @@
 #  Heritability      Checks are fixed effects, Genotype and Genotype:Environment random
 #                    H2_plot  = Vg / (Vg + Vge + Ve)
 #                    H2_entry = Vg / (Vg + Vge/ne + Ve/np)    (entry-mean basis; ne, np = harmonic means per entry)
+#  BLUPs             same model as the heritability; Henderson's mixed model equations solved directly (REML variances)
+#                    PEV_i = Ve [C^-1]_ii (includes the uncertainty of the fixed effects);  Reliability_i = 1 - PEV_i / Vg
+#                    H2_Cullis = 1 - vbar / (2 Vg), vbar = mean variance of a difference between two BLUPs (Cullis et al. 2006)
 #  Correlation, PCA, clustering   on genotype means (mean of environment means)
 #  Stability (genotype x environment means x_ij, only genotypes present in every environment)
 #                    GE_ij       = x_ij - x_i. - x_.j + x_..          (interaction effect)

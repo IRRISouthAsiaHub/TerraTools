@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QThread, Signal, Slot
+from tools.common.single_run import single_run
 from PySide6.QtWidgets import QFileDialog
 
 from tools.common.save_dialog import save_dialog
@@ -91,6 +92,7 @@ class GenotypeViewerBridge(QObject):
 
     # ── draw ──
     @Slot(str)
+    @single_run
     def run_viewer(self, config_json: str):
         try:
             config = GenotypeViewerConfig.from_dict(json.loads(config_json))

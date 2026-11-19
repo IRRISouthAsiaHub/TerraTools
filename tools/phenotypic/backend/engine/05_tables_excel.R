@@ -95,6 +95,25 @@ tidy_herit <- function(h) rename_cols(h, setNames(
     paste(H2, "plot basis"), paste(H2, "entry-mean")),
   c("N_Genotypes", "Vg", "Vge", "Vblk", "Ve", "H2_Plot", "H2_Mean")))
 
+# BLUPs: one row per trait x environment x accession (best first within each); Pooled = all environments together
+tidy_blups <- function(b) {
+  out <- data.frame(Trait = b$Trait, Environment = b$Environment, Accession = b$Accession, Plots = b$Plots,
+                    Environments = b$Environments, `Raw mean` = signif(b$Raw_Mean, 6), BLUP = signif(b$BLUP, 5),
+                    `SE of BLUP` = signif(b$SE, 4), Reliability = round(b$Reliability, 3),
+                    `Predicted value` = signif(b$Predicted, 6), Rank = b$Rank, check.names = FALSE, stringsAsFactors = FALSE)
+  out[order(match(out$Trait, unique(out$Trait)), match(out$Environment, unique(out$Environment)), out$Rank), ]
+}
+
+# Variance components and heritability of the BLUP models, one row per trait x environment
+tidy_blup_summary <- function(s) {
+  out <- data.frame(Trait = s$Trait, Environment = s$Environment, Accessions = s$Accessions,
+                    `Genotypic variance (Vg)` = signif(s$Vg, 4), `G×E variance (Vge)` = signif(s$Vge, 4),
+                    `Error variance (Ve)` = signif(s$Ve, 4),
+                    `H² Cullis (BLUP)` = round(s$H2_Cullis, 3), `Mean reliability` = round(s$Mean_Reliability, 3),
+                    `H² entry-mean (classical)` = round(s$H2_Mean, 3), Note = s$Note, check.names = FALSE, stringsAsFactors = FALSE)
+  out
+}
+
 # One PCA table: trait loadings, then the eigenvalue and variance explained of each component (first 10 components)
 tidy_pca <- function(pca) {
   k <- min(10, nrow(pca$variance)); pcs <- paste0("PC", seq_len(k))
@@ -235,7 +254,7 @@ write_styled_workbook <- function(items, path, ta = NULL) {
 
 # Order of the sheets in the workbook
 SHEET_ORDER <- c("Design_Check", "Descriptive_Statistics", "Env_Means_Ranks", "Env_Correlations", "BLUEs",
-                 "Heritability", "Trait_Correlations", "PCA", "Clusters", "Stability_GxE")
+                 "Heritability", "BLUPs", "BLUP_Summary", "Trait_Correlations", "PCA", "Clusters", "Stability_GxE")
 
 # Writes the workbooks for everything run so far in `outdir` (from the state saved by run_phenotypic):
 # Phenotypic_Analysis.xlsx (all tables) and ANOVA_tables.xlsx (the ANOVA tables, when an ANOVA was run).
@@ -245,6 +264,9 @@ export_workbook <- function(outdir) {
   st <- readRDS(state_file)
   if (is.null(st$ta)) unlink(file.path(outdir, "ANOVA_tables.xlsx"))     # no ANOVA (any more): no stale ANOVA file
   sheets <- st$sheets[order(match(names(st$sheets), SHEET_ORDER), na.last = TRUE)]
+  blup_sheets <- sheets[intersect(c("BLUPs", "BLUP_Summary"), names(sheets))]
+  if (!length(blup_sheets)) unlink(file.path(outdir, "BLUPs.xlsx"))         # no BLUPs (any more): no stale BLUP file
   list(all = write_styled_workbook(c(list(Data_Summary = st$summary), sheets), file.path(outdir, "Phenotypic_Analysis.xlsx"), st$ta),
-       anova = if (!is.null(st$ta)) write_anova_workbook(st$ta, file.path(outdir, "ANOVA_tables.xlsx")))
+       anova = if (!is.null(st$ta)) write_anova_workbook(st$ta, file.path(outdir, "ANOVA_tables.xlsx")),
+       blups = if (length(blup_sheets)) write_styled_workbook(blup_sheets, file.path(outdir, "BLUPs.xlsx")))
 }

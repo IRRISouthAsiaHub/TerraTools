@@ -65,22 +65,66 @@ def sc_genofile(a):
     ])
 
 
+# ───────────────────────── Recombination Analysis ─────────────────────────
+def sc_recomb(a):
+    G = HERE.parent / "Demo_Input_Files" / "20_Recombination_Analysis" / "input"
+    yield from a.route("recombination", height=1250, wait=5000)
+    yield from a.browse(0, G / "mapping_population.csv", wait=3500)
+    yield from a.slider("Minimum block (% of the markers of a chromosome)", 2)
+    yield from a.shot("recomb_input", title="Recombination Analysis — file, parent and smoothing", height=1900, callouts=[
+        dict(sel=".file-drop", nth=0, note="The genotype table: a row per marker (CHROM, POS, ID …) and a column per sample, coded 0 / 1 / 2 / −1. The page reports markers, chromosomes, samples and the share of heterozygous and missing calls."),
+        card("Parent and lines", "The recurrent parent (found automatically), an optional genotyped donor, and samples to leave out."),
+        card("Settings", "Smoothing method and minimum block: the setting that changes the crossover counts most. Also the bin size of the rate plot and the centromere shading."),
+    ])
+    yield from a.run_and_wait(180, settle=3500)
+    yield from a.shot("recomb_result", title="Recombination Analysis — results", height=2300, callouts=[
+        dict(sel=".summary-grid", note="Lines, informative markers, crossovers, mean per line, mean donor % and the share of intragenic crossovers."),
+        card("Please note", "Warnings about the data: lines with mostly missing calls, very heterozygous lines, and how precisely a crossover is located."),
+        card("Figures", "Crossovers per line and chromosome, the genome-wide crossover rate, donor content, the haplotype mosaic, a circos plot and the intragenic / intergenic split."),
+        card("Downloads", "One Excel workbook with every table, a ZIP with CSV files and figures, and the main tables as CSV."),
+    ])
+
+
+# ───────────────────────── In silico BSA ─────────────────────────
+def sc_insilico(a):
+    G = HERE.parent / "Demo_Input_Files" / "21_InSilico_BSA" / "input"
+    yield from a.route("insilico_bsa", height=1250, wait=4000)
+    yield from a.browse(0, G / "genotypes_F2.csv", wait=3500)
+    yield from a.browse(1, G / "phenotypes.csv", wait=3000)
+    yield from a.select("Population type", "f2")
+    yield from a.shot("insilico_input", title="In silico BSA — genotype file, phenotype file, pools and windows", height=2000, callouts=[
+        dict(sel=".file-drop", nth=0, note="The genotype table: CHROM, POS, then one column per line, coded 0 / 1 / 2 / −1. The page reports the markers, chromosomes, lines and the share of heterozygous and missing calls."),
+        dict(sel=".file-drop", nth=1, note="The phenotype file: line names in the first column, then the traits. Not needed when the genotype file already has a trait column."),
+        card("Pools and population", "The share of lines in each pool (20 % = the lowest and the highest fifth) and the population type, which you choose yourself."),
+        card("Windows and threshold", "The primary window, the minimum markers per window, the distance for merging regions, the permutations and the significance level."),
+    ])
+    yield from a.run_and_wait(300, settle=3500)
+    yield from a.shot("insilico_result", title="In silico BSA — loci, regions and figures", height=2600, callouts=[
+        dict(sel=".summary-grid", note="Lines, lines per pool, markers, loci, regions of all window sizes and the Gw threshold of the primary window."),
+        card("Loci across the window sizes", "Regions of the three window sizes that overlap are one locus; the table says how many sizes found it and how far apart their peaks lie."),
+        card("Significant regions of every window size", "One row per region and window size: left, peak and right marker with their positions, adjusted p-value, LOD and the allele-frequency difference."),
+        card("Candidate genes (separate step)", "Lists the genes of a GFF3 / GTF annotation that lie in a region, widened by a flank."),
+        card("Figures", "Gw along the genome for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."),
+    ])
+
+
 # ───────────────────────── 1. Mendelian ─────────────────────────
 def sc_mendelian(a):
     yield from a.route("mendelian", height=1000)
     yield from a.browse(0, S / "mendelian" / "mendelian_RIL_example.csv")
     yield from a.shot("mendelian_input", title="Mendelian Segregation — input and settings", callouts=[
         dict(sel=".file-drop", note="Genotype CSV: Marker, Chromosome, then one column per individual (0 / 1 / 2)."),
-        card("Population Type", "Population type: RIL tests a 1:1 ratio, F2 tests 1:2:1."),
+        card("Population Type", "Population type: every type has its own model (RIL and DH 1:1, BC1 1:1, F2 1:2:1, F3 3:2:3, F4 7:2:7); the note below the list shows the one chosen."),
         card("Significance", "Threshold (alpha) and the multiple-testing correction applied to the p-values (FDR by default)."),
         card("Missing Data", "Values to treat as missing, separated by commas."),
     ])
     yield from a.run_and_wait(120)
-    yield from a.shot("mendelian_results", title="Mendelian Segregation — results", height=1250, callouts=[
-        dict(sel=".result-card", nth=0, note="−log10(p) for every marker: high points are markers whose genotype ratio departs from the expectation."),
-        dict(sel=".result-card", nth=1, note="Share of distorted markers on each chromosome."),
+    yield from a.shot("mendelian_results", title="Mendelian Segregation — results", height=1750, callouts=[
+        dict(sel=".result-card", nth=0, note="Segregation plot (Manhattan): −log10(p) of every marker along the file, one colour per chromosome. Points above the dashed cut-off of the chosen correction are distorted markers."),
+        dict(sel=".result-card", nth=1, note="Heterozygosity plot: the percentage of heterozygous calls of every marker, coloured by chromosome."),
+        dict(sel=".result-card", nth=2, note="Distortion summary: the percentage of distorted markers on each chromosome."),
         dict(text="Filtered Markers", sel="button", note="Downloads: markers that pass the test, the full table and the LM-ready file for Linkage Mapping."),
-        dict(sel=".summary-box", note="Summary: markers tested, flagged distorted, passing the quality check, and low-power markers."),
+        dict(sel=".summary-box", note="Summary: markers tested, inconclusive, flagged distorted, passing the quality check, and calls outside the model."),
     ])
 
 
@@ -142,7 +186,7 @@ def sc_gene(a):
     yield from a.browse(1, S / "gene_extractor" / "marker_positions_example.csv")
     yield from a.browse(2, S / "gene_extractor" / "annotation_example.gff3")
     yield from a.shot("gene_input", title="Genes Extraction — input files", height=1850, callouts=[
-        card("QTL Results (input)", "The QTL Intervals file or the QTL table of QTL Mapping (Chromosome, Start, End) — or click “Use QTL Mapping output” to take the last QTL Mapping run."),
+        card("QTL Results (input)", "The QTL table of QTL Mapping (qtl_significant_*.csv, positions in cM)."),
         card("Genetic Map (required)", "Marker, Chromosome and bp columns, which place the QTL (in cM) on the genome. With no map, choose “No map: use a VCF”."),
         card("Annotation File (GFF3)", "Gene annotation; the genes inside each interval are read from its gene lines."),
         card("Reference Genome FASTA (optional)", "Adds the sequence of every gene."),
@@ -307,15 +351,17 @@ def sc_gwas(a):
 def sc_clustering(a):
     yield from a.route("clustering", height=950)
     yield from a.browse(0, S / "clustering" / "clustering_genotypes_example.csv")
-    yield from a.shot("clustering_input", title="Clustering & Genomic Selection — input", callouts=[
+    yield from a.shot("clustering_input", title="Clustering & Genomic Selection — input", height=1250, callouts=[
         card("Genotype File", "CSV or TSV: sample IDs in the first column, one column per SNP (0 / 1 / 2, −1 = missing)."),
         card("Number of Clusters", "K for K-means clustering."),
         card("Test Size", "Fraction of each cluster held out as the testing set."),
+        card("Space the clusters are found in", "How many principal components K-means uses (0 = all of them). A few leading components keep the population structure and drop noise."),
     ])
     yield from a.run_and_wait(120)
     yield from a.shot("clustering_results", title="Clustering & Genomic Selection — results", height=1350, callouts=[
         dict(sel=".summary-grid", note="Samples, markers, clusters, train / test sizes and variance explained by PC1 and PC2."),
         dict(sel=".result-card", nth=0, note="PCA plot coloured by K-means cluster."),
+        dict(text="You used", sel=".note", note="Under the K-selection plot (silhouette width and within-cluster sum of squares for K = 2 to 10; red = the K you used, gold = the highest silhouette), the note says which K the data support."),
         dict(text="Training Data", sel="button", note="Downloads: training and testing genotype files (cluster-stratified), cluster membership and the plot."),
     ])
 
@@ -534,11 +580,11 @@ def sc_favallele(a):
     ])
 
 
-ORDER = [sc_home, sc_tour, sc_genofile, sc_mendelian, sc_linkage, sc_genotype, sc_qtl, sc_gene, sc_geneprio, sc_pybsa, sc_qtlseq, sc_diversity, sc_gwas,
+ORDER = [sc_home, sc_tour, sc_genofile, sc_mendelian, sc_recomb, sc_linkage, sc_genotype, sc_qtl, sc_gene, sc_geneprio, sc_pybsa, sc_qtlseq, sc_insilico, sc_diversity, sc_gwas,
          sc_clustering, sc_additive, sc_breedsight, sc_cross, sc_heterosis, sc_favallele, sc_phenotypic]
 SCENARIOS = {f.__name__[3:]: f for f in ORDER}
 
 if __name__ == "__main__":
     pick = sys.argv[1:] or list(SCENARIOS)
     app = App(OUT)
-    app.run([SCENARIOS[p] for p in pick])
+    app.run([SCENARIOS[p] for p in pick], boot_ms=7000)

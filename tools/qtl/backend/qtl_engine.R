@@ -408,27 +408,105 @@ qtl_scan_mqm <- function(X, y, marker_info, window_cM = 25, max_cof = 15) {
 }
 
 # ============================================================
-# MACHINE-LEARNING SCANS
-#   Marker importance is rescaled to 0..scale and used as a LOD-like score.
-#   It is NOT a likelihood LOD; P_Value = 10^-score is only a monotone
-#   transform so that the same peak / interval code can be used.
-#   Every marker gets a row (score 0 when unimportant) so the profile is
-#   continuous along the chromosome.
+# MACHINE-LEARNING SCANS  (RF, SVR, XGBoost)
+#   Marker importance is not a likelihood and has no scale of its own: the largest importance of a
+#   genome is large whether or not it holds a QTL, so rescaling it to a fixed maximum (as earlier
+#   versions did) makes every run "find" QTL, also on pure noise.  It is tested the way a LOD is
+#   (Churchill & Doerge 1994): the phenotype is shuffled, the SAME model is fitted again and the
+#   largest importance of the genome is kept; the (1 - alpha) quantile of those maxima is the
+#   genome-wide importance threshold.
+#     Importance = RF   mean decrease in accuracy (permutation, %IncMSE)
+#                  SVR  relative rise of the training error when the marker is shuffled (mean of 3 shuffles)
+#                  XGB  gain (share of the total gain)
+#     LOD column = importance / threshold   (score >= 1: significant; it is NOT a LOD)
+#     P_Value    = genome-wide permutation P of the importance, ((# null maxima >= it) + 1) / (n + 1)
+#   The support interval of an ML score is the stretch of markers whose score stays >= 1 (+ the flanking markers).
 # ============================================================
-ml_result <- function(imp, X, y, marker_info, method, scale) {
-  imp$Importance[!is.finite(imp$Importance)] <- 0
-  imp$Importance <- pmax(imp$Importance, 0)
-  mx <- max(imp$Importance)
-  if (!is.finite(mx) || mx <= 0) return(data.frame(Message = "No important markers"))
-  imp$LOD <- imp$Importance / mx * scale
-  imp <- merge(imp, marker_info, by = "Marker", all.x = TRUE)
-  imp <- imp[!is.na(imp$Position), , drop = FALSE]
-  rows <- lapply(seq_len(nrow(imp)), function(i) {
-    m  <- imp$Marker[i]
+ML_METHODS   <- c("RF", "SVR", "XGBOOST")
+SVR_SHUFFLES <- 3
+ML_MIN_PERM  <- 20
+
+# Permutation importance of an e1071 radial SVR.  Shuffling one marker changes the kernel distance of every
+# (sample, support vector) pair by a rank-1 term, so the prediction of the shuffled model costs n x nSV
+# instead of n x nSV x p: thousands of markers take seconds.  The result is checked against predict();
+# if the two disagree the slow, exact loop is used.
+svr_importance <- function(fit, X, y, n_shuf = SVR_SHUFFLES) {
+  X <- as.matrix(X); n <- nrow(X); p <- ncol(X)
+  imp <- setNames(numeric(p), colnames(X))
+  ref <- as.numeric(predict(fit, X))
+  mse0 <- mean((y - ref)^2)
+  if (!is.finite(mse0) || mse0 <= 0) return(imp)
+  xs <- fit$x.scale; ys <- fit$y.scale
+  fast <- !is.null(xs) && length(xs[["scaled:center"]]) == p
+  if (fast) {
+    Xs <- sweep(sweep(X, 2, xs[["scaled:center"]], "-"), 2, xs[["scaled:scale"]], "/")
+    SV <- as.matrix(fit$SV); cf <- as.numeric(fit$coefs); gam <- fit$gamma; rho <- fit$rho
+    to_y <- function(f) if (is.null(ys)) f else f * ys[["scaled:scale"]] + ys[["scaled:center"]]
+    D <- outer(rowSums(Xs^2), rowSums(SV^2), "+") - 2 * tcrossprod(Xs, SV)
+    decision <- function(Dm) to_y(as.numeric(exp(-gam * Dm) %*% cf) - rho)
+    fast <- isTRUE(all.equal(decision(D), ref, tolerance = 1e-6))
+  }
+  if (fast) {
+    for (j in seq_len(p)) {
+      sj <- SV[, j]
+      Dj <- D - outer(Xs[, j], sj, "-")^2
+      acc <- 0
+      for (s in seq_len(n_shuf)) acc <- acc + mean((y - decision(Dj + outer(Xs[sample.int(n), j], sj, "-")^2))^2)
+      imp[j] <- (acc / n_shuf - mse0) / mse0
+    }
+  } else {
+    for (j in seq_len(p)) {
+      acc <- 0
+      for (s in seq_len(n_shuf)) { Xp <- X; Xp[, j] <- sample(Xp[, j]); acc <- acc + mean((y - predict(fit, Xp))^2) }
+      imp[j] <- (acc / n_shuf - mse0) / mse0
+    }
+  }
+  imp
+}
+
+# Fit one model.  X: numeric matrix without missing values.  importance = FALSE skips the importance step.
+ml_fit <- function(method, X, y, importance = TRUE) {
+  X <- as.matrix(X)
+  if (method == "RF") {
+    fit <- randomForest(x = X, y = y, ntree = 500, importance = importance)
+    imp <- if (importance) importance(fit, type = 1)[, 1] else NULL
+    return(list(method = method, fit = fit, importance = imp, oob_r2 = as.numeric(tail(fit$rsq, 1)),
+                predict = function(Xn) as.numeric(predict(fit, as.matrix(Xn)))))
+  }
+  if (method == "SVR") {
+    fit <- svm(x = X, y = y, kernel = "radial", scale = TRUE)
+    imp <- if (importance) svr_importance(fit, X, y) else NULL
+    return(list(method = method, fit = fit, importance = imp, oob_r2 = NA_real_,
+                predict = function(Xn) as.numeric(predict(fit, as.matrix(Xn)))))
+  }
+  if (method == "XGBOOST") {
+    fit <- xgb.train(data = xgb.DMatrix(data = X, label = y), nrounds = 100, objective = "reg:squarederror", verbose = 0,
+                     params = list(max_depth = 3, eta = 0.1, subsample = 0.8, colsample_bytree = 0.8, seed = 1))
+    imp <- NULL
+    if (importance) {
+      im  <- xgb.importance(model = fit)
+      imp <- setNames(numeric(ncol(X)), colnames(X))
+      if (nrow(im)) imp[match(im$Feature, colnames(X))] <- im$Gain
+    }
+    return(list(method = method, fit = fit, importance = imp, oob_r2 = NA_real_,
+                predict = function(Xn) as.numeric(predict(fit, as.matrix(Xn)))))
+  }
+  stop("Unknown machine-learning method: ", method)
+}
+
+ml_result <- function(imp, X, y, marker_info, method, thr_imp, null_max) {
+  imp[!is.finite(imp)] <- 0
+  df <- data.frame(Marker = names(imp), Importance = as.numeric(imp), stringsAsFactors = FALSE)
+  df$LOD <- pmax(df$Importance, 0) / thr_imp
+  df$P   <- (vapply(df$Importance, function(v) sum(null_max >= v), numeric(1)) + 1) / (length(null_max) + 1)
+  df <- merge(df, marker_info, by = "Marker", all.x = TRUE)
+  df <- df[!is.na(df$Position), , drop = FALSE]
+  rows <- lapply(seq_len(nrow(df)), function(i) {
+    m  <- df$Marker[i]
     g  <- X[, m]; v <- !is.na(g)
     ef <- if (sum(v) >= 5) effect_stats(y[v], g[v]) else list(pve = NA_real_, a = NA_real_, se = NA_real_, d = NA_real_, ratio = NA_real_, cls = "Additive")
-    list(Marker = m, Chromosome = as.character(imp$Chromosome[i]), Position = imp$Position[i],
-         LOD = imp$LOD[i], P_Value = 10^(-imp$LOD[i]),
+    list(Marker = m, Chromosome = as.character(df$Chromosome[i]), Position = df$Position[i],
+         LOD = df$LOD[i], Importance = df$Importance[i], P_Value = df$P[i],
          PVE_Marker_Percent = ef$pve, PVE_CIM_Percent = ef$pve,
          Additive_Effect = ef$a, SE_Additive = ef$se,
          CI_Lower = ef$a - 1.96 * ef$se, CI_Upper = ef$a + 1.96 * ef$se,
@@ -441,48 +519,60 @@ ml_result <- function(imp, X, y, marker_info, method, scale) {
   res
 }
 
-qtl_scan_rf <- function(X, y, marker_info) {
-  X0 <- X                       # keep NAs for the effect estimates
-  X <- impute_mode(X)
-  rf_fit <- tryCatch(randomForest(x = X, y = y, ntree = 500, importance = TRUE), error = function(e) NULL)
-  if (is.null(rf_fit)) return(data.frame(Message = "Random Forest failed"))
-  imp <- importance(rf_fit, type = 1)[, 1]
-  ml_result(data.frame(Marker = names(imp), Importance = as.numeric(imp)), X0, y, marker_info, "RF", 10)
-}
-
-qtl_scan_svr <- function(X, y, marker_info) {
-  X0 <- X
-  X <- impute_mode(X)
-  svr_fit <- tryCatch(svm(x = X, y = y, kernel = "radial", scale = TRUE), error = function(e) NULL)
-  if (is.null(svr_fit)) return(data.frame(Message = "SVR failed"))
-  baseline_error <- mean((y - predict(svr_fit, X))^2)
-  importance <- vapply(colnames(X), function(m) {
-    Xp <- X; Xp[, m] <- sample(Xp[, m])
-    (mean((y - predict(svr_fit, Xp))^2) - baseline_error) / baseline_error
-  }, numeric(1))
-  ml_result(data.frame(Marker = names(importance), Importance = as.numeric(importance)), X0, y, marker_info, "SVR", 10)
-}
-
-qtl_scan_xgboost <- function(X, y, marker_info) {
-  X0 <- X
-  X <- impute_mode(X)
-  dtrain <- xgb.DMatrix(data = as.matrix(X), label = y)
-  xgb_fit <- tryCatch(xgb.train(
-    data = dtrain, nrounds = 100, objective = "reg:squarederror", verbose = 0,
-    params = list(max_depth = 3, eta = 0.1, subsample = 0.8, colsample_bytree = 0.8)),
-    error = function(e) NULL)
-  if (is.null(xgb_fit)) return(data.frame(Message = "XGBoost failed"))
-  im  <- xgb.importance(model = xgb_fit)
-  imp <- data.frame(Marker = colnames(X), Importance = 0, stringsAsFactors = FALSE)
-  imp$Importance[match(im$Feature, imp$Marker)] <- im$Gain
-  ml_result(imp, X0, y, marker_info, "XGBOOST", 12)
+# The scan of one ML method with its permutation threshold.  The number of permutations is reduced when the model
+# is slow (the time of the first fit x permutations must stay within budget_s), never below ML_MIN_PERM.
+qtl_scan_ml <- function(method, X, y, marker_info, n_perm = 100, alpha = 0.05, budget_s = 1200, seed = 42, progress = TRUE) {
+  X0 <- X                                                    # keeps NAs for the effect estimates
+  X  <- impute_mode(X)
+  set.seed(seed)
+  t0  <- Sys.time()
+  obs <- tryCatch(ml_fit(method, X, y), error = function(e) { cat("ML fit failed:", conditionMessage(e), "\n"); NULL })
+  if (is.null(obs)) return(data.frame(Message = paste(method, "failed")))
+  t_fit <- max(as.numeric(difftime(Sys.time(), t0, units = "secs")), 0.01)
+  if (!any(is.finite(obs$importance) & obs$importance > 0)) return(data.frame(Message = "No important markers"))
+  n_req <- max(ML_MIN_PERM, as.integer(n_perm))
+  n_use <- max(ML_MIN_PERM, min(n_req, floor(budget_s / t_fit)))
+  cat(sprintf("%s fit: %.1f s; permutation null: %d permutations%s\n", method, t_fit, n_use,
+              if (n_use < n_req) sprintf(" (reduced from %d to stay within the time budget)", n_req) else ""))
+  null_max <- numeric(n_use); null_all <- if (method == "SVR") vector("list", n_use) else NULL; t1 <- Sys.time()
+  for (b in seq_len(n_use)) {
+    fb <- ml_fit(method, X, sample(y))
+    null_max[b] <- max(fb$importance[is.finite(fb$importance)], 0)
+    if (!is.null(null_all)) null_all[[b]] <- fb$importance
+    if (progress && (b %% 10 == 0 || b == n_use)) {
+      el <- as.numeric(difftime(Sys.time(), t1, units = "secs"))
+      cat(sprintf("  permutation %d / %d  (%.0f s elapsed, about %.0f s left)\n", b, n_use, el, el / b * (n_use - b))); flush.console()
+    }
+  }
+  # SVR uses every marker, so the importance of a marker that has nothing to do with the trait grows with the strength of the
+  # real signal (the fitted function is steeper), which a null made of fully shuffled phenotypes cannot show.  As the genomic
+  # inflation factor of a GWAS, the median importance of the real fit is compared with the median of the null fits and the
+  # null is scaled up by that ratio (never down).  The other two methods select markers (most importances are 0) and need none.
+  infl <- 1
+  if (!is.null(null_all)) {
+    m_null <- median(unlist(null_all)); m_obs <- median(obs$importance)
+    if (is.finite(m_null) && m_null > 0 && is.finite(m_obs)) infl <- max(1, m_obs / m_null)
+    cat(sprintf("SVR inflation factor (median importance, real / permuted): %.2f\n", infl))
+    null_max <- null_max * infl
+  }
+  thr_imp <- max(as.numeric(quantile(null_max, 1 - alpha, type = 7)), 1e-12)
+  res <- ml_result(obs$importance, X0, y, marker_info, method, thr_imp, null_max)
+  attr(res, "ml_model")     <- obs
+  attr(res, "ml_cols")      <- colnames(X)
+  attr(res, "ml_threshold") <- thr_imp
+  attr(res, "ml_null")      <- null_max
+  attr(res, "ml_inflation") <- infl
+  attr(res, "ml_nperm")     <- n_use
+  attr(res, "ml_nperm_requested") <- n_req
+  res
 }
 
 # ============================================================
 # MAIN DISPATCHER
 # ============================================================
 qtl_scan <- function(genotype_matrix, phenotype_vector, marker_info,
-                     method = "CIM", n_cofactors = 5, window_size = 10) {
+                     method = "CIM", n_cofactors = 5, window_size = 10,
+                     ml_perm = 100, ml_alpha = 0.05, ml_budget_s = 1200) {
   cat("\n=== QTL SCAN === Method:", method, "\n")
   valid_rows <- !is.na(phenotype_vector)
   X <- as.matrix(genotype_matrix[valid_rows, , drop = FALSE])
@@ -493,9 +583,7 @@ qtl_scan <- function(genotype_matrix, phenotype_vector, marker_info,
   if (method == "SIM")     return(qtl_scan_sim(X, y, marker_info))
   if (method == "CIM")     return(qtl_scan_cim(X, y, marker_info, window_size, n_cofactors))
   if (method == "MQM")     return(qtl_scan_mqm(X, y, marker_info))
-  if (method == "RF")      return(qtl_scan_rf(X, y, marker_info))
-  if (method == "SVR")     return(qtl_scan_svr(X, y, marker_info))
-  if (method == "XGBOOST") return(qtl_scan_xgboost(X, y, marker_info))
+  if (method %in% ML_METHODS) return(qtl_scan_ml(method, X, y, marker_info, n_perm = ml_perm, alpha = ml_alpha, budget_s = ml_budget_s))
   data.frame(Message = paste("Unknown method:", method))
 }
 
@@ -676,7 +764,7 @@ REGION_COLUMNS <- c(
   "QTL_ID", "Chromosome",
   "Left_Marker", "Left_Position", "Peak_Marker", "Peak_Position", "Right_Marker", "Right_Position",
   "Interval_Size_cM", "CI_Start_cM", "CI_End_cM", "Bayes_Start_cM", "Bayes_End_cM",
-  "N_Markers_In_Region", "LOD", "P_Value", "Genomewide_P",
+  "N_Markers_In_Region", "LOD", "Importance", "P_Value", "Genomewide_P",
   "PVE_Marker_Percent", "PVE_CIM_Percent", "Additive_Effect", "SE_Additive",
   "CI_Lower", "CI_Upper", "Dominance_Effect", "Dominance_Ratio", "Dominance_Class",
   "N_Cofactors", "N_Samples", "Method", "Threshold_LOD", "LOD_Drop"
@@ -696,11 +784,15 @@ interp_cross <- function(x_out, y_out, x_in, y_in, target) {
 }
 
 call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max = 1,
-                             bayes_prob = 0.95, bayes = TRUE, perm_null = NULL) {
-  peak_drop <- max(peak_drop, lod_drop)
+                             bayes_prob = 0.95, bayes = TRUE, perm_null = NULL, interval_floor = NULL, min_sep = 0) {
+  # interval_floor: for the ML scores (importance / permutation threshold) a LOD drop has no meaning; the support
+  # interval is then the stretch of markers whose score stays >= interval_floor, and peak_drop is in score units.
+  # min_sep (cM): peaks closer than this are one QTL (the ML methods put the importance of a linked block on a single marker).
+  if (is.null(interval_floor)) peak_drop <- max(peak_drop, lod_drop)
+  if (!"Importance" %in% names(scan_all)) scan_all$Importance <- NA_real_
   sc <- scan_all[!is.na(scan_all$LOD) & !is.na(scan_all$Position), , drop = FALSE]
   out <- list()
-  keep_cols <- c("Marker", "Position", "LOD", "P_Value", "PVE_Marker_Percent", "PVE_CIM_Percent",
+  keep_cols <- c("Marker", "Position", "LOD", "Importance", "P_Value", "PVE_Marker_Percent", "PVE_CIM_Percent",
                  "Additive_Effect", "SE_Additive", "CI_Lower", "CI_Upper", "Dominance_Effect",
                  "Dominance_Ratio", "Dominance_Class", "N_Cofactors", "N_Samples", "Method")
 
@@ -719,7 +811,7 @@ call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max
     for (j in cand) {
       separate <- TRUE
       for (k in peaks) {
-        if (min(lod[min(j, k):max(j, k)]) > lod[j] - peak_drop) { separate <- FALSE; break }
+        if (min(lod[min(j, k):max(j, k)]) > lod[j] - peak_drop || abs(pos[j] - pos[k]) < min_sep) { separate <- FALSE; break }
       }
       if (separate) peaks <- c(peaks, j)
     }
@@ -738,7 +830,7 @@ call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max
     w[w <= 0] <- if (any(w > 0)) min(w[w > 0]) / 10 else 1
 
     for (a in seq_len(k)) {
-      i <- peaks[a]; target <- lod[i] - lod_drop
+      i <- peaks[a]; target <- if (is.null(interval_floor)) lod[i] - lod_drop else min(interval_floor, lod[i])
       li <- i; while (li > dstart[a] && lod[li - 1] >= target) li <- li - 1L
       ri <- i; while (ri < dend[a]   && lod[ri + 1] >= target) ri <- ri + 1L
       lf <- if (li > 1) li - 1L else 1L
@@ -768,11 +860,11 @@ call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max
              Interval_Size_cM = pos[rf] - pos[lf],
              CI_Start_cM = ci_s, CI_End_cM = ci_e, Bayes_Start_cM = b_s, Bayes_End_cM = b_e,
              N_Markers_In_Region = rf - lf + 1L),
-        row[c("LOD", "P_Value")], list(Genomewide_P = gw),
+        row[c("LOD", "Importance", "P_Value")], list(Genomewide_P = gw),
         row[c("PVE_Marker_Percent", "PVE_CIM_Percent", "Additive_Effect", "SE_Additive", "CI_Lower",
               "CI_Upper", "Dominance_Effect", "Dominance_Ratio", "Dominance_Class", "N_Cofactors",
               "N_Samples", "Method")],
-        list(Threshold_LOD = thr, LOD_Drop = lod_drop))
+        list(Threshold_LOD = thr, LOD_Drop = if (is.null(interval_floor)) lod_drop else NA_real_))
     }
   }
   res <- rows_to_df(out)
@@ -781,7 +873,8 @@ call_qtl_regions <- function(scan_all, thr, lod_drop = 1.5, peak_drop = 2, p_max
   res$QTL_ID <- ave(seq_len(nrow(res)), res$Chromosome, FUN = seq_along)
   res$QTL_ID <- paste0("QTL_", res$Chromosome, ".", res$QTL_ID)
   rownames(res) <- NULL
-  res[, REGION_COLUMNS, drop = FALSE]
+  if (all(is.na(res$Importance))) res$Importance <- NULL          # only the ML methods have one
+  res[, intersect(REGION_COLUMNS, names(res)), drop = FALSE]
 }
 
 # Label every scanned marker with the QTL region it lies in.
@@ -798,7 +891,7 @@ tag_scan_regions <- function(scan_all, regions) {
 # ============================================================
 # MANHATTAN (one panel per chromosome, QTL regions shaded)
 # ============================================================
-draw_manhattan <- function(scan_all, regions, thr, plot_cfg, title = NULL) {
+draw_manhattan <- function(scan_all, regions, thr, plot_cfg, title = NULL, ylab = "LOD") {
   pd <- scan_all[!is.na(scan_all$LOD) & !is.na(scan_all$Position) & !is.na(scan_all$Chromosome), , drop = FALSE]
   if (nrow(pd) == 0) { plot.new(); text(0.5, 0.5, "No scan results"); return(invisible()) }
   pd$Chromosome <- as.character(pd$Chromosome)
@@ -812,7 +905,7 @@ draw_manhattan <- function(scan_all, regions, thr, plot_cfg, title = NULL) {
     d <- pd[pd$Chromosome == chr, , drop = FALSE]
     d <- d[order(d$Position), , drop = FALSE]
     ymax <- max(d$LOD, thr, na.rm = TRUE) * 1.12
-    plot(d$Position, d$LOD, type = "n", xlab = paste("Chr", chr, "position (cM)"), ylab = "LOD",
+    plot(d$Position, d$LOD, type = "n", xlab = paste("Chr", chr, "position (cM)"), ylab = ylab,
          main = paste("Chr", chr), ylim = c(0, ymax), frame.plot = FALSE)
     rg <- regions[as.character(regions$Chromosome) == chr, , drop = FALSE]
     for (i in seq_len(nrow(rg))) {
@@ -843,7 +936,10 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
                                                qtl_size_min   = 0.7,
                                                qtl_size_max   = 2.0,
                                                x_gap          = 1.8,
-                                               lane_step      = 0.26) {
+                                               lane_step      = 0.26,
+                                               label_fun      = NULL,                 # text beside each QTL dot (default: its LOD)
+                                               legend_title   = "Models",
+                                               legend_note    = "bar = flanking-marker interval\ndot = QTL peak (LOD)") {
   if (is.null(all_markers_df) || nrow(all_markers_df) == 0) return(invisible(NULL))
 
   chroms    <- chr_order(all_markers_df$Chromosome)
@@ -890,7 +986,8 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
         segments(x_center + bar_w/2, q$Peak_Position[ri], x_off, q$Peak_Position[ri], col = col_m, lwd = 1)
         points(x_off, q$Peak_Position[ri], pch = 16, col = col_m,
                cex = pmax(qtl_size_min, pmin(qtl_size_max, 0.6 + q$LOD[ri] / 8)))
-        text(x_off + 0.12, q$Peak_Position[ri], round(q$LOD[ri], 1), cex = 0.55, col = col_m, font = 2, adj = 0)
+        lab <- if (is.null(label_fun)) round(q$LOD[ri], 1) else label_fun(q)[ri]
+        text(x_off + 0.12, q$Peak_Position[ri], lab, cex = 0.55, col = col_m, font = 2, adj = 0)
       }
     }
     text(x_center, chr_min - max_pos * 0.04, paste0("Chr", chr), cex = 0.72, font = 2, col = "#1A1A1A", adj = 0.5)
@@ -898,7 +995,7 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
 
   legend_x <- n_chr * x_gap + 0.5
   legend_y <- max_pos * 0.95
-  text(legend_x, legend_y + max_pos * 0.07, "Models", cex = 0.75, font = 2, col = "#1A1A1A", adj = 0)
+  text(legend_x, legend_y + max_pos * 0.07, legend_title, cex = 0.75, font = 2, col = "#1A1A1A", adj = 0)
   for (ti in seq_along(model_names)) {
     tr <- model_names[ti]
     col_m <- model_colors[tr]; if (is.na(col_m)) col_m <- "#CC0000"
@@ -909,7 +1006,7 @@ make_chromosome_ideogram_reference <- function(qtl_list, all_markers_df,
     text(legend_x + 0.18, y_leg, paste0(tr, " (", n_sig, " QTL)"), cex = 0.65, col = col_m, adj = 0)
   }
   text(legend_x, legend_y - length(model_names) * max_pos * 0.07 - max_pos * 0.03,
-       "bar = flanking-marker interval\ndot = QTL peak (LOD)", cex = 0.55, col = "#555555", adj = c(0, 1))
+       legend_note, cex = 0.55, col = "#555555", adj = c(0, 1))
 
   ttl <- if (!is.null(title_str)) title_str else paste0("QTL regions  |  LOD >= ", signif(lod_threshold, 3))
   title(main = ttl, cex.main = 0.95, font.main = 2, col.main = "#1A1A1A", line = 2)

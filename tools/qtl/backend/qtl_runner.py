@@ -10,7 +10,7 @@ from tools.qtl.backend.qtl_compare_plots import plot_common, plot_comparison, to
 from tools.qtl.backend.qtl_regions import cluster_regions, load_regions
 
 # One R run per model; ML models on big panels can take a while.
-R_TIMEOUT_S = 1800
+R_TIMEOUT_S = 3600
 
 
 def _r_error_message(stderr, stdout):
@@ -292,7 +292,7 @@ def find_common_qtl(
     common = [c for c in cluster_regions(regions) if c["N_Models_Detected"] >= min_models]
     common.sort(key=lambda x: (-x["N_Models_Detected"], -x["Max_LOD"]))
 
-    ideogram, bar = plot_common(common, model_results, min_models, out_dir)
+    ideogram, bar = plot_common(common, model_results, min_models, out_dir, config.get("plot"))
     csv_path = _write_table(common, Path(out_dir) / "common_regions.csv")
 
     return to_native({

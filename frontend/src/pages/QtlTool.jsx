@@ -31,6 +31,8 @@ const QTL_COLS = ['QTL_ID', 'Chromosome', 'Left_Marker', 'Peak_Marker', 'Right_M
 const CMP_COLS = ['Region_ID', 'Chromosome', 'Left_Marker', 'Peak_Marker', 'Right_Marker', 'Left_Position', 'Right_Position', 'Region_Size_cM',
   'Left_Mb', 'Peak_Mb', 'Right_Mb', 'Order_Check', 'N_Models_Detected', 'Models_List', 'Peak_Range_cM', 'Mean_LOD', 'Max_LOD', 'Mean_PVE']
 const COMMON_COLS = CMP_COLS
+const ML_METHODS = ['RF', 'SVR', 'XGBOOST']
+const ML_COLS = QTL_COLS.flatMap((c) => (c === 'LOD' ? ['LOD', 'Importance'] : [c]))
 
 const PLOT_DEFAULTS = {
   manhattan_height: 800, manhattan_width: 1400, nonsig_point_size: 6, sig_point_size: 10,
@@ -60,6 +62,7 @@ export default function QtlTool() {
   const [thrMode, setThrMode] = useState('lod')
   const [nPerm, setNPerm] = useState(1000)
   const [permAlpha, setPermAlpha] = useState(0.05)
+  const [nPermMl, setNPermMl] = useState(100)
   const [plot, setPlot] = useState(PLOT_DEFAULTS)
   const [models, setModels] = useState(['SIM', 'CIM', 'MQM'])
   const [cmp, setCmp] = useState(null)
@@ -99,7 +102,7 @@ export default function QtlTool() {
   }
 
   const settings = () => ({
-    threshold_mode: thrMode, lod_threshold: lod, n_perm: nPerm, perm_alpha: permAlpha, p_threshold: pThr,
+    threshold_mode: thrMode, lod_threshold: lod, n_perm: nPerm, n_perm_ml: nPermMl, perm_alpha: permAlpha, p_threshold: pThr,
     lod_drop: lodDrop, peak_drop: peakDrop, validation_fraction: valFrac, n_cofactors: cof, window_size: win,
   })
   const run = () => {
@@ -114,7 +117,7 @@ export default function QtlTool() {
       genotype_file: geno, phenotype_file: pheno, phenotype_column: trait, models, ...settings(), plot,
     }))
   }
-  const findCommon = () => { setCommonStatus('Searching…'); setCommonBusy(true); bridge.find_common(JSON.stringify({ min_models: minModels, lod_threshold: lod })) }
+  const findCommon = () => { setCommonStatus('Searching…'); setCommonBusy(true); bridge.find_common(JSON.stringify({ min_models: minModels, lod_threshold: lod, plot })) }
   const savePlot = () => { bridge.save_plot_settings(JSON.stringify(plot)); tool.setStatus('Plot settings saved.') }
   const dl = (t) => bridge && bridge.download_result(t)
 
@@ -146,9 +149,22 @@ export default function QtlTool() {
             </Card>
             <Card title="Analysis Settings" icon={Settings2} delay={0.06}>
               <SelectField label="Mapping Method" value={method} onChange={setMethod} options={METHODS} />
-              <SelectField label="Significance threshold" value={thrMode} onChange={setThrMode}
-                options={[{ value: 'lod', label: 'Fixed LOD threshold' }, { value: 'permutation', label: 'Genome-wide permutation test (SIM / CIM / MQM)' }]} />
-              {thrMode === 'lod' ? (
+              {ML_METHODS.includes(method) ? (
+                <>
+                  <div className="grid-2">
+                    <TextField label="Permutations (ML)" type="number" min={20} max={1000} step={10} value={nPermMl} onChange={setNPermMl} />
+                    <TextField label="Genome-wide α" type="number" min={0.01} max={0.2} step={0.01} value={permAlpha} onChange={setPermAlpha} />
+                  </div>
+                  <Note>
+                    The importance of a marker is not a likelihood and has no scale of its own, so it is tested by permutation: the trait is shuffled, the same {method === 'RF' ? 'Random Forest' : method === 'SVR' ? 'support vector regression' : 'XGBoost'} model
+                    is fitted again and the largest marker importance of the genome is kept; the (1 − α) quantile of those maxima is the threshold. The score shown is <b>importance / threshold</b> (a QTL needs at least 1; it is not a LOD)
+                    and the P-value is the genome-wide permutation P. Each permutation is a full model fit (RF takes the longest, with thousands of markers several seconds each), so the number of permutations is reduced automatically if the run would take more than about 20 minutes.
+                    SVR uses every marker, so its null is scaled by an inflation factor (the median importance of the real fit over that of the shuffled fits, never below 1). Support intervals are the stretch of markers whose score stays above 1; peaks closer than the CIM window count as one QTL. Use ML results to rank candidate regions; confirm QTL with CIM / MQM.
+                  </Note>
+                </>
+              ) : (<SelectField label="Significance threshold" value={thrMode} onChange={setThrMode}
+                options={[{ value: 'lod', label: 'Fixed LOD threshold' }, { value: 'permutation', label: 'Genome-wide permutation test (SIM / CIM / MQM)' }]} />)}
+              {ML_METHODS.includes(method) ? null : thrMode === 'lod' ? (
                 <Slider label="LOD Threshold" value={lod} onChange={setLod} min={0.5} max={10} step={0.1} format={(v) => v.toFixed(1)} />
               ) : (
                 <div className="grid-2">
@@ -160,7 +176,6 @@ export default function QtlTool() {
                 <Note>
                   Every permutation repeats the whole {method} analysis on the shuffled phenotype (the cofactors are selected again, then the scan), as Doerge &amp; Churchill (1996) advise;
                   a single-marker null would give a threshold that is too low. It takes longer than SIM: about 0.15 s per permutation for 250 lines and 4,000 markers.
-                  RF, SVR and XGBoost use the typed LOD threshold.
                 </Note>
               )}
               <div className="grid-2" style={{ marginTop: 6 }}>
@@ -174,12 +189,12 @@ export default function QtlTool() {
                   <TextField label="CIM window (cM)" type="number" min={1} max={50} value={win} onChange={setWin} />
                 </div>
               )}
-              <Slider label="Hold-out fraction (0 = use all individuals)" value={valFrac} onChange={setValFrac} min={0} max={0.4} step={0.05} format={(v) => v.toFixed(2)} />
+              <Slider label="Hold-out fraction (lines kept back to test the model; 0 = use all)" value={valFrac} onChange={setValFrac} min={0} max={0.4} step={0.05} format={(v) => v.toFixed(2)} />
               <Note>
                 A QTL is a region: one peak (local LOD maximum above the threshold and p-value cut-off) with the flanking markers
                 where the LOD falls more than the “LOD drop” below the peak. Two peaks on a chromosome are separate QTL only if the
-                curve dips by at least “Peak separation” between them. RF / SVR / XGBoost scores are importance values on a LOD-like
-                scale, not true LOD.
+                curve dips by at least “Peak separation” between them. For RF / SVR / XGBoost the score is importance / permutation threshold
+                (not a LOD), the support interval is where it stays above 1, and the hold-out lines are used to report the prediction R².
               </Note>
             </Card>
             <Card title="Dataset Information" icon={Database} delay={0.12}>
@@ -214,12 +229,19 @@ export default function QtlTool() {
               <Pic src={r.ideogram} label="QTL Chromosome Ideogram" />
               <div className="plot-title">QTL regions</div>
               <div className="info-line">
-                {s.significant_qtl ?? 0} QTL · LOD threshold {s.threshold_lod != null ? Number(s.threshold_lod).toFixed(2) : '—'}
-                {s.threshold_note ? ` (${s.threshold_note})` : ''} · support interval {s.lod_drop}-LOD drop
+                {s.significant_qtl ?? 0} QTL · {ML_METHODS.includes(s.method) ? 'score threshold 1 (importance / permutation threshold)' : `LOD threshold ${s.threshold_lod != null ? Number(s.threshold_lod).toFixed(2) : '—'}`}
+                {s.threshold_note ? ` (${s.threshold_note})` : ''} · {ML_METHODS.includes(s.method) ? 'support interval: score stays above 1' : `support interval ${s.lod_drop}-LOD drop`}
                 {s.imputed_genotypes ? ` · ${s.imputed_genotypes} missing genotypes filled from flanking markers` : ''}
                 {s.cofactors && s.cofactors.length ? ` · cofactors: ${s.cofactors.join(', ')}` : ''}
               </div>
-              <DataTable rows={r.qtl_table} columns={QTL_COLS} maxHeight={420} />
+              {(s.validation || s.oob_r2 != null) && (
+                <div className="info-line">
+                  {s.validation ? `Held-out lines (${s.validation.n_test} of ${s.validation.n_train + s.validation.n_test}), ${s.validation.model}: prediction R² ${Number(s.validation.r2).toFixed(2)}, RMSE ${Number(s.validation.rmse).toFixed(2)}, r ${Number(s.validation.correlation).toFixed(2)}` : ''}
+                  {s.validation && s.oob_r2 != null ? ' · ' : ''}
+                  {s.oob_r2 != null ? `out-of-bag R² ${Number(s.oob_r2).toFixed(2)}` : ''}
+                </div>
+              )}
+              <DataTable rows={r.qtl_table} columns={ML_METHODS.includes(s.method) ? ML_COLS : QTL_COLS} maxHeight={420} />
               <div className="field-hint" style={{ marginTop: 8 }}>
                 Additive effect (a) = half the difference between the two homozygote classes, in trait units; positive means the allele
                 of the higher-coded parent (genotype 2 / “b”) raises the trait. For CIM / MQM it is estimated with the background

@@ -198,7 +198,32 @@ def _counts_bar(model_results, scans, out_dir):
 
 # ───────────────────────── Common QTL ─────────────────────────
 
-def plot_common(common_rows, model_results, min_models, out_dir):
+def _r_common_ideogram(common_rows, model_results, min_models, out_dir, plot_cfg=None):
+    """The Common QTL chromosome map in the design of the Compare Models figure (R); None when R is not available / fails."""
+    from tools.common.r_locator import find_rscript, get_r_env
+    from tools.common.subprocess_utils import no_window_kwargs
+
+    rscript = find_rscript()
+    full = [r.get("full_csv") for r in model_results.values() if r.get("full_csv")]
+    if rscript is None or not full:
+        return None
+    out = Path(out_dir) / "common_ideogram.png"
+    with tempfile.TemporaryDirectory() as tmp:
+        reg = Path(tmp) / "common.csv"
+        pd.DataFrame(common_rows).to_csv(reg, index=False)
+        cfg = Path(tmp) / "ideogram.json"
+        cfg.write_text(json.dumps({"regions_csv": str(reg), "full_csvs": full, "plot": plot_cfg or {},
+                                   "min_models": int(min_models), "n_models": len(model_results)}), encoding="utf-8")
+        p = subprocess.run([str(rscript), str(BACKEND_DIR / "qtl_common_ideogram.R"), str(cfg), str(out)],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                           cwd=str(BACKEND_DIR), env=get_r_env(rscript), timeout=600, **no_window_kwargs())
+    if p.returncode != 0 or not out.exists():
+        print("[QTL] common ideogram (R) failed:", (p.stderr or p.stdout)[-600:], flush=True)
+        return None
+    return str(out.resolve()).replace("\\", "/")
+
+
+def plot_common(common_rows, model_results, min_models, out_dir, plot_cfg=None):
     scans = load_scans(model_results)
     if not scans:
         return None, None
@@ -208,6 +233,7 @@ def plot_common(common_rows, model_results, min_models, out_dir):
     max_models = len(scans)
     cmap = {k: c for k, c in zip(range(2, 7), ["#95d5b2", "#52b788", "#2d6a4f", "#1b4332", "#081c15"])}
 
+    ideogram = _r_common_ideogram(common_rows, model_results, min_models, out_dir, plot_cfg)
     fig = Figure(figsize=(max(7, 1.3 * len(order) + 2), 6.5))
     ax = fig.add_subplot(111)
     _draw_chromosomes(ax, order, lengths)
@@ -225,7 +251,8 @@ def plot_common(common_rows, model_results, min_models, out_dir):
               loc="upper left", bbox_to_anchor=(1.0, 1.0), frameon=False, title="Detected by", fontsize=9)
     ax.set_title(f"Common QTL regions (found by ≥ {min_models} models)", color=INK, fontsize=12, fontweight="bold")
     _style(ax)
-    ideogram = _save(fig, out_dir / "common_ideogram.png")
+    if not ideogram:                                   # R not available: the plain matplotlib version
+        ideogram = _save(fig, out_dir / "common_ideogram.png")
 
     fig = Figure(figsize=(max(5.5, 0.9 * len(order) + 2), 4.2))
     ax = fig.add_subplot(111)

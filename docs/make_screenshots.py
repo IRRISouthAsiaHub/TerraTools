@@ -126,6 +126,29 @@ def sc_mendelian(a):
         dict(text="Filtered Markers", sel="button", note="Downloads: markers that pass the test, the full table and the LM-ready file for Linkage Mapping."),
         dict(sel=".summary-box", note="Summary: markers tested, inconclusive, flagged distorted, passing the quality check, and calls outside the model."),
     ])
+    # The dense simulated RIL demo (4,499 markers): the graph a normal RIL gives
+    dense = Path(__file__).resolve().parent.parent / "Demo_Input_Files" / "02_Mendelian_Segregation" / "input" / "coded_genotypes_RIL_4k_simulated.csv"
+    yield from a.size(1000)
+    yield from a.tab("Input & Settings")
+    yield from a.browse(0, dense, wait=2500)
+    yield from a.run_and_wait(240)
+    yield from a.shot("mendelian_results_4k", title="Mendelian Segregation — a dense RIL map", height=1750, callouts=[
+        dict(sel=".result-card", nth=0, note="Most markers sit near zero; three regions rise above the dashed cut-off (chromosomes 3, 6 and 9): real distortion regions."),
+        dict(sel=".result-card", nth=1, note="Heterozygosity: low (about 1 %) along all chromosomes, as in an advanced RIL."),
+        dict(sel=".result-card", nth=2, note="Distortion summary: concentrated on chromosomes 3, 6 and 9."),
+    ])
+    # A population with a strong, genome-wide excess of one parent (a backcross-derived set tested as a RIL)
+    skew = Path(r"C:\Users\baboo\Downloads\4k_QTL_mapping_population_coded.csv")
+    if skew.exists():
+        yield from a.size(1000)
+        yield from a.tab("Input & Settings")
+        yield from a.browse(0, skew, wait=2500)
+        yield from a.run_and_wait(240)
+        yield from a.shot("mendelian_results_skewed", title="Mendelian Segregation — a population that is not a RIL", height=1750, callouts=[
+            dict(sel=".result-card", nth=0, note="Almost every marker is far above the cut-off on every chromosome: a genome-wide skew, not a few distorted regions."),
+            dict(sel=".result-card", nth=2, note="The share of distorted markers is high (63 to 95 %) on all twelve chromosomes."),
+            dict(sel=".summary-box", note="Summary: 3,687 of 4,454 tested markers are distorted against 1 : 1."),
+        ])
 
 
 # ───────────────────────── 2. Linkage ─────────────────────────
@@ -170,12 +193,23 @@ def sc_qtl(a):
         label("Support interval", "Support-interval LOD drop: 1.5 gives roughly a 95% interval around each peak."),
     ])
     yield from a.run_and_wait(240)
-    yield from a.shot("qtl_results", title="QTL Mapping — results", height=1350, callouts=[
+    yield from a.shot("qtl_results", title="QTL Mapping — results", height=2000, callouts=[
+        dict(sel=".downloads", note="Downloads: the Manhattan and ideogram figures, the QTL table and the full scan of every marker."),
         dict(text="Chromosome-wise Manhattan Plot", sel=".plot-title", note="LOD curve of every chromosome; shaded bands are the QTL regions."),
+        dict(text="Chromosome Ideogram", sel=".plot-title", note="The chromosomes with every QTL as a bar between its flanking markers and a dot at the peak; the dot grows with the LOD."),
     ])
     yield from a.shot("qtl_table", title="QTL Mapping — the QTL table", height=1100, focus=dict(text="QTL regions", sel=".plot-title"), callouts=[
         dict(text="QTL regions", sel=".plot-title", note="One row per QTL: left, peak and right flanking marker, interval size, LOD, p-value, effects."),
         dict(sel="table", nth=0, note="Scroll the table sideways for more columns (effect size, PVE, confidence intervals)."),
+    ])
+    yield from a.tab("Compare Models")
+    yield from a.click(text="Run Comparison", sel="button")
+    yield 45000
+    yield from a.shot("qtl_compare", title="QTL Mapping — Compare Models", height=1700, callouts=[
+        card("Compare QTL Mapping Models", "Tick the methods to compare and click Run Comparison; the settings of the Analysis tab are used."),
+        card("Multi-Model Ideogram", "One lane and one colour per method on the chromosome map: SIM pink, CIM red, MQM orange, RF grey, SVR light blue, XGBoost purple."),
+        card("QTL Counts per Model", "How many regions each method found."),
+        card("Comparison Table", "One row per region: flanking and peak markers, size, how many methods found it, which ones, and the mean and maximum LOD and PVE."),
     ])
 
 

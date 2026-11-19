@@ -81,7 +81,9 @@
  "qtl_results": {
   "title": "QTL Mapping \u2014 results",
   "notes": [
-   "LOD curve of every chromosome; shaded bands are the QTL regions."
+   "Downloads: the Manhattan and ideogram figures, the QTL table and the full scan of every marker.",
+   "LOD curve of every chromosome; shaded bands are the QTL regions.",
+   "The chromosomes with every QTL as a bar between its flanking markers and a dot at the peak; the dot grows with the LOD."
   ]
  },
  "qtl_table": {
@@ -494,6 +496,31 @@
    "One row per region and window size: left, peak and right marker with their positions, adjusted p-value, LOD and the allele-frequency difference.",
    "Lists the genes of a GFF3 / GTF annotation that lie in a region, widened by a flank.",
    "Gw along the genome for the three window sizes, the loci, Gw against the allele-frequency statistics, the genotype classes in the two pools, the trait distribution and the permutation null."
+  ]
+ },
+ "qtl_compare": {
+  "title": "QTL Mapping \u2014 Compare Models",
+  "notes": [
+   "Tick the methods to compare and click Run Comparison; the settings of the Analysis tab are used.",
+   "One lane and one colour per method on the chromosome map: SIM pink, CIM red, MQM orange, RF grey, SVR light blue, XGBoost purple.",
+   "How many regions each method found.",
+   "One row per region: flanking and peak markers, size, how many methods found it, which ones, and the mean and maximum LOD and PVE."
+  ]
+ },
+ "mendelian_results_skewed": {
+  "title": "Mendelian Segregation \u2014 a population that is not a RIL",
+  "notes": [
+   "Almost every marker is far above the cut-off on every chromosome: a genome-wide skew, not a few distorted regions.",
+   "The share of distorted markers is high (63 to 95 %) on all twelve chromosomes.",
+   "Summary: 3,687 of 4,454 tested markers are distorted against 1 : 1."
+  ]
+ },
+ "mendelian_results_4k": {
+  "title": "Mendelian Segregation \u2014 a dense RIL map",
+  "notes": [
+   "Most markers sit near zero; three regions rise above the dashed cut-off (chromosomes 3, 6 and 9): real distortion regions.",
+   "Heterozygosity: low (about 1 %) along all chromosomes, as in an advanced RIL.",
+   "Distortion summary: concentrated on chromosomes 3, 6 and 9."
   ]
  }
 }

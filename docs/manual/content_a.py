@@ -133,7 +133,7 @@ Run it before building a linkage map or mapping QTL, so that badly behaved marke
 <p>An <b>F1</b> is refused: all its plants are heterozygous, so there is no segregation to test. The two backcross directions are separate types because the expected classes differ, and a backcross is never tested as a RIL.</p>
 <p>Both tests are exact, so they stay valid when a marker has few calls. The <b>binomial</b> test compares the two classes with 1 : 1. The <b>multinomial</b> test lists every possible outcome for the number of calls and adds up the probability of all outcomes that are no more likely than the one observed; with more than 200 calls the expected counts are large and the χ² approximation is used. A marker is <b>inconclusive</b> when it has no usable call, or so few that even the most extreme outcome could not give a p-value below α (for a two-class marker, fewer than 6 calls at α = 0.05). It is neither called distorted nor passed, and it does not take part in the multiple-testing correction.</p>
 {table(["Setting", "What it does"], [
-    ["Population type", "Each type has its own model, and a type without one is refused (see the table below). Choosing the wrong type tests the wrong ratio, so set it to the generation you genotyped."],
+    ["Population type", "Each type has its own model, and a type without one is refused (see the table above). Choosing the wrong type tests the wrong ratio, so set it to the generation you genotyped."],
     ["Significance threshold (α)", "A marker is called <i>distorted</i> when its <b>corrected</b> p-value (<code>p_adj</code>) is below α."],
     ["Multiple-testing correction", "<b>FDR (Benjamini-Hochberg)</b>, the default, <b>Bonferroni</b>, or <b>None</b> (raw p). Testing hundreds of markers at a raw α of 0.05 flags many by chance alone, so a correction is recommended. It is applied over the conclusive markers (inconclusive ones are left out), before unplaced markers are dropped."],
     ["Missing data", "Comma-separated codes counted as missing. The default is <code>NA,.,-9,-1</code>."],
@@ -148,6 +148,12 @@ Run it before building a linkage map or mapping QTL, so that badly behaved marke
      "<b>Full Results (CSV):</b> every marker with its counts (<code>c0, c1, c2</code>), <code>n</code> (calls used in the test), <code>n_unexpected</code>, the test used, χ², p, <code>p_adj</code>, <code>call</code> (<i>distorted</i>, <i>not distorted</i>, <i>inconclusive</i> or <i>no data</i>), heterozygosity, −log10 p and the genotype calls.",
      "<b>Filtered Markers (CSV):</b> the markers called <i>not distorted</i>, i.e. that pass the quality check, with their genotypes. Inconclusive markers are not in it.",
      "<b>LM-ready File (XLSX):</b> the same markers as just Marker, Chromosome and the genotype calls, ready to load in Linkage Mapping."])}
+{box("key", "<b>Example with a real RIL population</b> (<code>Demo_Input_Files/02_Mendelian_Segregation</code>: 334 markers, 176 rice RILs, type <b>RIL</b>, α = 0.05). All 334 markers are conclusive, and the 2,069 heterozygous calls are not part of the test and are listed in the summary. The correction changes the result a great deal: <b>FDR</b> flags 37 markers as distorted (chromosome 1: 16, chromosome 6: 10, chromosome 3: 7, chromosome 8: 3, chromosome 7: 1) and 297 pass; <b>Bonferroni</b> flags 8 (chromosomes 1, 3 and 6) and 326 pass; <b>None</b> flags 95, mostly by chance. The heterozygosity plot stays at 3 to 9 %, as expected in RILs, and the distortion summary shows the distortion concentrated on chromosomes 1, 3 and 6.")}
+<h3>A dense RIL map, and a population that is not a RIL</h3>
+{box("key", "<b>A dense demo map</b> (<code>Demo_Input_Files/02_Mendelian_Segregation/input/coded_genotypes_RIL_4k_simulated.csv</code>: 4,499 markers, 150 simulated RILs on 12 chromosomes, about 4 % missing and 1 % heterozygous). Type <b>RIL</b>, FDR: 156 markers are distorted and 4,343 pass. Most of the genome sits near zero in the segregation plot, and <b>three regions rise above the cut-off</b>, on chromosomes 3 (about 21 to 29 Mb), 9 and 6; the distortion summary shows the same three chromosomes. This is what a normal RIL gives: a few localised regions, not a scatter of markers. Bonferroni keeps only the strongest region (27 markers on chromosome 3), and <b>None</b> flags 571 markers on nine chromosomes.")}
+{figure("mendelian_results_4k")}
+{box("warn", "<b>When almost every marker is distorted.</b> If the segregation plot is far above the cut-off on <b>every</b> chromosome, the population is probably not the type you chose. An example is a backcross-derived set (a recurrent parent crossed in two or three times, then selfed) tested as a RIL: about 87 % of the calls were parent 1 on all twelve chromosomes, and 3,687 of 4,454 markers were flagged against 1 : 1. The test is working; the expected ratio is wrong. Choose the type that matches the generation, and use <i>Distortion summary</i> and the share of parent 1 to check the recurrent-parent content. A region that stands out against a flat background is distortion; a whole genome that is skewed is the population.")}
+{figure("mendelian_results_skewed")}
 {box("tip", "A distorted region is not always a problem: it can point to a gametic selection factor or a sterility locus. Compare with the map position before deleting a whole stretch of markers.")}
 """
 
@@ -214,7 +220,14 @@ LOD, p-value and effect at the peak — following the usual interval-mapping pra
     ["Hold-out fraction", "Fraction of individuals set aside before mapping. Leave at 0 to use everyone."]])}
 <h3>Reading the results</h3>
 {figure("qtl_results")}
-<p>Each panel is one chromosome: the curve is the LOD along the chromosome, the dashed line the threshold, the red diamond the QTL peak, and the shaded band the QTL region.</p>
+<p>The Results tab has three parts. The buttons at the top download the <b>Manhattan PNG</b>, the <b>Ideogram PNG</b>, the <b>QTL Table CSV</b> and the <b>Full Scan CSV</b> (the LOD and the p-value of every marker).</p>
+{ul(["<b>Chromosome-wise Manhattan plot.</b> Each panel is one chromosome: the curve is the LOD along the chromosome, the dashed line the threshold, the red diamond the QTL peak, and the shaded band the QTL region.",
+     "<b>Chromosome ideogram.</b> Every chromosome is drawn as a banded bar with its markers; each QTL is a bar between its flanking markers with a dot at the peak and the LOD written beside it, and the dot grows with the LOD. The ideogram is drawn with R, and it is the same drawing that the Compare Models tab uses for several methods at once.",
+     "<b>QTL regions.</b> The line above the table gives the number of QTL, the LOD threshold and how it was obtained (for the permutation test with CIM or MQM it also says that the cofactors were selected again in every permutation), the support interval, the number of missing genotypes that were filled in and the cofactors that CIM or MQM chose."])}
+<h3>Plot Settings</h3>
+<p>The <b>Plot Settings</b> tab sets the look of the two figures. The settings apply the next time you run an analysis or a comparison, so change them before you click <b>Run QTL Analysis</b>, and click <b>Save Plot Settings</b> when you are done.</p>
+{ul(["<b>Manhattan plot:</b> height and width in pixels, the size and the colour of the points that do and do not reach the threshold, and the width and style of the threshold line (solid, dashed, dotted or dash-dot).",
+     "<b>Ideogram:</b> height and width in pixels, the dark band, light band and border colours of the chromosomes, and the smallest and the largest size of the QTL dots."])}
 {figure("qtl_table")}
 {table(["Column", "Meaning"], [
     ["QTL_ID", "Name of the QTL (chromosome and order along it)."],
@@ -225,8 +238,12 @@ LOD, p-value and effect at the peak — following the usual interval-mapping pra
     ["Additive_Effect, SE_Additive", "Half the difference between the two homozygous classes, in trait units. Positive means the higher-coded allele (genotype 2) raises the trait. For CIM / MQM it is estimated with the background markers in the model."],
     ["Dominance_Effect, Dominance_Class", "Departure of the heterozygote from the mid-point (F2 only) and a label: additive, partial dominance, dominance, overdominance."]])}
 <h3>Compare Models and Common QTL</h3>
-<p>The <b>Compare Models</b> tab runs several methods on the same data and lines their QTL regions up; two methods found “the same QTL” when their regions overlap.
-<b>Common QTL</b> then keeps the regions that at least <i>n</i> methods agree on. Both tables can be downloaded as CSV.</p>
+<p>The <b>Compare Models</b> tab runs several methods on the same data, with the trait, threshold and settings of the Analysis tab (SIM, CIM and MQM are ticked at first; tick others to add them), and lines their QTL regions up; two methods found “the same QTL” when their regions overlap. It gives three things:</p>
+{figure("qtl_compare")}
+{ul(["<b>Multi-model ideogram:</b> the chromosome map of the single run, with <b>one lane and one colour per method</b>: SIM pink, CIM bright red, MQM orange, RF grey, SVR light blue and XGBoost purple. Regions that several lanes share are the QTL that the methods agree on.",
+     "<b>QTL counts per model:</b> a bar chart of the number of regions each method found.",
+     "<b>Comparison table</b> (download as CSV): one row per region with its flanking and peak markers, its size in cM, the number of methods that detected it and which ones, the spread of the peak positions, and the mean and the maximum LOD and PVE. When the marker names carry their physical position (<code>chr02_16919033</code>) the region is also given in Mb, and <i>Order_Check</i> says whether the map follows the physical order, runs against it or differs from it between the three markers."])}
+<p>The <b>Common QTL</b> tab then keeps the regions that at least <i>n</i> methods agree on (set <b>Minimum Models Detecting QTL</b>, 2 to 6, and click <b>Find Common QTL</b>). It shows the same kind of ideogram for those regions, a bar chart of how many methods found each, and a table that can be downloaded as CSV.</p>
 {box("tip", "The quickest way to a convincing result: run CIM with the permutation threshold, then compare CIM, SIM and MQM. QTL found by all three are the ones to trust.")}
 """
 

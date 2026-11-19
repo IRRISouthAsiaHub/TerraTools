@@ -1,12 +1,12 @@
 # TerraTools demo input files
 
-Small, purpose-built inputs for all 19 tools. Each folder holds `input/` (the files to load), `expected_output/` (what the tool produced when we ran it, so you can compare)
+Small, purpose-built inputs for all 21 tools. Each folder holds `input/` (the files to load), `expected_output/` (what the tool produced when we ran it, so you can compare)
 and `README.txt` (the exact settings to enter, the run time and the numbers you should see).
 
 | # | Tool | Run time* | Headline result |
 |---|------|-----------|-----------------|
 | 01 | Phenotypic Data Analysis | 5-30 s per analysis | Yield heritability 0.49 (plot) / 0.74 (entry mean); Wet_2024 yields most |
-| 02 | Mendelian Segregation | 10 s | 39 of 334 markers distorted after FDR correction (104 uncorrected), 295 kept |
+| 02 | Mendelian Segregation | 10 s | 37 of 334 markers distorted after FDR correction (95 uncorrected), 297 kept; a second, dense simulated RIL map (4,499 markers) shows three clear distortion regions (chr3, chr6, chr9) |
 | 03 | Linkage Mapping | 25 s | 345 markers read, 334 mapped, 11 faulty markers caught; 12 chromosomes |
 | 04 | QTL Mapping | 5 s per run | CIM finds the 2 planted Yield QTL (chr1, chr5); the control trait gives none |
 | 05 | QTL-Seq | 10 s | One QTL on chr2, 8.8-15.2 Mb, peak 11.9 Mb (planted: 12 Mb) |

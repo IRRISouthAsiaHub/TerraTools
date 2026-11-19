@@ -14,3 +14,12 @@ EXPECT  334 markers tested, none inconclusive (every marker has far more than 6 
         markers_LMready.xlsx: the passing markers (Marker, Chromosome, genotypes), ready to load in Linkage Mapping.
 
 OTHER POPULATIONS  Choose BC1P1 / BC1P2 (1:1), F2 (1:2:1), F3 (3:2:3) or F4 (7:2:7) for those generations: each has its own model, F1 is refused, and a marker with too few calls to reach alpha is reported as inconclusive (column call), neither distorted nor passed.
+
+SECOND DEMO (a dense map)  input/coded_genotypes_RIL_4k_simulated.csv   4,499 markers x 150 RILs on 12 rice-sized chromosomes, coded 0/1/2 with -1 missing. SIMULATED (docs/make_mendelian_4k_demo.py, fixed seed): a proper advanced-generation RIL, about 4 % missing, about 1 % heterozygous, with three segregation-distortion regions placed on purpose.
+        Same settings: Population type RIL, Alpha 0.05, FDR (BH), Missing codes NA, ., -9, -1.
+EXPECT  4,499 markers tested, none inconclusive; 7,075 heterozygous calls are not part of the test.
+        FDR (default):   156 flagged distorted, 4,343 pass. Distorted per chromosome: chr3 70 (about 21 to 29 Mb), chr9 50 (13 to 19 Mb), chr6 35 (10 to 15 Mb), chr2 1.
+        Bonferroni:       27 distorted, all on chr3 (the strongest region).
+        None (raw p):    571 distorted, spread over nine chromosomes: uncorrected testing flags far more markers by chance.
+        manhattan.png: flat near 0 on most chromosomes with three clear peaks, on chr3, chr6 and chr9, above the dashed cut-off (FDR: raw p 0.0017); heterozygosity.png: 0 to 5 % per marker (mean 1.1 %); rateplot.png: distortion concentrated on chr3, chr6 and chr9. Outputs are in expected_output/RIL_4k_simulated/.
+        Use this file to see what a normal RIL looks like. A population that is mostly one parent on every chromosome (for example a backcross-derived set run as RIL) shows almost every marker distorted; choose a type that fits the generation (see below) or treat the test only as a quality check.

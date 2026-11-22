@@ -1,0 +1,87 @@
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var TOOLS = window.TT_TOOLS, CATS = window.TT_CATS;
+  var catOf = function (id) { return CATS.filter(function (c) { return c.id === id; })[0]; };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+
+  /* ---------- nav ---------- */
+  var burger = $("#burger"), menu = $("#menu");
+  burger.addEventListener("click", function () {
+    var o = menu.classList.toggle("open");
+    burger.setAttribute("aria-expanded", o);
+  });
+  $$("a", menu).forEach(function (a) { a.addEventListener("click", function () { menu.classList.remove("open"); burger.setAttribute("aria-expanded", false); }); });
+
+  /* scroll reveal */
+  (function () {
+    var els = $$(".sec .wrap > *, .hero-text > *");
+    els.forEach(function (e) { e.classList.add("reveal"); });
+    if (!("IntersectionObserver" in window)) { els.forEach(function (e) { e.classList.add("in"); }); return; }
+    var io = new IntersectionObserver(function (en) { en.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add("in"); io.unobserve(x.target); } }); }, { threshold: .08 });
+    els.forEach(function (e) { io.observe(e); });
+    setTimeout(function () { els.forEach(function (e) { e.classList.add("in"); }); }, 2500);
+  })();
+
+  /* ---------- tool explorer ---------- */
+  var grid = $("#toolGrid"), chips = $("#catChips"), q = $("#q"), cat = "all", visible = TOOLS.slice();
+  function chipHtml(id, label, color, n) {
+    return '<button role="tab" data-c="' + id + '" aria-selected="' + (id === cat) + '"' + (color ? ' style="--c:' + color + '"' : '') + '>' + (color ? "<i></i>" : "") + esc(label) + " <b>" + n + "</b></button>";
+  }
+  chips.innerHTML = chipHtml("all", "All tools", "", TOOLS.length) + CATS.map(function (c) { return chipHtml(c.id, c.label, c.color, TOOLS.filter(function (t) { return t.cat === c.id; }).length); }).join("");
+  grid.innerHTML = TOOLS.map(function (t) {
+    return '<button class="card" data-id="' + t.id + '" style="--c:' + catOf(t.cat).color + '"><span class="num">' + t.n + '</span><h3>' + esc(t.name) + '</h3><p>' + esc(t.desc) +
+      '</p><span class="row"><span class="go">What it does &rarr;</span></span></button>';
+  }).join("");
+  function filter() {
+    var s = q.value.trim().toLowerCase();
+    visible = TOOLS.filter(function (t) { return (cat === "all" || t.cat === cat) && (!s || (t.name + " " + t.desc + " " + t.does.join(" ")).toLowerCase().indexOf(s) > -1); });
+    var ids = visible.map(function (t) { return t.id; });
+    $$(".card", grid).forEach(function (c) { c.classList.toggle("hide", ids.indexOf(c.dataset.id) < 0); });
+    $("#empty").hidden = visible.length > 0;
+  }
+  chips.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    cat = b.dataset.c; $$("button", chips).forEach(function (x) { x.setAttribute("aria-selected", x === b); }); filter();
+  });
+  q.addEventListener("input", filter);
+
+  /* tool dialog */
+  var modal = $("#modal"), card = $(".m-card", modal), cur = null, lastFocus = null;
+  function open(id, push) {
+    var t = TOOLS.filter(function (x) { return x.id === id; })[0]; if (!t) return;
+    cur = t; var c = catOf(t.cat);
+    modal.style.setProperty("--c", c.color);
+    $("#mImg").src = "assets/shots/" + t.id + ".jpg"; $("#mImg").alt = "The " + t.name + " tool in TerraTools";
+    $("#mTag").textContent = "#" + t.n + " · " + c.label; $("#mTag").style.setProperty("--c", c.color);
+    $("#mTitle").textContent = t.name; $("#mDesc").textContent = t.desc;
+    $("#mSee").innerHTML = t.does.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("");
+    $("#mZip").href = "downloads/demo/" + t.zip + ".zip";
+    lastFocus = document.activeElement; modal.hidden = false; document.body.style.overflow = "hidden"; card.focus();
+    if (push !== false) history.replaceState(null, "", "#tool=" + id);
+  }
+  function close() { modal.hidden = true; document.body.style.overflow = ""; history.replaceState(null, "", location.pathname + location.search + "#tools"); if (lastFocus) lastFocus.focus(); }
+  grid.addEventListener("click", function (e) { var c = e.target.closest(".card"); if (c) open(c.dataset.id); });
+  modal.addEventListener("click", function (e) { if (e.target.hasAttribute("data-close")) close(); });
+  $("#mNext").addEventListener("click", function () {
+    var list = visible.length ? visible : TOOLS, i = list.indexOf(cur); open(list[(i + 1) % list.length].id);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (modal.hidden) return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowRight") $("#mNext").click();
+    if (e.key === "Tab") { var f = $$("button,a[href]", card); if (!f.length) return; var a = f[0], z = f[f.length - 1]; if (e.shiftKey && document.activeElement === a) { e.preventDefault(); z.focus(); } else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); } }
+  });
+  var m = location.hash.match(/tool=([\w]+)/); if (m) open(m[1], false);
+
+  /* ---------- demo list ---------- */
+  $("#demoList").innerHTML = TOOLS.map(function (t) {
+    return '<a class="demo-row" style="--c:' + catOf(t.cat).color + '" href="downloads/demo/' + t.zip + '.zip" download><span class="num">' + t.n + '</span><div><b>' + esc(t.name) + '</b><small>' + esc(t.desc) + '</small></div><span class="z">ZIP</span></a>';
+  }).join("");
+
+  /* ---------- download ---------- */
+  $("#heroDl").addEventListener("click", function () { var d = $("#dlBtn"); setTimeout(function () { d.animate([{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], { duration: 700, iterations: 2 }); }, 500); });
+
+})();

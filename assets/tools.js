@@ -50,7 +50,7 @@ window.TT_TOOLS = [
     does: ["Compares BreedSight with Lasso, GBLUP_1 and RRBLUP_1 by cross-validation", "Training and validation accuracy for every model", "Predicts the breeding values of a test set", "Adjustable folds, epochs, trees and regularisation"] },
   { id: "ocs", n: 15, cat: "selection", name: "Optimal Cross Selection", zip: "15_Optimal_Cross_Selection",
     desc: "Chooses which crosses to make.",
-    does: ["Balances expected genetic gain against loss of diversity", "Uses allele dosage, marker effects and a genetic map (or a VCF) to predict the usefulness of every cross", "Limits how often a parent is used", "Usefulness-versus-diversity frontier and the list of crosses"] },
+    does: ["Balances expected genetic gain against loss of diversity", "Takes a phenotype file, a marker matrix and a genetic map (or a VCF); estimates the marker effects (rrBLUP)", "Calculates the MPV (mid-parent value) and the usefulness of every cross", "Limits how often a parent is used", "Usefulness-versus-diversity frontier and the list of crosses"] },
   { id: "heterosis", n: 16, cat: "selection", name: "Heterosis", zip: "16_Heterosis",
     desc: "Predicts hybrid performance from parental genotypes.",
     does: ["Neural-network prediction trained on genotyped, phenotyped lines", "Scores every hybrid between the candidate parents", "Ranks the best F1 combinations and the best parents", "Cross-validation summary of the model"] },

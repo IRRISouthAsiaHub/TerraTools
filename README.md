@@ -13,7 +13,7 @@ TerraTools is a free Windows desktop app from the International Rice Research In
 ## Download
 
 - **App (Windows 10/11, 64-bit):** [TerraTools_Setup.exe](https://github.com/IRRISouthAsiaHub/TerraTools/releases/latest/download/TerraTools_Setup.exe) from the [latest release](https://github.com/IRRISouthAsiaHub/TerraTools/releases/latest). About 1.6 GB.
-- **Demo input files:** one small set per tool, each runs in under five minutes (Gene Prioritization needs the internet and takes about three). Each zip has the input, the expected output and a README with the exact settings. Get them from the [website](https://irrisouthasiahub.github.io/TerraTools/#demo) or in [`downloads/`](downloads/).
+- **Demo input files:** one small set per tool, each runs in under five minutes (Gene Prioritization needs the internet and takes about three). Each zip has the input files only; the settings for every tool are in the manual. Get them from the [website](https://irrisouthasiahub.github.io/TerraTools/#demo) or in [`downloads/`](downloads/).
 - **Manual:** [`manual/TerraTools_Complete_Manual.pdf`](manual/TerraTools_Complete_Manual.pdf), and a 26-minute video tour on the website.
 
 ## What is in this repository
